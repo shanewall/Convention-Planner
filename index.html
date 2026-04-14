@@ -16,11 +16,12 @@
         #sidebar { width: 340px; background: var(--sidebar); padding: 15px; box-shadow: 4px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; z-index: 100; box-sizing: border-box; }
         .scroll-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
         
-        /* Sidebar Header Branding */
         .brand-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px; }
         h2 { margin: 0; color: var(--accent); font-size: 1.3em; }
         
-        /* Collapsible Tree CSS */
+        /* Fixed Tools Container */
+        .fixed-tools { border-bottom: 2px solid #444; padding-bottom: 15px; margin-bottom: 10px; flex-shrink: 0; }
+        
         .collapsible-header { 
             font-size: 0.75em; color: #888; text-transform: uppercase; margin: 15px 0 8px 0; 
             letter-spacing: 1px; border-left: 3px solid var(--accent); padding-left: 8px; 
@@ -32,31 +33,39 @@
         .collapsible-header.collapsed::after { transform: rotate(-90deg); }
         .collapsible-content { display: block; overflow: hidden; }
         
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
-        .tool-btn { padding: 10px; border: none; border-radius: 4px; cursor: pointer; background: #444; color: white; font-weight: 600; font-size: 0.75em; transition: 0.2s; text-align: center; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        /* Smaller buttons */
+        .tool-btn { padding: 7px; border: none; border-radius: 4px; cursor: pointer; background: #444; color: white; font-weight: 600; font-size: 0.7em; transition: 0.2s; text-align: center; }
         
         .tool-btn.report { background: #673ab7; }
         .tool-btn.layout { background: var(--success); }
         .tool-btn.danger { background: var(--danger); }
+        .tool-btn.undo-btn { background: #555; color: #ccc; }
+        .tool-btn.undo-btn:hover { background: #777; color: white; }
 
         .input-group { margin-bottom: 10px; }
         label { display: block; font-size: 0.7em; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         
-        input[type="text"], input[type="number"], select { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; box-sizing: border-box; font-size: 0.85em; outline: none; }
-        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type="number"] { -moz-appearance: textfield; }
+        input[type="text"], input[type="number"], select { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 6px; border-radius: 4px; box-sizing: border-box; font-size: 0.85em; outline: none; }
+        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
         ul.item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
-        .page-item { background: #333; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
+        .page-item { background: #333; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
         .page-item.active { background: var(--accent); border-color: white; }
         .page-item .page-name { flex-grow: 1; pointer-events: none; }
 
-        .area-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 10px; border-radius: 6px; border-left: 4px solid var(--success); }
+        .area-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 8px; border-radius: 6px; border-left: 4px solid var(--success); }
         .area-item.type-obs { border-left-color: var(--danger); }
-        .screen-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 10px; border-radius: 6px; border-left: 4px solid var(--screen); }
+        .screen-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 8px; border-radius: 6px; border-left: 4px solid var(--screen); }
         
-        .stats-summary { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-top: 2px solid var(--success); margin-top: 10px; }
-        .count-val { font-size: 1.8em; font-weight: bold; color: var(--success); display: block; }
+        /* Dynamic Profile Styles */
+        .profile-item { background: #2a2a35; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; gap: 6px; border: 1px solid #444; margin-bottom: 5px; }
+        .profile-item.active { border-color: var(--accent); background: #323245; }
+        .profile-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .profile-actions { display: flex; gap: 5px; }
+
+        .stats-summary { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-top: 2px solid var(--success); margin-top: 10px; flex-shrink: 0; }
         
         #viewport { flex-grow: 1; position: relative; background: #0b0b0f; overflow: hidden; cursor: none; }
         canvas { position: absolute; top: 0; left: 0; }
@@ -71,52 +80,23 @@
             .print-subtitle { font-size: 10pt; color: #666; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
             #print-layout-container { display: block !important; width: 100%; text-align: center; }
             
-            /* UPDATED CSS for Vector Print Wrapper - Forced Exact Colors */
-            #svg-print-wrapper svg { display: block; width: 100%; height: auto; max-height: 85vh; border: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #svg-print-wrapper svg { display: block; width: 100%; height: auto; max-height: 85vh; border: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; print-color-adjust: exact; }
             
             .summary-only #print-layout-container { display: none !important; }
             .summary-only #print-report-container { display: block !important; padding: 20px; }
             .layout-only #print-report-container { display: none !important; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; color: black; }
             th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-            th { background: #eee !important; -webkit-print-color-adjust: exact; }
+            th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             @page { size: auto; margin: 0.5in; }
         }
 
-        .icon-btn {
-            background: none;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            padding: 0;
-            font-size: 1em;
-        }
+        .icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 0; font-size: 1em; }
         .icon-btn:hover { color: white; }
-        .text-input-dark {
-            padding: 4px;
-            border: 1px solid #444;
-            background: #111;
-            color: white;
-            border-radius: 3px;
-            box-sizing: border-box;
-        }
-        .tool-btn.active {
-            background: var(--accent) !important;
-            outline: 2px solid white;
-            box-shadow: 0 0 10px rgba(255,255,255,0.35);
-        }
-
-        /* Language Menu Styles */
-        .lang-option {
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 0.85em;
-            transition: background 0.2s;
-            color: white;
-        }
-        .lang-option:hover {
-            background: var(--accent);
-        }
+        .text-input-dark { padding: 4px; border: 1px solid #444; background: #111; color: white; border-radius: 3px; box-sizing: border-box; }
+        .tool-btn.active { background: var(--accent) !important; outline: 2px solid white; box-shadow: 0 0 10px rgba(255,255,255,0.35); }
+        .lang-option { padding: 8px 16px; cursor: pointer; font-size: 0.85em; transition: background 0.2s; color: white; }
+        .lang-option:hover { background: var(--accent); }
     </style>
 </head>
 <body>
@@ -141,46 +121,59 @@
         </div>
     </div>
     
-    <div class="scroll-content">
-        <div class="input-group">
-            <input type="text" id="project-title" value="New Project" oninput="project.title=this.value; hasUnsavedChanges=true;">
-        </div>
-        <div class="btn-group">
+    <div class="fixed-tools">
+        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
             <button class="tool-btn" id="ui-save" style="background:#2980b9" onclick="saveProject()">Save JSON</button>
             <button class="tool-btn" id="ui-open" style="background:#8e44ad" onclick="document.getElementById('load-input').click()">Open JSON</button>
             <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadProject(this)">
         </div>
+        
+        <div class="btn-group" style="grid-template-columns: 1fr 1fr 1fr;">
+            <button class="tool-btn" id="btn-draw-area">Area</button>
+            <button class="tool-btn" id="btn-draw-obs">Obstacle</button>
+            <button class="tool-btn" id="btn-draw-screen">Screen</button>
+        </div>
+        
+        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
+            <button class="tool-btn undo-btn" onclick="undo()" title="Undo Action">↶ Undo</button>
+            <button class="tool-btn undo-btn" onclick="redo()" title="Redo Action">↷ Redo</button>
+        </div>
+
+        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
+            <button class="tool-btn report" id="ui-summary" onclick="printReport('summary')">Summary</button>
+            <button class="tool-btn layout" id="ui-print" onclick="printReport('layout')">Print Layout</button>
+        </div>
+        
+        <div id="dynamic-draft-mode" style="margin-top: 5px;"></div>
+    </div>
+    
+    <div class="scroll-content">
+        <div class="input-group">
+            <input type="text" id="project-title" value="New Project" oninput="project.title=this.value; hasUnsavedChanges=true;">
+        </div>
 
         <h3 class="collapsible-header" id="header-pages" onclick="toggleSection('pages')">Layout Pages</h3>
         <div class="collapsible-content" id="content-pages">
-            <ul class="item-list" id="page-list"></ul>
-            <button class="tool-btn add-page" id="ui-new-page" onclick="addNewPage()" style="margin-top:5px; width:100%;">+ New Page</button>
-        </div>
-
-        <h3 class="collapsible-header" id="header-tools" onclick="toggleSection('tools')">Active Layout Tools</h3>
-        <div class="collapsible-content" id="content-tools">
             <div class="input-group">
                 <label id="upload-label">Upload Image or PDF</label>
                 <input type="file" id="upload" accept="image/*, .pdf" onchange="handleImageUpload(this)">
             </div>
-            
-            <div class="btn-group">
+            <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
                 <button class="tool-btn" id="btn-calibrate">Set Scale</button>
-                <button class="tool-btn" id="btn-draw-area">Add Area</button>
-                <button class="tool-btn" id="btn-draw-obs">Add Obstacle</button>
-                <button class="tool-btn" id="btn-draw-screen">Add Screen</button>
                 <button class="tool-btn danger" id="ui-del-page" onclick="deleteCurrentPage()">Del Page</button>
-                <button class="tool-btn report" id="ui-summary" onclick="printReport('summary')">Summary Report</button>
-                <button class="tool-btn layout" id="ui-print" onclick="printReport('layout')" style="grid-column: span 2;">Print Full Layout</button>
             </div>
-            
-            <div id="dynamic-seat-tools"></div>
+            <ul class="item-list" id="page-list"></ul>
+            <button class="tool-btn add-page" id="ui-new-page" onclick="addNewPage()" style="margin-top:5px; width:100%;">+ New Page</button>
+        </div>
+
+        <h3 class="collapsible-header" id="header-seats" onclick="toggleSection('seats')">Seat Profiles</h3>
+        <div class="collapsible-content" id="content-seats">
+            <ul class="item-list" id="seat-type-list"></ul>
+            <button class="tool-btn" id="ui-add-seat-type" onclick="addSeatType()" style="margin-top:5px; width:100%;">+ Add Seat Profile</button>
         </div>
         
         <h3 class="collapsible-header" id="header-screens" onclick="toggleSection('screens')">Screens (Sightlines)</h3>
         <div class="collapsible-content" id="content-screens">
-            <div id="dynamic-draft-mode"></div>
-            
             <ul class="item-list" id="screen-list"></ul>
             <div id="no-screens-msg" style="color:#888; font-size:0.8em; font-style:italic; text-align:center; padding:10px 0; display:none;">No screens added yet.</div>
         </div>
@@ -210,7 +203,7 @@
 <div id="print-layout-container">
     <div class="print-header">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact;">
+            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
             <div>
                 <h1 id="lay-title-print">Layout</h1>
                 <div class="print-subtitle">Convention Planner</div>
@@ -218,14 +211,13 @@
         </div>
         <span id="lay-date-print" style="font-weight: bold; font-size: 11pt;"></span>
     </div>
-    
     <div id="svg-print-wrapper"></div>
 </div>
 
 <div id="print-report-container">
     <div class="print-header">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact;">
+            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
             <div>
                 <h1 id="rpt-title-print">Project Summary</h1>
                 <div class="print-subtitle">Convention Planner</div>
@@ -241,10 +233,8 @@
 </div>
 
 <script>
-    // Initialize PDF.js worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    // TRANSLATION DICTIONARY
     let currentLang = 'en';
 
     const translations = {
@@ -254,22 +244,22 @@
             openJSON: "Open JSON",
             headerPages: "Layout Pages",
             btnNewPage: "+ New Page",
-            headerTools: "Active Layout Tools",
             uploadLabel: "Upload Image or PDF",
             uploadProcessing: "Processing...",
             btnCalibrate: "Set Scale",
-            btnAddArea: "Add Area",
-            btnAddObs: "Add Obstacle",
-            btnAddScreen: "Add Screen",
+            btnAddArea: "Area",
+            btnAddObs: "Obstacle",
+            btnAddScreen: "Screen",
             btnDelPage: "Del Page",
-            btnSummary: "Summary Report",
-            btnPrint: "Print Full Layout",
-            labelActiveSeat: "Active Seat Type",
+            btnSummary: "Summary",
+            btnPrint: "Print Layout",
+            headerSeats: "Seat Profiles",
+            btnAddSeatType: "+ Add Seat Profile",
             labelRename: "✎ Rename",
-            labelChairW: "Chair W (ft)",
-            labelRowD: "Row D (ft)",
+            labelChairW: "Width (ft)",
+            labelRowD: "Depth (ft)",
             headerScreens: "Screens (Sightlines)",
-            labelDraft: "⚡ Draft Mode (Fast)",
+            labelDraft: "⚡ Draft Mode",
             msgNoScreens: "No screens added yet.",
             headerAreas: "Seating Areas",
             headerObs: "Obstacles",
@@ -279,8 +269,9 @@
             pageNamePrompt: "Page Name?",
             seatNamePrompt: "Enter name for this seat type profile:",
             calibPrompt: "Distance in feet:",
-            delPageConfirm: "Are you sure you want to delete this page? This action cannot be undone.",
-            delPageError: "You cannot delete the last remaining page in the project.",
+            delPageConfirm: "Delete this page?",
+            delPageError: "Cannot delete the last page.",
+            errInUse: "Cannot delete: This profile is currently in use on the map.",
             pdfError: "Error loading PDF: ",
             printTitleSuffix: " - Project Summary",
             printTotalGroup: " Group",
@@ -297,42 +288,43 @@
             openJSON: "Abrir JSON",
             headerPages: "Páginas de Diseño",
             btnNewPage: "+ Nueva Pág",
-            headerTools: "Herramientas de Diseño",
             uploadLabel: "Subir Imagen o PDF",
             uploadProcessing: "Procesando...",
-            btnCalibrate: "Fijar Escala",
-            btnAddArea: "Añadir Área",
-            btnAddObs: "Añadir Obstáculo",
-            btnAddScreen: "Añadir Pantalla",
+            btnCalibrate: "Escala",
+            btnAddArea: "Área",
+            btnAddObs: "Obstáculo",
+            btnAddScreen: "Pantalla",
             btnDelPage: "Eliminar Pág",
-            btnSummary: "Reporte Resumen",
+            btnSummary: "Resumen",
             btnPrint: "Imprimir Diseño",
-            labelActiveSeat: "Tipo de Asiento",
+            headerSeats: "Perfiles de Asientos",
+            btnAddSeatType: "+ Añadir Asiento",
             labelRename: "✎ Renombrar",
-            labelChairW: "Ancho Silla (ft)",
-            labelRowD: "Profundidad Fila (ft)",
-            headerScreens: "Pantallas (Líneas)",
-            labelDraft: "⚡ Modo Borrador (Rápido)",
-            msgNoScreens: "No se han añadido pantallas.",
-            headerAreas: "Áreas de Asientos",
+            labelChairW: "Ancho (ft)",
+            labelRowD: "Profundidad (ft)",
+            headerScreens: "Pantallas",
+            labelDraft: "⚡ Modo Borrador",
+            msgNoScreens: "Sin pantallas.",
+            headerAreas: "Áreas",
             headerObs: "Obstáculos",
-            scaleNotSet: "Escala: No Establecida",
+            scaleNotSet: "Escala: No Set",
             scalePrefix: "Escala: ",
             labelTotal: "Total:",
-            pageNamePrompt: "¿Nombre de la página?",
-            seatNamePrompt: "Ingrese nombre para este perfil de asiento:",
-            calibPrompt: "Distancia en pies (ft):",
-            delPageConfirm: "¿Estás seguro de que deseas eliminar esta página? Esta acción no se puede deshacer.",
-            delPageError: "No puedes eliminar la última página restante en el proyecto.",
-            pdfError: "Error al cargar PDF: ",
-            printTitleSuffix: " - Reporte Resumen",
+            pageNamePrompt: "¿Nombre?",
+            seatNamePrompt: "Nombre perfil:",
+            calibPrompt: "Pies (ft):",
+            delPageConfirm: "¿Eliminar?",
+            delPageError: "No puedes eliminar la única página.",
+            errInUse: "No se puede eliminar: El perfil está en uso en el mapa.",
+            pdfError: "Error PDF: ",
+            printTitleSuffix: " - Resumen",
             printTotalGroup: " Grupo",
             printSubtotal: " Subtotal:",
             printTotalType: "TOTAL ",
-            printGrandTotal: "GRAN TOTAL DE SILLAS",
-            pageTotalsHeader: "TOTALES DE PÁGINA",
-            sectionNameCol: "Nombre de Sección",
-            countCol: "Cantidad"
+            printGrandTotal: "GRAN TOTAL",
+            pageTotalsHeader: "TOTALES PÁGINA",
+            sectionNameCol: "Sección",
+            countCol: "Count"
         }
     };
 
@@ -352,23 +344,67 @@
         pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [] }]
     };
 
-    let uiState = { pages: true, tools: true, screens: true, areas: true, obs: true, draftMode: false };
+    let uiState = { pages: true, seats: true, screens: true, areas: true, obs: true, draftMode: false };
     let view = { x: 0, y: 0, zoom: 1 };
     let mode = 'idle', currentPoints = [], calPoint = null;
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
     let bgImage = new Image();
     
-    // ORTHO SNAPPING STATE
-    let isShiftDown = false;
-    window.addEventListener('keydown', e => { if (e.key === 'Shift') { isShiftDown = true; render(); } });
-    window.addEventListener('keyup', e => { if (e.key === 'Shift') { isShiftDown = false; render(); } });
+    // UNDO/REDO LOGIC
+    let undoStack = [];
+    let redoStack = [];
 
-    // GLOBAL CLICK LISTENER FOR LANGUAGE MENU
+    function saveState() {
+        const page = getActivePage();
+        const state = JSON.stringify({
+            shapes: page.shapes,
+            screens: page.screens
+        });
+        undoStack.push(state);
+        if (undoStack.length > 30) undoStack.shift(); 
+        redoStack = [];
+        hasUnsavedChanges = true;
+    }
+
+    function undo() {
+        if (undoStack.length === 0) return;
+        const page = getActivePage();
+        redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens }));
+        
+        const prevState = JSON.parse(undoStack.pop());
+        page.shapes = prevState.shapes;
+        page.screens = prevState.screens;
+        
+        markSeatCachesDirty();
+        updateUI();
+        render();
+    }
+
+    function redo() {
+        if (redoStack.length === 0) return;
+        const page = getActivePage();
+        undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens }));
+        
+        const nextState = JSON.parse(redoStack.pop());
+        page.shapes = nextState.shapes;
+        page.screens = nextState.screens;
+        
+        markSeatCachesDirty();
+        updateUI();
+        render();
+    }
+    
+    let isShiftDown = false;
+    window.addEventListener('keydown', e => { 
+        if (e.key === 'Shift') isShiftDown = true; 
+        if (e.ctrlKey && e.key === 'z') undo();
+        if (e.ctrlKey && e.key === 'y') redo();
+    });
+    window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
+
     window.addEventListener('click', () => {
         const menu = document.getElementById('lang-menu');
-        if (menu && menu.style.display === 'block') {
-            menu.style.display = 'none';
-        }
+        if (menu && menu.style.display === 'block') menu.style.display = 'none';
     });
 
     function toggleLangMenu(event) {
@@ -377,42 +413,27 @@
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
     }
     
-    const COLORS = {
-        screen: getComputedStyle(document.documentElement).getPropertyValue('--screen').trim(),
-        success: getComputedStyle(document.documentElement).getPropertyValue('--success').trim(),
-        danger: getComputedStyle(document.documentElement).getPropertyValue('--danger').trim()
-    };
-    
+    const COLORS = { screen: '#e67e22', success: '#2ecc71', danger: '#e74c3c' };
     let hasUnsavedChanges = false;
 
     window.addEventListener('beforeunload', function (e) {
-        if (hasUnsavedChanges) {
-            e.preventDefault();
-            e.returnValue = ''; 
-        }
+        if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    function setLanguage(lang) {
-        currentLang = lang;
-        document.getElementById('lang-menu').style.display = 'none';
-        applyTranslations();
-    }
+    function setLanguage(lang) { currentLang = lang; applyTranslations(); }
 
     function applyTranslations() {
         const t = translations[currentLang];
-        
         document.getElementById('ui-title').innerText = t.title;
         document.getElementById('ui-save').innerText = t.saveJSON;
         document.getElementById('ui-open').innerText = t.openJSON;
         document.getElementById('ui-new-page').innerText = t.btnNewPage;
-        
         document.getElementById('header-pages').innerText = t.headerPages;
-        document.getElementById('header-tools').innerText = t.headerTools;
+        document.getElementById('header-seats').innerText = t.headerSeats;
         document.getElementById('header-screens').innerText = t.headerScreens;
         document.getElementById('header-areas').innerText = t.headerAreas;
         document.getElementById('header-obs').innerText = t.headerObs;
         document.getElementById('ui-page-totals-header').innerText = t.pageTotalsHeader;
-        
         document.getElementById('btn-calibrate').innerText = t.btnCalibrate;
         document.getElementById('btn-draw-area').innerText = t.btnAddArea;
         document.getElementById('btn-draw-obs').innerText = t.btnAddObs;
@@ -420,16 +441,7 @@
         document.getElementById('ui-del-page').innerText = t.btnDelPage;
         document.getElementById('ui-summary').innerText = t.btnSummary;
         document.getElementById('ui-print').innerText = t.btnPrint;
-        
-        document.getElementById('no-screens-msg').innerText = t.msgNoScreens;
-        
-        if (document.getElementById('upload-label').innerText !== translations['en'].uploadProcessing && 
-            document.getElementById('upload-label').innerText !== translations['es'].uploadProcessing) {
-            document.getElementById('upload-label').innerText = t.uploadLabel;
-        }
-
-        document.getElementById('rpt-table-header').innerHTML = `<th>${t.sectionNameCol}</th><th>${t.countCol}</th>`;
-        
+        document.getElementById('ui-add-seat-type').innerText = t.btnAddSeatType;
         updateUI();
         render(); 
     }
@@ -446,27 +458,27 @@
         render();
     }
 
-    function getActivePage() { 
-        let p = project.pages[project.activePageIndex];
-        if(!p.screens) p.screens = []; 
-        return p; 
-    }
+    function getActivePage() { return project.pages[project.activePageIndex]; }
 
-    function toggleSection(sec) {
-        uiState[sec] = !uiState[sec];
-        updateUI();
-    }
+    function toggleSection(sec) { uiState[sec] = !uiState[sec]; updateUI(); }
 
-    function updateSeatType(prop, val) {
-        project.seatTypes[project.activeSeatType][prop] = parseFloat(val) || 0;
-        markSeatCachesDirty();
-        hasUnsavedChanges = true;
-        render();
-    }
-
-    function renameSeatType() {
+    // --- DYNAMIC SEAT PROFILES ---
+    function addSeatType() {
         const t = translations[currentLang];
-        const st = project.seatTypes[project.activeSeatType];
+        const n = prompt(t.seatNamePrompt, "New Seat");
+        if(n) {
+            const colors = ['#2ecc71', '#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e67e22'];
+            const c = colors[project.seatTypes.length % colors.length];
+            project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' });
+            project.activeSeatType = project.seatTypes.length - 1;
+            hasUnsavedChanges = true;
+            updateUI();
+        }
+    }
+
+    function editSeatType(index) {
+        const t = translations[currentLang];
+        const st = project.seatTypes[index];
         const newName = prompt(t.seatNamePrompt, st.name);
         if (newName && newName.trim() !== "") {
             st.name = newName.trim();
@@ -476,66 +488,93 @@
         }
     }
 
+    function deleteSeatType(index) {
+        const t = translations[currentLang];
+        if(project.seatTypes.length <= 1) {
+            alert("You must have at least one seat profile active.");
+            return;
+        }
+        let inUse = false;
+        project.pages.forEach(p => {
+            if(p.shapes) p.shapes.forEach(s => {
+                if(s.type === 'area' && (s.seatTypeIndex === index || (s.seatTypeIndex === undefined && index === 0))) inUse = true;
+            });
+        });
+        if(inUse) {
+            alert(t.errInUse);
+            return;
+        }
+        if(confirm("Delete this seat profile?")) {
+            project.seatTypes.splice(index, 1);
+            project.pages.forEach(p => {
+                if(p.shapes) p.shapes.forEach(s => {
+                    if(s.type === 'area' && s.seatTypeIndex > index) s.seatTypeIndex--;
+                });
+            });
+            if(project.activeSeatType >= project.seatTypes.length) project.activeSeatType = Math.max(0, project.seatTypes.length - 1);
+            hasUnsavedChanges = true;
+            markSeatCachesDirty();
+            updateUI();
+            render();
+        }
+    }
+
+    function updateSeatProp(idx, prop, val) {
+        project.seatTypes[idx][prop] = parseFloat(val) || 0;
+        markSeatCachesDirty();
+        hasUnsavedChanges = true;
+        render();
+    }
+
     function updateUI() {
         const t = translations[currentLang];
-
-        ['pages', 'tools', 'screens', 'areas', 'obs'].forEach(sec => {
+        ['pages', 'seats', 'screens', 'areas', 'obs'].forEach(sec => {
             const head = document.getElementById(`header-${sec}`);
             const cont = document.getElementById(`content-${sec}`);
-            if (uiState[sec]) {
-                head.classList.remove('collapsed');
-                cont.style.display = 'block';
-            } else {
-                head.classList.add('collapsed');
-                cont.style.display = 'none';
-            }
+            cont.style.display = uiState[sec] ? 'block' : 'none';
+            uiState[sec] ? head.classList.remove('collapsed') : head.classList.add('collapsed');
         });
 
         document.getElementById('project-title').value = project.title;
         
-        document.getElementById('dynamic-seat-tools').innerHTML = `
-            <div class="input-group" style="background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; border:1px solid #444; margin-top:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <label style="margin:0; color:var(--accent);">${t.labelActiveSeat}</label>
-                    <button class="icon-btn" style="font-size:0.8em;" onclick="renameSeatType()">${t.labelRename}</button>
-                </div>
-                <select id="seat-type-select" style="margin-bottom:8px;" onchange="project.activeSeatType=parseInt(this.value); updateUI();"></select>
-                <div style="display:flex; gap:5px;">
-                    <div>
-                        <label>${t.labelChairW}</label>
-                        <input type="number" id="type-w" step="0.1" value="${project.seatTypes[project.activeSeatType].w}" oninput="updateSeatType('w', this.value)">
-                    </div>
-                    <div>
-                        <label>${t.labelRowD}</label>
-                        <input type="number" id="type-d" step="0.1" value="${project.seatTypes[project.activeSeatType].d}" oninput="updateSeatType('d', this.value)">
-                    </div>
-                </div>
+        document.getElementById('dynamic-draft-mode').innerHTML = `
+            <div style="background:rgba(241,196,15,0.1); padding:8px 10px; border-radius:4px; border:1px solid rgba(241,196,15,0.3); display:flex; justify-content:space-between; align-items:center;">
+                <label style="color:var(--warning); margin:0;">${t.labelDraft}</label>
+                <input type="checkbox" ${uiState.draftMode ? 'checked' : ''} onchange="uiState.draftMode=this.checked; render();" style="width:auto;">
             </div>`;
 
-        const typeSelect = document.getElementById('seat-type-select');
-        typeSelect.innerHTML = '';
+        // Seat Manager List
+        const seatListEl = document.getElementById('seat-type-list');
+        seatListEl.innerHTML = '';
         project.seatTypes.forEach((st, i) => {
-            const opt = document.createElement('option');
-            opt.value = i; opt.innerText = st.name;
-            if(i === project.activeSeatType) opt.selected = true;
-            typeSelect.appendChild(opt);
+            const isAct = (i === project.activeSeatType) ? 'active' : '';
+            seatListEl.innerHTML += `
+                <li class="profile-item ${isAct}" onclick="project.activeSeatType=${i}; updateUI();">
+                    <div class="profile-header">
+                        <span style="color:${st.stroke};">■ ${st.name}</span>
+                        <div class="profile-actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); editSeatType(${i})">✎</button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); deleteSeatType(${i})">✕</button>
+                        </div>
+                    </div>
+                    ${isAct ? `
+                    <div style="display:flex; gap:5px; margin-top:4px;">
+                        <div>
+                            <label>${t.labelChairW}</label>
+                            <input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)">
+                        </div>
+                        <div>
+                            <label>${t.labelRowD}</label>
+                            <input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)">
+                        </div>
+                    </div>` : ''}
+                </li>`;
         });
 
-        document.getElementById('dynamic-draft-mode').innerHTML = `
-            <div style="background:rgba(241, 196, 15, 0.1); padding:8px 10px; border-radius:4px; border:1px solid rgba(241, 196, 15, 0.3); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                <label style="margin:0; color:var(--warning); text-transform:none; font-weight:bold; cursor:help;">${t.labelDraft}</label>
-                <input type="checkbox" id="draft-mode" ${uiState.draftMode ? 'checked' : ''} onchange="uiState.draftMode=this.checked; render();" style="width:auto; cursor:pointer;">
-            </div>`;
-
-        const pageListEl = document.getElementById('page-list');
-        pageListEl.innerHTML = '';
+        const pageListEl = document.getElementById('page-list'); pageListEl.innerHTML = '';
         project.pages.forEach((p, i) => {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === project.activePageIndex ? 'active' : ''}`;
-            li.innerHTML = `
-                <span class="page-name">${p.name}</span>
-                <button class="icon-btn" title="${t.labelRename}" style="font-size:1.1em; color:inherit;" onclick="event.stopPropagation(); renamePage(${i})">✎</button>
-            `;
+            const li = document.createElement('li'); li.className = `page-item ${i === project.activePageIndex ? 'active' : ''}`;
+            li.innerHTML = `<span class="page-name">${p.name}</span>`;
             li.onclick = () => switchPage(i);
             pageListEl.appendChild(li);
         });
@@ -543,81 +582,57 @@
         const screenListEl = document.getElementById('screen-list');
         const emptyMsg = document.getElementById('no-screens-msg');
         screenListEl.innerHTML = '';
-        
         const currentScreens = getActivePage().screens;
         if (currentScreens.length === 0) {
             emptyMsg.style.display = 'block';
         } else {
             emptyMsg.style.display = 'none';
             currentScreens.forEach((s, i) => {
-                if (s.radius === undefined) s.radius = 60; 
-                if (!s.name) s.name = "Screen " + (i + 1);
-                
-                const li = document.createElement('li');
-                li.className = `screen-item`;
-                li.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <label style="color:white; font-size:1em; text-transform:none; margin:0; display:flex; align-items:center; gap:5px; width:100%;">
-                            <input type="checkbox" ${s.active?'checked':''} onchange="project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); render(); hasUnsavedChanges=true;">
-                            <input type="text" class="text-input-dark" value="${s.name}" oninput="project.pages[${project.activePageIndex}].screens[${i}].name=this.value; render(); hasUnsavedChanges=true;" style="flex-grow:1; margin-right:5px;">
-                        </label>
-                        <button class="icon-btn" onclick="deleteScreen(${i})">✕</button>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                        <div>
-                            <label>Angle (°)</label>
-                            <input type="number" value="${s.rot}" oninput="project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render(); hasUnsavedChanges=true;">
+                screenListEl.innerHTML += `
+                    <li class="screen-item">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <label style="color:white; margin:0; display:flex; align-items:center; gap:5px; width:100%;">
+                                <input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); render();">
+                                <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
+                            </label>
+                            <button class="icon-btn" onclick="deleteScreen(${i})">✕</button>
                         </div>
-                        <div>
-                            <label>Dist (ft)</label>
-                            <input type="number" value="${s.radius}" oninput="project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); render(); hasUnsavedChanges=true;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                            <div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render();"></div>
+                            <div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); render();"></div>
                         </div>
-                    </div>`;
-                screenListEl.appendChild(li);
+                    </li>`;
             });
         }
 
         const areaListEl = document.getElementById('area-list');
         const obsListEl = document.getElementById('obs-list');
-        areaListEl.innerHTML = '';
-        obsListEl.innerHTML = '';
-        
+        areaListEl.innerHTML = ''; obsListEl.innerHTML = '';
         getActivePage().shapes.forEach((s, i) => {
-            const li = document.createElement('li');
             if (s.type === 'area') {
                 const sTypeIdx = s.seatTypeIndex ?? 0;
                 const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
-                
                 let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
                 
-                li.className = `area-item type-area`;
-                li.style.borderLeftColor = strokeColor;
-                li.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <input type="text" class="text-input-dark" value="${s.name}" oninput="project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render(); hasUnsavedChanges=true;" style="flex-grow:1; margin-right:5px;">
-                        <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                        <div>
-                            <label>Rotation</label>
-                            <input type="number" value="${s.rot}" oninput="project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render(); hasUnsavedChanges=true;">
+                areaListEl.innerHTML += `
+                    <li class="area-item" style="border-left-color: ${strokeColor};">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
+                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
                         </div>
-                        <div>
-                            <label>Profile</label>
-                            <select onchange="project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); render(); hasUnsavedChanges=true; updateUI();" style="padding: 6px;">
-                                ${typeOptions}
-                            </select>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                            <div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render();"></div>
+                            <div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); render(); updateUI();" style="padding: 6px;">${typeOptions}</select></div>
                         </div>
-                    </div>`;
-                areaListEl.appendChild(li);
+                    </li>`;
             } else {
-                li.className = `area-item type-obs`;
-                li.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <input type="text" class="text-input-dark" value="${s.name}" oninput="project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render(); hasUnsavedChanges=true;" style="flex-grow:1; margin-right:5px;">
-                        <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                    </div>`;
-                obsListEl.appendChild(li);
+                obsListEl.innerHTML += `
+                    <li class="area-item type-obs">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
+                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
+                        </div>
+                    </li>`;
             }
         });
 
@@ -625,17 +640,9 @@
         document.getElementById('scale-info').innerText = scale ? `${t.scalePrefix}${scale.toFixed(2)} px/ft` : t.scaleNotSet;
     }
 
-    function renamePage(index) {
-        const newName = prompt(translations[currentLang].pageNamePrompt, project.pages[index].name);
-        if (newName && newName.trim() !== "") {
-            project.pages[index].name = newName.trim();
-            hasUnsavedChanges = true;
-            updateUI();
-        }
-    }
-
     function switchPage(index) {
         project.activePageIndex = index;
+        undoStack = []; redoStack = []; // Clear history on page switch
         const page = getActivePage();
         if (page.imgData) {
             bgImage = new Image();
@@ -646,10 +653,7 @@
                 render();
             };
             bgImage.src = page.imgData;
-        } else {
-            bgImage = new Image();
-            render();
-        }
+        } else { bgImage = new Image(); render(); }
         updateUI();
     }
 
@@ -657,48 +661,14 @@
         const t = translations[currentLang];
         const file = input.files[0];
         if (!file) return;
-
-        const label = document.getElementById('upload-label');
-        label.innerText = t.uploadProcessing;
-
-        if (file.type === 'application/pdf') {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const typedarray = new Uint8Array(e.target.result);
-                try {
-                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                    const page = await pdf.getPage(1); 
-                    const scale = 3.0; 
-                    const viewport = page.getViewport({ scale: scale });
-                    
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.height = viewport.height;
-                    tempCanvas.width = viewport.width;
-                    
-                    const renderContext = { canvasContext: tempCtx, viewport: viewport };
-                    await page.render(renderContext).promise;
-                    
-                    getActivePage().imgData = tempCanvas.toDataURL('image/png');
-                    hasUnsavedChanges = true;
-                    switchPage(project.activePageIndex);
-                } catch (err) {
-                    alert(t.pdfError + err.message);
-                }
-                label.innerText = t.uploadLabel;
-            };
-            reader.readAsArrayBuffer(file);
-        } else {
-            const reader = new FileReader();
-            reader.onload = (e) => { 
-                getActivePage().imgData = e.target.result; 
-                hasUnsavedChanges = true;
-                switchPage(project.activePageIndex); 
-                label.innerText = t.uploadLabel;
-            };
-            reader.readAsDataURL(file);
-        }
-        input.value = ""; 
+        const label = document.getElementById('upload-label'); label.innerText = t.uploadProcessing;
+        const reader = new FileReader();
+        reader.onload = (e) => { 
+            getActivePage().imgData = e.target.result; 
+            switchPage(project.activePageIndex); 
+            label.innerText = t.uploadLabel;
+        };
+        reader.readAsDataURL(file);
     }
 
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
@@ -710,47 +680,36 @@
     canvas.onwheel = (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const m = getMousePos(e);
-        const world = toWorld(m);
+        const m = getMousePos(e); const world = toWorld(m);
         view.zoom *= delta;
-        view.x = m.x - world.x * view.zoom;
-        view.y = m.y - world.y * view.zoom;
+        view.x = m.x - world.x * view.zoom; view.y = m.y - world.y * view.zoom;
         render();
     };
 
     canvas.onmousedown = (e) => {
-        const t = translations[currentLang];
         let world = toWorld(getMousePos(e));
+        if (e.button !== 0) { isPanning = true; lastMouse = getMousePos(e); return; }
         
-        // ORTHO SNAPPING FOR DRAWING
         if (isShiftDown && currentPoints.length > 0 && mode.startsWith('draw-')) {
             const last = currentPoints[currentPoints.length - 1];
             if (Math.abs(world.x - last.x) > Math.abs(world.y - last.y)) world.y = last.y;
             else world.x = last.x;
         }
 
-        if (e.button === 1 || e.button === 2) { isPanning = true; lastMouse = getMousePos(e); return; }
-        
         if (mode === 'calibrate') {
-            if (!calPoint) { calPoint = world; }
+            if (!calPoint) calPoint = world;
             else {
-                const ft = prompt(t.calibPrompt);
-                if (ft) {
-                    getActivePage().pixelsPerFoot = Math.hypot(world.x - calPoint.x, world.y - calPoint.y) / parseFloat(ft);
-                    markSeatCachesDirty();
-                    hasUnsavedChanges = true;
-                }
+                const ft = prompt(translations[currentLang].calibPrompt);
+                if (ft) getActivePage().pixelsPerFoot = Math.hypot(world.x - calPoint.x, world.y - calPoint.y) / parseFloat(ft);
                 calPoint = null; setMode('idle');
             }
         } else if (mode === 'draw-screen') {
+            saveState();
             let sNum = getActivePage().screens.length + 1;
             getActivePage().screens.push({ x: world.x, y: world.y, rot: 90, active: true, radius: 60, name: "Screen " + sNum });
             markSeatCachesDirty();
-            hasUnsavedChanges = true;
             setMode('idle');
-        } else if (mode.startsWith('draw')) { 
-            currentPoints.push(world); 
-        }
+        } else if (mode.startsWith('draw')) currentPoints.push(world);
         render();
     };
 
@@ -763,10 +722,10 @@
     window.onmouseup = () => isPanning = false;
     canvas.ondblclick = () => {
         if (currentPoints.length > 2 && mode.startsWith('draw-')) {
+            saveState();
             let defaultName = mode === 'draw-area' ? "Area " + (document.querySelectorAll('.type-area').length + 1) : "Obstacle " + (document.querySelectorAll('.type-obs').length + 1);
             getActivePage().shapes.push({ type: mode==='draw-area'?'area':'obs', points: [...currentPoints], name: defaultName, rot: 0, count: 0, seatTypeIndex: project.activeSeatType ?? 0 });
             markSeatCachesDirty();
-            hasUnsavedChanges = true;
         }
         setMode('idle');
     };
@@ -784,268 +743,144 @@
         if (bottom === 0) return false;
         const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
         const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y);
-        const t = tTop / bottom;
-        const u = uTop / bottom;
+        const t = tTop / bottom; const u = uTop / bottom;
         return (t >= 0 && t <= 1 && u >= 0 && u <= 1);
     }
 
     function isInCone(pt, sc, radiusPixels) {
-        const dx = pt.x - sc.x;
-        const dy = pt.y - sc.y;
+        const dx = pt.x - sc.x; const dy = pt.y - sc.y;
         if (Math.hypot(dx, dy) > radiusPixels) return false;
         let angle = Math.atan2(dy, dx) * 180 / Math.PI;
         if (angle < 0) angle += 360;
-        let sRot = sc.rot % 360;
-        if (sRot < 0) sRot += 360;
+        let sRot = sc.rot % 360; if (sRot < 0) sRot += 360;
         let diff = Math.abs(angle - sRot);
         if (diff > 180) diff = 360 - diff;
         return diff <= 60; 
     }
 
-    function getBounds(points) {
-        return {
-            minX: Math.min(...points.map(p => p.x)),
-            maxX: Math.max(...points.map(p => p.x)),
-            minY: Math.min(...points.map(p => p.y)),
-            maxY: Math.max(...points.map(p => p.y))
-        };
-    }
-
     function markSeatCachesDirty() {
-        project.pages.forEach(page => {
-            page.shapes.forEach(shape => {
-                if (shape.type === 'area') {
-                    shape.cacheDirty = true;
-                }
-            });
-        });
+        project.pages.forEach(p => p.shapes.forEach(s => s.cacheDirty = true));
     }
 
     function rebuildSeatCache(area, page) {
-        area.cachedSeats = [];
-        area.count = 0;
+        area.cachedSeats = []; area.count = 0;
+        const st = project.seatTypes[area.seatTypeIndex ?? 0] || project.seatTypes[0];
+        if (!page.pixelsPerFoot) return;
+        const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
+        const rotRad = (area.rot || 0) * Math.PI/180;
+        const cos = Math.cos(-rotRad); const sin = Math.sin(-rotRad);
+        const lPts = area.points.map(p => ({ x: p.x*cos - p.y*sin, y: p.x*sin + p.y*cos }));
+        const minX = Math.min(...lPts.map(p=>p.x)); const maxX = Math.max(...lPts.map(p=>p.x));
+        const minY = Math.min(...lPts.map(p=>p.y)); const maxY = Math.max(...lPts.map(p=>p.y));
         
-        const seatType = project.seatTypes[area.seatTypeIndex ?? 0] || project.seatTypes[0];
-        
-        if (!page.pixelsPerFoot) {
-            area.cacheDirty = false;
-            return;
-        }
-
-        const cw = seatType.w * page.pixelsPerFoot;
-        const rd = seatType.d * page.pixelsPerFoot;
-        const rotRad = (area.rot ?? 0) * Math.PI / 180;
-        
-        const cosInv = Math.cos(-rotRad);
-        const sinInv = Math.sin(-rotRad);
-
-        const localPoints = area.points.map(p => ({
-            x: p.x * cosInv - p.y * sinInv,
-            y: p.x * sinInv + p.y * cosInv
-        }));
-
-        const localMinX = Math.min(...localPoints.map(p => p.x));
-        const localMaxX = Math.max(...localPoints.map(p => p.x));
-        const localMinY = Math.min(...localPoints.map(p => p.y));
-        const localMaxY = Math.max(...localPoints.map(p => p.y));
-
-        const localWidth = localMaxX - localMinX;
-        const localHeight = localMaxY - localMinY;
-
-        const cols = Math.floor(localWidth / cw);
-        const rows = Math.floor(localHeight / rd);
-
-        const offsetX = (localWidth - (cols * cw)) / 2;
-        const offsetY = (localHeight - (rows * rd)) / 2;
-
-        const startX = localMinX + offsetX + (cw / 2);
-        const startY = localMinY + offsetY + (rd / 2);
-
+        const cols = Math.floor((maxX - minX) / cw);
+        const rows = Math.floor((maxY - minY) / rd);
+        const offsetX = ((maxX - minX) - (cols * cw)) / 2;
+        const offsetY = ((maxY - minY) - (rows * rd)) / 2;
+        const startX = minX + offsetX + (cw / 2);
+        const startY = minY + offsetY + (rd / 2);
         const eps = 0.1;
 
         for (let i = 0; i < cols; i++) {
             let lx = startX + (i * cw);
             for (let j = 0; j < rows; j++) {
                 let ly = startY + (j * rd);
-                
                 const rx = lx * Math.cos(rotRad) - ly * Math.sin(rotRad);
                 const ry = lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
-
+                
                 const corners = [
-                    { x: -cw/2 + eps, y: -rd/2 + eps },
-                    { x: cw/2 - eps, y: -rd/2 + eps },
-                    { x: cw/2 - eps, y: rd/2 - eps },
-                    { x: -cw/2 + eps, y: rd/2 - eps }
+                    { x: -cw/2 + eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: -rd/2 + eps },
+                    { x: cw/2 - eps, y: rd/2 - eps }, { x: -cw/2 + eps, y: rd/2 - eps }
                 ].map(c => ({
                     x: rx + (c.x * Math.cos(rotRad) - c.y * Math.sin(rotRad)),
                     y: ry + (c.x * Math.sin(rotRad) + c.y * Math.cos(rotRad))
                 }));
 
                 if (!corners.every(cp => isInside(area.points, cp))) continue;
-
-                const blockedByObstacle = page.shapes
-                    .filter(s => s.type === 'obs')
-                    .some(obs => corners.some(cp => isInside(obs.points, cp)));
-
-                if (blockedByObstacle) continue;
-
-                area.cachedSeats.push({
-                    x: rx,
-                    y: ry,
-                    rot: rotRad
-                });
-                area.count++;
+                const blocked = page.shapes.filter(s => s.type === 'obs').some(obs => corners.some(cp => isInside(obs.points, cp)));
+                if (!blocked) { area.cachedSeats.push({x:rx, y:ry, rot:rotRad}); area.count++; }
             }
         }
         area.cacheDirty = false;
     }
 
-    function render(targetCtx = ctx, v = view, isScreen = true) {
-        targetCtx.setTransform(1, 0, 0, 1, 0, 0);
-        targetCtx.clearRect(0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
-        targetCtx.save();
-        targetCtx.translate(v.x, v.y); targetCtx.scale(v.zoom, v.zoom);
-        
+    function render(targetCtx = ctx, v = view, isLive = true) {
+        targetCtx.setTransform(1,0,0,1,0,0); targetCtx.clearRect(0,0,targetCtx.canvas.width,targetCtx.canvas.height);
+        targetCtx.save(); targetCtx.translate(v.x, v.y); targetCtx.scale(v.zoom, v.zoom);
         if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
-
-        const page = getActivePage();
+        
+        const page = getActivePage(); 
+        let pageTotal = 0;
+        let typeTotals = new Array(project.seatTypes.length).fill(0);
         const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
         const hasScreens = activeScreens.length > 0;
-        
+
         if (hasScreens) {
             activeScreens.forEach(sc => {
                 const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
                 const rotRad = sc.rot * Math.PI / 180;
-                
-                targetCtx.save();
-                targetCtx.beginPath();
-                targetCtx.moveTo(sc.x, sc.y);
-                targetCtx.arc(sc.x, sc.y, radiusPixels, rotRad - Math.PI/3, rotRad + Math.PI/3);
-                targetCtx.closePath();
-                targetCtx.fillStyle = 'rgba(241, 196, 15, 0.15)'; 
-                targetCtx.fill();
-
-                targetCtx.clip();
-                
+                targetCtx.save(); targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y);
+                targetCtx.arc(sc.x, sc.y, radiusPixels, rotRad - Math.PI/3, rotRad + Math.PI/3); targetCtx.closePath();
+                targetCtx.fillStyle = 'rgba(241, 196, 15, 0.15)'; targetCtx.fill(); targetCtx.clip();
                 page.shapes.filter(s => s.type === 'obs').forEach(obs => {
                     targetCtx.fillStyle = 'rgba(0, 0, 0, 0.5)'; 
                     for (let j = 0; j < obs.points.length; j++) {
-                        let p1 = obs.points[j];
-                        let p2 = obs.points[(j + 1) % obs.points.length];
-                        
+                        let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length];
                         let extDist = radiusPixels + 100; 
-                        let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x);
-                        let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
-                        
+                        let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
                         let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist };
                         let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
-                        
-                        targetCtx.beginPath();
-                        targetCtx.moveTo(p1.x, p1.y); targetCtx.lineTo(p2.x, p2.y);
-                        targetCtx.lineTo(p2_ext.x, p2_ext.y); targetCtx.lineTo(p1_ext.x, p1_ext.y);
-                        targetCtx.closePath();
-                        targetCtx.fill();
+                        targetCtx.beginPath(); targetCtx.moveTo(p1.x, p1.y); targetCtx.lineTo(p2.x, p2.y);
+                        targetCtx.lineTo(p2_ext.x, p2_ext.y); targetCtx.lineTo(p1_ext.x, p1_ext.y); targetCtx.closePath(); targetCtx.fill();
                     }
                 });
                 targetCtx.restore();
-
-                targetCtx.beginPath();
-                targetCtx.arc(sc.x, sc.y, 10/v.zoom, 0, Math.PI*2);
-                targetCtx.fillStyle = COLORS.screen;
-                targetCtx.fill();
-                targetCtx.lineWidth = 2/v.zoom;
-                targetCtx.strokeStyle = 'white';
-                targetCtx.stroke();
-                
-                targetCtx.beginPath();
-                targetCtx.moveTo(sc.x, sc.y);
-                targetCtx.lineTo(sc.x + Math.cos(rotRad)*30/v.zoom, sc.y + Math.sin(rotRad)*30/v.zoom);
-                targetCtx.stroke();
-
-                targetCtx.save();
-                targetCtx.translate(sc.x, sc.y - (20/v.zoom));
-                targetCtx.scale(1/v.zoom, 1/v.zoom);
-                targetCtx.font = "bold 16px Arial"; 
-                targetCtx.textAlign = "center"; 
-                targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
-                targetCtx.strokeText(sc.name, 0, 0); 
-                targetCtx.fillStyle = "white"; 
-                targetCtx.fillText(sc.name, 0, 0); 
-                targetCtx.restore();
+                targetCtx.beginPath(); targetCtx.arc(sc.x, sc.y, 10/v.zoom, 0, Math.PI*2);
+                targetCtx.fillStyle = COLORS.screen; targetCtx.fill(); targetCtx.lineWidth = 2/v.zoom; targetCtx.strokeStyle = 'white'; targetCtx.stroke();
+                targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y); targetCtx.lineTo(sc.x + Math.cos(rotRad)*30/v.zoom, sc.y + Math.sin(rotRad)*30/v.zoom); targetCtx.stroke();
+                targetCtx.save(); targetCtx.translate(sc.x, sc.y - (20/v.zoom)); targetCtx.scale(1/v.zoom, 1/v.zoom);
+                targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
+                targetCtx.strokeText(sc.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(sc.name, 0, 0); targetCtx.restore();
             });
         }
 
-        let pageTotal = 0;
-        let typeTotals = new Array(project.seatTypes.length).fill(0);
-
-        page.shapes.forEach((s) => {
-            const sTypeIdx = s.seatTypeIndex ?? 0;
-            const st = project.seatTypes[sTypeIdx] || project.seatTypes[0];
+        page.shapes.forEach(s => {
+            const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+            targetCtx.beginPath(); s.points.forEach((p,i) => i===0?targetCtx.moveTo(p.x,p.y):targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
+            targetCtx.strokeStyle = s.type === 'area' ? st.stroke : '#e74c3c'; targetCtx.lineWidth = 2/v.zoom; targetCtx.stroke();
             
-            targetCtx.beginPath();
-            targetCtx.moveTo(s.points[0].x, s.points[0].y);
-            s.points.forEach(p => targetCtx.lineTo(p.x, p.y));
-            targetCtx.closePath();
-            targetCtx.strokeStyle = s.type === 'area' ? st.stroke : '#e74c3c';
-            targetCtx.lineWidth = 3 / v.zoom;
-            targetCtx.stroke();
-
-            if (s.type === 'area' && page.pixelsPerFoot > 0) {
-                if (!s.cachedSeats) s.cachedSeats = [];
-                if (s.cacheDirty === undefined) s.cacheDirty = true;
+            if (s.type === 'area' && page.pixelsPerFoot) {
+                if (s.cacheDirty === undefined || s.cacheDirty) rebuildSeatCache(s, page);
+                const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
                 
-                if (s.cacheDirty) {
-                    rebuildSeatCache(s, page);
-                }
-
-                const cw = st.w * page.pixelsPerFoot;
-                const rd = st.d * page.pixelsPerFoot;
-
                 s.cachedSeats.forEach(seat => {
                     let seatFill = st.color;
-                    
                     if (hasScreens && !uiState.draftMode) {
-                        let hasLOS = false;
-                        let inAnyCone = false;
-
+                        let hasLOS = false; let inAnyCone = false;
                         activeScreens.forEach(sc => {
                             const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
                             if (isInCone(seat, sc, radiusPixels)) {
-                                inAnyCone = true;
-                                let blocked = false;
+                                inAnyCone = true; let blocked = false;
                                 for (const obs of page.shapes.filter(o => o.type === 'obs')) {
                                     for (let j = 0; j < obs.points.length; j++) {
-                                        if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) {
-                                            blocked = true;
-                                            break;
-                                        }
+                                        if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) { blocked = true; break; }
                                     }
                                     if (blocked) break;
                                 }
                                 if (!blocked) hasLOS = true;
                             }
                         });
-
                         if (hasLOS) seatFill = st.los;
                         else if (inAnyCone) seatFill = 'rgba(231, 76, 60, 0.9)';
                         else seatFill = 'rgba(120, 120, 120, 0.4)';
                     }
-
-                    // THROTTLE UPDATED TO 50000 SEATS
-                    if (isScreen ? (pageTotal + s.count < 50000) : true) {
-                        targetCtx.save();
-                        targetCtx.translate(seat.x, seat.y);
-                        targetCtx.rotate(seat.rot);
-                        targetCtx.fillStyle = seatFill;
-                        targetCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw - 1, rd - 1);
-                        targetCtx.restore();
+                    if (isLive ? (pageTotal + s.count < 50000) : true) {
+                        targetCtx.save(); targetCtx.translate(seat.x, seat.y); targetCtx.rotate(seat.rot);
+                        targetCtx.fillStyle = seatFill; targetCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); targetCtx.restore();
                     }
                 });
-
-                pageTotal += s.count;
-                if (typeTotals[sTypeIdx] !== undefined) {
-                    typeTotals[sTypeIdx] += s.count;
-                }
+                pageTotal += s.count; 
+                if (typeTotals[s.seatTypeIndex ?? 0] !== undefined) typeTotals[s.seatTypeIndex ?? 0] += s.count;
             }
             
             let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; });
@@ -1055,24 +890,18 @@
             targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); targetCtx.restore();
         });
 
-        if (isScreen) {
+        if (isLive) {
             if (calPoint) { targetCtx.fillStyle = "yellow"; targetCtx.beginPath(); targetCtx.arc(calPoint.x, calPoint.y, 5/v.zoom, 0, Math.PI*2); targetCtx.fill(); }
             if (currentPoints.length > 0) { 
-                targetCtx.beginPath(); 
-                targetCtx.strokeStyle = "red"; 
-                targetCtx.moveTo(currentPoints[0].x, currentPoints[0].y); 
+                targetCtx.beginPath(); targetCtx.strokeStyle = "red"; targetCtx.moveTo(currentPoints[0].x, currentPoints[0].y); 
                 currentPoints.forEach(p => targetCtx.lineTo(p.x, p.y)); 
-                
-                // ORTHO SNAPPING PREVIEW LINE
                 let previewWorld = toWorld(mousePos);
                 if (isShiftDown && mode.startsWith('draw-')) {
                     const last = currentPoints[currentPoints.length - 1];
                     if (Math.abs(previewWorld.x - last.x) > Math.abs(previewWorld.y - last.y)) previewWorld.y = last.y;
                     else previewWorld.x = last.x;
                 }
-                
-                targetCtx.lineTo(previewWorld.x, previewWorld.y); 
-                targetCtx.stroke(); 
+                targetCtx.lineTo(previewWorld.x, previewWorld.y); targetCtx.stroke(); 
             }
             targetCtx.restore();
             
@@ -1080,52 +909,33 @@
             ctx.moveTo(mousePos.x, 0); ctx.lineTo(mousePos.x, canvas.height);
             ctx.moveTo(0, mousePos.y); ctx.lineTo(canvas.width, mousePos.y); ctx.stroke();
             ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 0.5; ctx.stroke();
-            ctx.fillStyle = "#e74c3c"; ctx.fillRect(mousePos.x - 2, mousePos.y - 2, 4, 4);
             
             const t = translations[currentLang];
             let totalsHTML = '';
             project.seatTypes.forEach((st, i) => {
                 if (typeTotals[i] > 0 || i === project.activeSeatType) { 
-                    totalsHTML += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                             <span style="font-size:0.8em; color:#ccc;">${st.name}:</span>
                             <span style="font-weight:bold; color:${st.stroke};">${typeTotals[i].toLocaleString()}</span>
                         </div>`;
                 }
             });
-            
-            totalsHTML += `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #444;">
+            totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #444;">
                     <span style="font-size:0.8em; color:white; font-weight:bold;">${t.labelTotal}</span>
                     <span style="font-size:1.2em; font-weight:bold; color:var(--success);">${pageTotal.toLocaleString()}</span>
                 </div>`;
-                
             document.getElementById('page-totals-container').innerHTML = totalsHTML;
-
         } else { 
             targetCtx.restore(); 
         }
     }
 
-    function setMode(newMode) {
-        mode = newMode;
-        currentPoints = [];
-        calPoint = null;
-        document.querySelectorAll('#content-tools .tool-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        const buttonMap = {
-            'calibrate': 'btn-calibrate',
-            'draw-area': 'btn-draw-area',
-            'draw-obs': 'btn-draw-obs',
-            'draw-screen': 'btn-draw-screen'
-        };
-        if (buttonMap[newMode]) {
-            const btn = document.getElementById(buttonMap[newMode]);
-            if (btn) btn.classList.add('active');
-        }
-        updateUI();
-        render();
+    function setMode(m) { 
+        mode = m; currentPoints = []; calPoint = null; 
+        document.querySelectorAll('.fixed-tools .tool-btn').forEach(btn => btn.classList.remove('active'));
+        const buttonMap = { 'calibrate':'btn-calibrate', 'draw-area':'btn-draw-area', 'draw-obs':'btn-draw-obs', 'draw-screen':'btn-draw-screen' };
+        if (buttonMap[m]) { const btn = document.getElementById(buttonMap[m]); if(btn) btn.classList.add('active'); }
+        updateUI(); render(); 
     }
     
     document.getElementById('btn-calibrate').onclick = () => setMode('calibrate');
@@ -1133,65 +943,41 @@
     document.getElementById('btn-draw-obs').onclick = () => setMode('draw-obs');
     document.getElementById('btn-draw-screen').onclick = () => setMode('draw-screen');
 
-    function saveProject() {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(project)], { type: "application/json" }));
-        a.download = `${project.title}.json`; a.click();
-        hasUnsavedChanges = false; 
-    }
-    
-    function loadProject(input) {
-        const reader = new FileReader(); 
-        reader.onload = (e) => { 
-            project = JSON.parse(e.target.result); 
-            
-            const defaults = [
-                { name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' },
-                { name: "Type 2", w: 2.5, d: 3.5, color: 'rgba(52, 152, 219, 0.4)', stroke: '#3498db', los: 'rgba(52, 152, 219, 0.9)' },
-                { name: "Type 3", w: 2.0, d: 3.0, color: 'rgba(155, 89, 182, 0.4)', stroke: '#9b59b6', los: 'rgba(155, 89, 182, 0.9)' },
-                { name: "Type 4", w: 2.5, d: 3.5, color: 'rgba(26, 188, 156, 0.4)', stroke: '#1abc9c', los: 'rgba(26, 188, 156, 0.9)' }
-            ];
+    function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
+    function deleteScreen(i) { saveState(); getActivePage().screens.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
 
-            if (!project.seatTypes) {
-                project.seatTypes = [...defaults];
-                project.activeSeatType = 0;
-                project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; }));
-            } else if (project.seatTypes.length < 4) {
-                while(project.seatTypes.length < 4) {
-                    project.seatTypes.push(defaults[project.seatTypes.length]);
-                }
-            }
-            
-            markSeatCachesDirty();
-            switchPage(0); 
-            hasUnsavedChanges = false; 
-        }; 
-        reader.readAsText(input.files[0]);
+    function addNewPage() { 
+        const n = prompt(translations[currentLang].pageNamePrompt); 
+        if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[]}); switchPage(project.pages.length-1); }
     }
-    
-    function addNewPage() {
-        const t = translations[currentLang];
-        const n = prompt(t.pageNamePrompt); 
-        if(n) { 
-            project.pages.push({ name: n, imgData: null, pixelsPerFoot: 0, shapes: [], screens: [] }); 
-            hasUnsavedChanges = true;
-            switchPage(project.pages.length-1); 
-        }
-    }
-    
-    function deleteShape(i) { getActivePage().shapes.splice(i, 1); markSeatCachesDirty(); hasUnsavedChanges = true; updateUI(); render(); }
-    function deleteScreen(i) { getActivePage().screens.splice(i, 1); markSeatCachesDirty(); hasUnsavedChanges = true; updateUI(); render(); }
     
     function deleteCurrentPage() { 
         const t = translations[currentLang];
         if(project.pages.length > 1) { 
-            if(confirm(t.delPageConfirm)) {
-                project.pages.splice(project.activePageIndex, 1); 
-                hasUnsavedChanges = true;
-                switchPage(0); 
+            if(confirm(t.delPageConfirm)) { project.pages.splice(project.activePageIndex, 1); switchPage(0); }
+        } else { alert(t.delPageError); }
+    }
+
+    function saveProject() { 
+        const blob = new Blob([JSON.stringify(project)], {type:"application/json"});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = project.title+".json"; a.click();
+        hasUnsavedChanges = false;
+    }
+    
+    function loadProject(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => { 
+            project = JSON.parse(e.target.result);
+            if (!project.seatTypes) {
+                project.seatTypes = [
+                    { name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }
+                ];
+                project.activeSeatType = 0;
+                project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; }));
             }
-        } else {
-            alert(t.delPageError);
-        }
+            markSeatCachesDirty(); switchPage(0); hasUnsavedChanges = false;
+        };
+        reader.readAsText(input.files[0]);
     }
 
     function printReport(type) {
@@ -1199,37 +985,26 @@
         document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
         document.getElementById('rpt-title-print').innerText = project.title + t.printTitleSuffix;
         const dateStr = new Date().toLocaleDateString();
-        document.getElementById('lay-date-print').innerText = dateStr;
-        document.getElementById('rpt-date-print').innerText = dateStr;
+        document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
 
         if (type === 'summary') {
             const body = document.getElementById('rpt-body'); body.innerHTML = '';
-            
-            let typeGrandTotals = {};
-            project.seatTypes.forEach((st, i) => typeGrandTotals[i] = 0);
-            
+            let typeGrandTotals = new Array(project.seatTypes.length).fill(0);
             const origIndex = project.activePageIndex;
             
             project.pages.forEach((p, idx) => {
                 project.activePageIndex = idx;
-                
-                const dummyCtx = document.createElement('canvas').getContext('2d');
-                render(dummyCtx, {x:0, y:0, zoom:1}, false);
-                
-                let pageRows = '';
-                let hasAreas = false;
+                const dummyCtx = document.createElement('canvas').getContext('2d'); render(dummyCtx, {x:0, y:0, zoom:1}, false);
+                let pageRows = ''; let hasAreas = false;
                 
                 project.seatTypes.forEach((st, typeIdx) => {
-                    let typeSubtotal = 0;
-                    let typeRows = '';
-                    
+                    let typeSubtotal = 0; let typeRows = '';
                     p.shapes.forEach(s => { 
                         if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) {
                             typeRows += `<tr><td style="padding-left: 20px;">${s.name}</td><td>${s.count.toLocaleString()}</td></tr>`; 
                             typeSubtotal += s.count;
                         }
                     });
-                    
                     if (typeRows !== '') {
                         hasAreas = true;
                         pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${st.name}${t.printTotalGroup}</td></tr>`;
@@ -1238,88 +1013,63 @@
                         typeGrandTotals[typeIdx] += typeSubtotal;
                     }
                 });
-                
                 if (hasAreas) {
-                    body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`;
+                    body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`;
                     body.innerHTML += pageRows;
                 }
             });
+            project.activePageIndex = origIndex; render();
             
-            project.activePageIndex = origIndex;
-            render();
-            
-            let footHTML = '';
-            let absoluteTotal = 0;
+            let footHTML = ''; let absoluteTotal = 0;
             project.seatTypes.forEach((st, i) => {
                 if(typeGrandTotals[i] > 0) {
-                    footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact;"><td style="text-align: right;">${t.printTotalType}${st.name.toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`;
+                    footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${t.printTotalType}${st.name.toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`;
                     absoluteTotal += typeGrandTotals[i];
                 }
             });
-            footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact;"><td style="text-align: right;">${t.printGrandTotal}</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
-            
+            footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${t.printGrandTotal}</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
             document.querySelector('#print-report-container tfoot').innerHTML = footHTML;
-            document.body.className = 'summary-only'; 
-            window.print();
+            document.body.className = 'summary-only'; window.print();
             
         } else {
-            // NEW VECTOR PRINTING SYSTEM
-            const bgW = bgImage.width || 2000;
-            const bgH = bgImage.height || 2000;
             const page = getActivePage();
+            const bgW = bgImage.width || 2000; const bgH = bgImage.height || 2000;
             const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
             const hasScreens = activeScreens.length > 0;
 
-            // Generate an SVG container
-            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}">`;
-            
-            // Add raster background
-            if (bgImage.src) {
-                svg += `<image href="${bgImage.src}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
-            }
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact;">`;
+            if (bgImage.src) svg += `<image href="${bgImage.src}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
 
-            // Setup SVG Clipping Paths for the sightlines
             svg += `<defs>`;
             if (hasScreens) {
                 activeScreens.forEach((sc, i) => {
                     const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
                     const rotRad = sc.rot * Math.PI / 180;
-                    const startA = rotRad - Math.PI/3;
-                    const endA = rotRad + Math.PI/3;
-                    const x1 = sc.x + radiusPixels * Math.cos(startA);
-                    const y1 = sc.y + radiusPixels * Math.sin(startA);
-                    const x2 = sc.x + radiusPixels * Math.cos(endA);
-                    const y2 = sc.y + radiusPixels * Math.sin(endA);
-                    
+                    const startA = rotRad - Math.PI/3; const endA = rotRad + Math.PI/3;
+                    const x1 = sc.x + radiusPixels * Math.cos(startA); const y1 = sc.y + radiusPixels * Math.sin(startA);
+                    const x2 = sc.x + radiusPixels * Math.cos(endA); const y2 = sc.y + radiusPixels * Math.sin(endA);
                     const d = `M ${sc.x} ${sc.y} L ${x1} ${y1} A ${radiusPixels} ${radiusPixels} 0 0 1 ${x2} ${y2} Z`;
                     svg += `<clipPath id="cone-clip-${i}"><path d="${d}" /></clipPath>`;
                 });
             }
             svg += `</defs>`;
 
-            // Draw Screens and Sightline Cones
             if (hasScreens) {
                 activeScreens.forEach((sc, i) => {
                     const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
                     const rotRad = sc.rot * Math.PI / 180;
-                    const startA = rotRad - Math.PI/3;
-                    const endA = rotRad + Math.PI/3;
-                    const x1 = sc.x + radiusPixels * Math.cos(startA);
-                    const y1 = sc.y + radiusPixels * Math.sin(startA);
-                    const x2 = sc.x + radiusPixels * Math.cos(endA);
-                    const y2 = sc.y + radiusPixels * Math.sin(endA);
+                    const startA = rotRad - Math.PI/3; const endA = rotRad + Math.PI/3;
+                    const x1 = sc.x + radiusPixels * Math.cos(startA); const y1 = sc.y + radiusPixels * Math.sin(startA);
+                    const x2 = sc.x + radiusPixels * Math.cos(endA); const y2 = sc.y + radiusPixels * Math.sin(endA);
                     const d = `M ${sc.x} ${sc.y} L ${x1} ${y1} A ${radiusPixels} ${radiusPixels} 0 0 1 ${x2} ${y2} Z`;
                     
                     svg += `<path d="${d}" fill="rgba(241, 196, 15, 0.15)" />`;
-                    
                     svg += `<g clip-path="url(#cone-clip-${i})">`;
                     page.shapes.filter(s => s.type === 'obs').forEach(obs => {
                         for (let j = 0; j < obs.points.length; j++) {
-                            let p1 = obs.points[j];
-                            let p2 = obs.points[(j + 1) % obs.points.length];
+                            let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length];
                             let extDist = radiusPixels + 100; 
-                            let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x);
-                            let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
+                            let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
                             let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist };
                             let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
                             svg += `<polygon points="${p1.x},${p1.y} ${p2.x},${p2.y} ${p2_ext.x},${p2_ext.y} ${p1_ext.x},${p1_ext.y}" fill="rgba(0, 0, 0, 0.5)" />`;
@@ -1329,41 +1079,28 @@
 
                     svg += `<circle cx="${sc.x}" cy="${sc.y}" r="10" fill="${COLORS.screen}" stroke="white" stroke-width="2" />`;
                     svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*30}" y2="${sc.y + Math.sin(rotRad)*30}" stroke="white" stroke-width="2" />`;
-                    
                     svg += `<text x="${sc.x}" y="${sc.y - 20}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${sc.name}</text>`;
                     svg += `<text x="${sc.x}" y="${sc.y - 20}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
                 });
             }
 
-            // Draw Areas, Obstacles, and Seats
             page.shapes.forEach(s => {
-                const sTypeIdx = s.seatTypeIndex ?? 0;
-                const st = project.seatTypes[sTypeIdx] || project.seatTypes[0];
-                const strokeColor = s.type === 'area' ? st.stroke : '#e74c3c';
-                
+                const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                 const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
-                svg += `<polygon points="${pts}" fill="none" stroke="${strokeColor}" stroke-width="3" />`;
-
-                if (s.type === 'area' && page.pixelsPerFoot > 0 && s.cachedSeats) {
-                    const cw = st.w * page.pixelsPerFoot;
-                    const rd = st.d * page.pixelsPerFoot;
-                    
+                svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?st.stroke:'#e74c3c'}" stroke-width="2" />`;
+                if (s.type === 'area' && s.cachedSeats) {
+                    const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
                     s.cachedSeats.forEach(seat => {
                         let seatFill = st.color;
                         if (hasScreens && !uiState.draftMode) {
-                            let hasLOS = false;
-                            let inAnyCone = false;
+                            let hasLOS = false; let inAnyCone = false;
                             activeScreens.forEach(sc => {
                                 const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
                                 if (isInCone(seat, sc, radiusPixels)) {
-                                    inAnyCone = true;
-                                    let blocked = false;
+                                    inAnyCone = true; let blocked = false;
                                     for (const obs of page.shapes.filter(o => o.type === 'obs')) {
                                         for (let j = 0; j < obs.points.length; j++) {
-                                            if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) {
-                                                blocked = true;
-                                                break;
-                                            }
+                                            if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) { blocked = true; break; }
                                         }
                                         if (blocked) break;
                                     }
@@ -1375,32 +1112,18 @@
                             else seatFill = 'rgba(120, 120, 120, 0.4)';
                         }
                         const deg = seat.rot * 180 / Math.PI;
-                        svg += `<rect x="${-cw/2 + 0.5}" y="${-rd/2 + 0.5}" width="${cw - 1}" height="${rd - 1}" fill="${seatFill}" stroke="#000000" stroke-width="0.5" transform="translate(${seat.x}, ${seat.y}) rotate(${deg})" />`;
+                        svg += `<rect x="${-cw/2 + 0.5}" y="${-rd/2 + 0.5}" width="${cw-1}" height="${rd-1}" fill="${seatFill}" stroke="#000000" stroke-width="0.5" transform="translate(${seat.x},${seat.y}) rotate(${deg})" />`;
                     });
                 }
-
+                
                 let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; });
                 const cen = { x: sX / s.points.length, y: sY / s.points.length };
                 svg += `<text x="${cen.x}" y="${cen.y}" font-family="Arial" font-size="18px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${s.name}</text>`;
                 svg += `<text x="${cen.x}" y="${cen.y}" font-family="Arial" font-size="18px" font-weight="bold" text-anchor="middle" fill="white">${s.name}</text>`;
             });
-
             svg += `</svg>`;
-
-            const container = document.getElementById('print-layout-container');
-            const oldImg = document.getElementById('layout-snapshot-img');
-            if (oldImg) oldImg.style.display = 'none';
-            
-            let svgWrapper = document.getElementById('svg-print-wrapper');
-            if (!svgWrapper) {
-                svgWrapper = document.createElement('div');
-                svgWrapper.id = 'svg-print-wrapper';
-                container.appendChild(svgWrapper);
-            }
-            svgWrapper.innerHTML = svg;
-
-            document.body.className = 'layout-only'; 
-            setTimeout(() => { window.print(); }, 200);
+            document.getElementById('svg-print-wrapper').innerHTML = svg;
+            document.body.className = 'layout-only'; setTimeout(() => window.print(), 300);
         }
     }
 
