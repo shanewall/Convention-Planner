@@ -19,7 +19,6 @@
         .brand-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px; }
         h2 { margin: 0; color: var(--accent); font-size: 1.3em; }
         
-        /* Fixed Tools Container */
         .fixed-tools { border-bottom: 2px solid #444; padding-bottom: 15px; margin-bottom: 10px; flex-shrink: 0; }
         
         .collapsible-header { 
@@ -34,7 +33,6 @@
         .collapsible-content { display: block; overflow: hidden; }
         
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-        /* Smaller buttons */
         .tool-btn { padding: 7px; border: none; border-radius: 4px; cursor: pointer; background: #444; color: white; font-weight: 600; font-size: 0.7em; transition: 0.2s; text-align: center; }
         
         .tool-btn.report { background: #673ab7; }
@@ -46,9 +44,10 @@
         .input-group { margin-bottom: 10px; }
         label { display: block; font-size: 0.7em; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         
-        input[type="text"], input[type="number"], select { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 6px; border-radius: 4px; box-sizing: border-box; font-size: 0.85em; outline: none; }
+        input[type="text"], input[type="number"], select, input[type="color"] { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 6px; border-radius: 4px; box-sizing: border-box; font-size: 0.85em; outline: none; }
         input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+        input[type="color"] { padding: 2px; height: 28px; cursor: pointer; }
 
         ul.item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
         .page-item { background: #333; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
@@ -59,7 +58,6 @@
         .area-item.type-obs { border-left-color: var(--danger); }
         .screen-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 8px; border-radius: 6px; border-left: 4px solid var(--screen); }
         
-        /* Dynamic Profile Styles */
         .profile-item { background: #2a2a35; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; gap: 6px; border: 1px solid #444; margin-bottom: 5px; }
         .profile-item.active { border-color: var(--accent); background: #323245; }
         .profile-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
@@ -80,13 +78,13 @@
             .print-subtitle { font-size: 10pt; color: #666; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
             #print-layout-container { display: block !important; width: 100%; text-align: center; }
             
-            #svg-print-wrapper svg { display: block; width: 100%; height: auto; max-height: 85vh; border: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; print-color-adjust: exact; }
+            #svg-print-wrapper svg { display: block; width: 100%; height: auto; max-height: 85vh; border: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             
             .summary-only #print-layout-container { display: none !important; }
             .summary-only #print-report-container { display: block !important; padding: 20px; }
             .layout-only #print-report-container { display: none !important; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; color: black; }
-            th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+            th, td { border: 1px solid #333; padding: 8px; text-align: left; vertical-align: middle; }
             th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             @page { size: auto; margin: 0.5in; }
         }
@@ -128,10 +126,11 @@
             <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadProject(this)">
         </div>
         
-        <div class="btn-group" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="btn-group" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
             <button class="tool-btn" id="btn-draw-area">Area</button>
             <button class="tool-btn" id="btn-draw-obs">Obstacle</button>
             <button class="tool-btn" id="btn-draw-screen">Screen</button>
+            <button class="tool-btn" id="btn-draw-sign">Sign</button>
         </div>
         
         <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
@@ -139,9 +138,13 @@
             <button class="tool-btn undo-btn" onclick="redo()" title="Redo Action">↷ Redo</button>
         </div>
 
-        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
-            <button class="tool-btn report" id="ui-summary" onclick="printReport('summary')">Summary</button>
-            <button class="tool-btn layout" id="ui-print" onclick="printReport('layout')">Print Layout</button>
+        <div class="input-group" style="display:flex; gap:5px; margin-bottom:8px;">
+            <select id="print-type-select" style="flex-grow: 1; padding: 6px;">
+                <option value="summary" id="opt-summary">Project Summary</option>
+                <option value="layout" id="opt-layout">Current Layout</option>
+                <option value="signs" id="opt-signs">Signage Report</option>
+            </select>
+            <button class="tool-btn report" id="ui-btn-print-action" onclick="printReport(document.getElementById('print-type-select').value)" style="width: 80px;">Print</button>
         </div>
         
         <div id="dynamic-draft-mode" style="margin-top: 5px;"></div>
@@ -166,6 +169,17 @@
             <button class="tool-btn add-page" id="ui-new-page" onclick="addNewPage()" style="margin-top:5px; width:100%;">+ New Page</button>
         </div>
 
+        <h3 class="collapsible-header" id="header-signs" onclick="toggleSection('signs')">Signage Profiles</h3>
+        <div class="collapsible-content" id="content-signs">
+            <ul class="item-list" id="sign-type-list"></ul>
+            <button class="tool-btn" id="ui-add-sign-type" onclick="addSignType()" style="margin-top:5px; width:100%; background: #e67e22;">+ Add Sign Type</button>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:8px; border-radius:4px; margin-top:10px; border: 1px solid #444;">
+                <label id="ui-label-legend" style="margin:0; color:#ccc; font-weight:bold; cursor:pointer;" for="ui-toggle-legend">Canvas Legend</label>
+                <input type="checkbox" id="ui-toggle-legend" onchange="toggleLegend(this.checked)" style="width:auto; cursor:pointer;">
+            </div>
+        </div>
+
         <h3 class="collapsible-header" id="header-seats" onclick="toggleSection('seats')">Seat Profiles</h3>
         <div class="collapsible-content" id="content-seats">
             <ul class="item-list" id="seat-type-list"></ul>
@@ -183,7 +197,7 @@
             <ul class="item-list" id="area-list"></ul>
         </div>
 
-        <h3 class="collapsible-header" id="header-obs" onclick="toggleSection('obs')">Obstacles</h3>
+        <h3 class="collapsible-header" id="header-obs" onclick="toggleSection('obs')">Obstacles & Signs</h3>
         <div class="collapsible-content" id="content-obs">
             <ul class="item-list" id="obs-list"></ul>
         </div>
@@ -250,24 +264,34 @@
             btnAddArea: "Area",
             btnAddObs: "Obstacle",
             btnAddScreen: "Screen",
+            btnAddSign: "Sign",
             btnDelPage: "Del Page",
-            btnSummary: "Summary",
-            btnPrint: "Print Layout",
+            printOptSummary: "Project Summary",
+            printOptLayout: "Current Layout",
+            printOptSigns: "Signage Report",
+            btnPrintAction: "Print",
             headerSeats: "Seat Profiles",
+            headerSigns: "Signage Profiles",
             btnAddSeatType: "+ Add Seat Profile",
+            btnAddSignType: "+ Add Sign Type",
             labelRename: "✎ Rename",
             labelChairW: "Width (ft)",
             labelRowD: "Depth (ft)",
+            labelColor: "Color",
+            labelSizePx: "Size (px)",
+            labelSignText: "Text",
+            labelLegend: "Canvas Legend",
             headerScreens: "Screens (Sightlines)",
             labelDraft: "⚡ Draft Mode",
             msgNoScreens: "No screens added yet.",
             headerAreas: "Seating Areas",
-            headerObs: "Obstacles",
+            headerObs: "Obstacles & Signs",
             scaleNotSet: "Scale: Not Set",
             scalePrefix: "Scale: ",
-            labelTotal: "Total:",
+            labelTotal: "Total Seats:",
             pageNamePrompt: "Page Name?",
             seatNamePrompt: "Enter name for this seat type profile:",
+            signNamePrompt: "Enter name for this signage profile:",
             calibPrompt: "Distance in feet:",
             delPageConfirm: "Delete this page?",
             delPageError: "Cannot delete the last page.",
@@ -294,28 +318,38 @@
             btnAddArea: "Área",
             btnAddObs: "Obstáculo",
             btnAddScreen: "Pantalla",
+            btnAddSign: "Letrero",
             btnDelPage: "Eliminar Pág",
-            btnSummary: "Resumen",
-            btnPrint: "Imprimir Diseño",
+            printOptSummary: "Resumen del Proyecto",
+            printOptLayout: "Diseño Actual",
+            printOptSigns: "Reporte de Letreros",
+            btnPrintAction: "Imprimir",
             headerSeats: "Perfiles de Asientos",
+            headerSigns: "Perfiles de Letreros",
             btnAddSeatType: "+ Añadir Asiento",
+            btnAddSignType: "+ Añadir Letrero",
             labelRename: "✎ Renombrar",
             labelChairW: "Ancho (ft)",
             labelRowD: "Profundidad (ft)",
+            labelColor: "Color",
+            labelSizePx: "Tamaño (px)",
+            labelSignText: "Texto",
+            labelLegend: "Leyenda del Lienzo",
             headerScreens: "Pantallas",
             labelDraft: "⚡ Modo Borrador",
             msgNoScreens: "Sin pantallas.",
             headerAreas: "Áreas",
-            headerObs: "Obstáculos",
+            headerObs: "Obstáculos y Letreros",
             scaleNotSet: "Escala: No Set",
             scalePrefix: "Escala: ",
-            labelTotal: "Total:",
+            labelTotal: "Total Asientos:",
             pageNamePrompt: "¿Nombre?",
-            seatNamePrompt: "Nombre perfil:",
+            seatNamePrompt: "Nombre perfil de asiento:",
+            signNamePrompt: "Nombre perfil de letrero:",
             calibPrompt: "Pies (ft):",
             delPageConfirm: "¿Eliminar?",
             delPageError: "No puedes eliminar la única página.",
-            errInUse: "No se puede eliminar: El perfil está en uso en el mapa.",
+            errInUse: "No se puede eliminar: El perfil está en uso.",
             pdfError: "Error PDF: ",
             printTitleSuffix: " - Resumen",
             printTotalGroup: " Grupo",
@@ -335,31 +369,37 @@
         title: "New Project", 
         seatTypes: [
             { name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' },
-            { name: "Type 2", w: 2.5, d: 3.5, color: 'rgba(52, 152, 219, 0.4)', stroke: '#3498db', los: 'rgba(52, 152, 219, 0.9)' },
-            { name: "Type 3", w: 2.0, d: 3.0, color: 'rgba(155, 89, 182, 0.4)', stroke: '#9b59b6', los: 'rgba(155, 89, 182, 0.9)' },
-            { name: "Type 4", w: 2.5, d: 3.5, color: 'rgba(26, 188, 156, 0.4)', stroke: '#1abc9c', los: 'rgba(26, 188, 156, 0.9)' }
+            { name: "Type 2", w: 2.5, d: 3.5, color: 'rgba(52, 152, 219, 0.4)', stroke: '#3498db', los: 'rgba(52, 152, 219, 0.9)' }
+        ],
+        signTypes: [
+            { name: "Directional", color: '#e74c3c', size: 20, label: "1" },
+            { name: "Restrooms", color: '#f1c40f', size: 20, label: "2" },
+            { name: "First Aid", color: '#3498db', size: 20, label: "3" }
         ],
         activeSeatType: 0,
+        activeSignType: 0,
         activePageIndex: 0,
-        pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [] }]
+        pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], legend: { show: true, x: 40, y: 40, scale: 1 } }]
     };
 
-    let uiState = { pages: true, seats: true, screens: true, areas: true, obs: true, draftMode: false };
+    let uiState = { pages: true, seats: false, signs: true, screens: true, areas: true, obs: true, draftMode: false };
     let view = { x: 0, y: 0, zoom: 1 };
     let mode = 'idle', currentPoints = [], calPoint = null;
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
     let bgImage = new Image();
     
-    // UNDO/REDO LOGIC
     let undoStack = [];
     let redoStack = [];
 
+    // --- NEW VARIABLES FOR SIGN INTERACTION ---
+    let selectedSignIndex = -1;
+    let hoveredSignIndex = -1;
+    let isDraggingSign = false;
+    let hasDraggedSign = false;
+
     function saveState() {
         const page = getActivePage();
-        const state = JSON.stringify({
-            shapes: page.shapes,
-            screens: page.screens
-        });
+        const state = JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend });
         undoStack.push(state);
         if (undoStack.length > 30) undoStack.shift(); 
         redoStack = [];
@@ -369,36 +409,44 @@
     function undo() {
         if (undoStack.length === 0) return;
         const page = getActivePage();
-        redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens }));
-        
+        redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend }));
         const prevState = JSON.parse(undoStack.pop());
-        page.shapes = prevState.shapes;
-        page.screens = prevState.screens;
-        
-        markSeatCachesDirty();
-        updateUI();
-        render();
+        page.shapes = prevState.shapes; page.screens = prevState.screens; page.signs = prevState.signs;
+        page.legend = prevState.legend || { show: true, x: 40, y: 40, scale: 1 };
+        selectedSignIndex = -1;
+        markSeatCachesDirty(); updateUI(); render();
     }
 
     function redo() {
         if (redoStack.length === 0) return;
         const page = getActivePage();
-        undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens }));
-        
+        undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend }));
         const nextState = JSON.parse(redoStack.pop());
-        page.shapes = nextState.shapes;
-        page.screens = nextState.screens;
-        
-        markSeatCachesDirty();
-        updateUI();
-        render();
+        page.shapes = nextState.shapes; page.screens = nextState.screens; page.signs = nextState.signs;
+        page.legend = nextState.legend || { show: true, x: 40, y: 40, scale: 1 };
+        selectedSignIndex = -1;
+        markSeatCachesDirty(); updateUI(); render();
     }
     
     let isShiftDown = false;
     window.addEventListener('keydown', e => { 
+        if (e.key === 'Escape') setMode('idle');
         if (e.key === 'Shift') isShiftDown = true; 
         if (e.ctrlKey && e.key === 'z') undo();
         if (e.ctrlKey && e.key === 'y') redo();
+
+        // Sign Deletion Hotkey
+        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSignIndex !== -1 && mode === 'idle') {
+            // Prevent deleting if typing in an input field!
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+            
+            saveState();
+            getActivePage().signs.splice(selectedSignIndex, 1);
+            selectedSignIndex = -1;
+            hoveredSignIndex = -1;
+            updateUI();
+            render();
+        }
     });
     window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
 
@@ -430,6 +478,7 @@
         document.getElementById('ui-new-page').innerText = t.btnNewPage;
         document.getElementById('header-pages').innerText = t.headerPages;
         document.getElementById('header-seats').innerText = t.headerSeats;
+        document.getElementById('header-signs').innerText = t.headerSigns;
         document.getElementById('header-screens').innerText = t.headerScreens;
         document.getElementById('header-areas').innerText = t.headerAreas;
         document.getElementById('header-obs').innerText = t.headerObs;
@@ -438,31 +487,39 @@
         document.getElementById('btn-draw-area').innerText = t.btnAddArea;
         document.getElementById('btn-draw-obs').innerText = t.btnAddObs;
         document.getElementById('btn-draw-screen').innerText = t.btnAddScreen;
+        document.getElementById('btn-draw-sign').innerText = t.btnAddSign;
         document.getElementById('ui-del-page').innerText = t.btnDelPage;
-        document.getElementById('ui-summary').innerText = t.btnSummary;
-        document.getElementById('ui-print').innerText = t.btnPrint;
         document.getElementById('ui-add-seat-type').innerText = t.btnAddSeatType;
-        updateUI();
-        render(); 
+        document.getElementById('ui-add-sign-type').innerText = t.btnAddSignType;
+        document.getElementById('ui-label-legend').innerText = t.labelLegend;
+        
+        document.getElementById('opt-summary').innerText = t.printOptSummary;
+        document.getElementById('opt-layout').innerText = t.printOptLayout;
+        document.getElementById('opt-signs').innerText = t.printOptSigns;
+        document.getElementById('ui-btn-print-action').innerText = t.btnPrintAction;
+
+        updateUI(); render(); 
     }
 
-    function init() {
-        applyTranslations(); 
-        window.onresize = resize; resize();
-        updateUI();
-    }
+    function init() { applyTranslations(); window.onresize = resize; resize(); updateUI(); }
 
     function resize() {
         const v = document.getElementById('viewport');
-        canvas.width = v.clientWidth; canvas.height = v.clientHeight;
-        render();
+        canvas.width = v.clientWidth; canvas.height = v.clientHeight; render();
     }
 
     function getActivePage() { return project.pages[project.activePageIndex]; }
-
     function toggleSection(sec) { uiState[sec] = !uiState[sec]; updateUI(); }
 
-    // --- DYNAMIC SEAT PROFILES ---
+    function toggleLegend(show) {
+        saveState();
+        let p = getActivePage();
+        if (!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 };
+        p.legend.show = show;
+        render();
+    }
+
+    // --- PROFILES ---
     function addSeatType() {
         const t = translations[currentLang];
         const n = prompt(t.seatNamePrompt, "New Seat");
@@ -470,69 +527,74 @@
             const colors = ['#2ecc71', '#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e67e22'];
             const c = colors[project.seatTypes.length % colors.length];
             project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' });
-            project.activeSeatType = project.seatTypes.length - 1;
-            hasUnsavedChanges = true;
-            updateUI();
+            project.activeSeatType = project.seatTypes.length - 1; hasUnsavedChanges = true; updateUI();
         }
     }
 
-    function editSeatType(index) {
+    function addSignType() {
         const t = translations[currentLang];
-        const st = project.seatTypes[index];
-        const newName = prompt(t.seatNamePrompt, st.name);
-        if (newName && newName.trim() !== "") {
-            st.name = newName.trim();
-            hasUnsavedChanges = true;
-            updateUI();
-            render(); 
+        const n = prompt(t.signNamePrompt, "New Sign");
+        if(n) {
+            const colors = ['#e74c3c', '#9b59b6', '#f1c40f', '#2ecc71', '#3498db', '#e67e22'];
+            const c = colors[project.signTypes.length % colors.length];
+            project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString() });
+            project.activeSignType = project.signTypes.length - 1; hasUnsavedChanges = true; updateUI();
         }
     }
 
-    function deleteSeatType(index) {
+    function editProfile(type, index) {
         const t = translations[currentLang];
-        if(project.seatTypes.length <= 1) {
-            alert("You must have at least one seat profile active.");
-            return;
-        }
+        const arr = type === 'seat' ? project.seatTypes : project.signTypes;
+        const promptTxt = type === 'seat' ? t.seatNamePrompt : t.signNamePrompt;
+        const newName = prompt(promptTxt, arr[index].name);
+        if (newName && newName.trim() !== "") { arr[index].name = newName.trim(); hasUnsavedChanges = true; updateUI(); render(); }
+    }
+
+    function deleteProfile(type, index) {
+        const t = translations[currentLang];
+        const arr = type === 'seat' ? project.seatTypes : project.signTypes;
+        if(arr.length <= 1) { alert("You must have at least one active profile."); return; }
+        
         let inUse = false;
         project.pages.forEach(p => {
-            if(p.shapes) p.shapes.forEach(s => {
-                if(s.type === 'area' && (s.seatTypeIndex === index || (s.seatTypeIndex === undefined && index === 0))) inUse = true;
-            });
+            if (type === 'seat' && p.shapes) {
+                p.shapes.forEach(s => { if(s.type === 'area' && (s.seatTypeIndex === index || (s.seatTypeIndex === undefined && index === 0))) inUse = true; });
+            } else if (type === 'sign' && p.signs) {
+                p.signs.forEach(s => { if(s.typeIndex === index || (s.typeIndex === undefined && index === 0)) inUse = true; });
+            }
         });
-        if(inUse) {
-            alert(t.errInUse);
-            return;
-        }
-        if(confirm("Delete this seat profile?")) {
-            project.seatTypes.splice(index, 1);
+
+        if(inUse) { alert(t.errInUse); return; }
+        
+        if(confirm("Delete this profile?")) {
+            arr.splice(index, 1);
             project.pages.forEach(p => {
-                if(p.shapes) p.shapes.forEach(s => {
-                    if(s.type === 'area' && s.seatTypeIndex > index) s.seatTypeIndex--;
-                });
+                if (type === 'seat' && p.shapes) p.shapes.forEach(s => { if(s.type === 'area' && s.seatTypeIndex > index) s.seatTypeIndex--; });
+                if (type === 'sign' && p.signs) p.signs.forEach(s => { if(s.typeIndex > index) s.typeIndex--; });
             });
-            if(project.activeSeatType >= project.seatTypes.length) project.activeSeatType = Math.max(0, project.seatTypes.length - 1);
-            hasUnsavedChanges = true;
-            markSeatCachesDirty();
-            updateUI();
-            render();
+            if (type === 'seat') project.activeSeatType = Math.max(0, arr.length - 1);
+            else project.activeSignType = Math.max(0, arr.length - 1);
+            
+            hasUnsavedChanges = true; markSeatCachesDirty(); updateUI(); render();
         }
     }
 
-    function updateSeatProp(idx, prop, val) {
-        project.seatTypes[idx][prop] = parseFloat(val) || 0;
-        markSeatCachesDirty();
-        hasUnsavedChanges = true;
-        render();
+    function updateSeatProp(idx, prop, val) { project.seatTypes[idx][prop] = parseFloat(val) || 0; markSeatCachesDirty(); hasUnsavedChanges = true; render(); }
+    function updateSignProp(idx, prop, val) { 
+        if (prop === 'size') project.signTypes[idx][prop] = parseFloat(val) || 10;
+        else project.signTypes[idx][prop] = val; 
+        hasUnsavedChanges = true; render(); 
     }
 
     function updateUI() {
         const t = translations[currentLang];
-        ['pages', 'seats', 'screens', 'areas', 'obs'].forEach(sec => {
+        ['pages', 'seats', 'signs', 'screens', 'areas', 'obs'].forEach(sec => {
             const head = document.getElementById(`header-${sec}`);
             const cont = document.getElementById(`content-${sec}`);
-            cont.style.display = uiState[sec] ? 'block' : 'none';
-            uiState[sec] ? head.classList.remove('collapsed') : head.classList.add('collapsed');
+            if(head && cont) {
+                cont.style.display = uiState[sec] ? 'block' : 'none';
+                uiState[sec] ? head.classList.remove('collapsed') : head.classList.add('collapsed');
+            }
         });
 
         document.getElementById('project-title').value = project.title;
@@ -543,30 +605,45 @@
                 <input type="checkbox" ${uiState.draftMode ? 'checked' : ''} onchange="uiState.draftMode=this.checked; render();" style="width:auto;">
             </div>`;
 
-        // Seat Manager List
-        const seatListEl = document.getElementById('seat-type-list');
-        seatListEl.innerHTML = '';
+        const pActive = getActivePage();
+        const legCheck = document.getElementById('ui-toggle-legend');
+        if (legCheck) legCheck.checked = pActive.legend && pActive.legend.show !== false;
+
+        const seatListEl = document.getElementById('seat-type-list'); seatListEl.innerHTML = '';
         project.seatTypes.forEach((st, i) => {
             const isAct = (i === project.activeSeatType) ? 'active' : '';
             seatListEl.innerHTML += `
                 <li class="profile-item ${isAct}" onclick="project.activeSeatType=${i}; updateUI();">
-                    <div class="profile-header">
-                        <span style="color:${st.stroke};">■ ${st.name}</span>
+                    <div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span>
                         <div class="profile-actions">
-                            <button class="icon-btn" onclick="event.stopPropagation(); editSeatType(${i})">✎</button>
-                            <button class="icon-btn" onclick="event.stopPropagation(); deleteSeatType(${i})">✕</button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button>
                         </div>
                     </div>
                     ${isAct ? `
-                    <div style="display:flex; gap:5px; margin-top:4px;">
-                        <div>
-                            <label>${t.labelChairW}</label>
-                            <input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)">
+                    <div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
+                        <div><label>${t.labelChairW}</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div>
+                        <div><label>${t.labelRowD}</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div>
+                    </div>` : ''}
+                </li>`;
+        });
+
+        const signListEl = document.getElementById('sign-type-list'); signListEl.innerHTML = '';
+        project.signTypes.forEach((st, i) => {
+            const isAct = (i === project.activeSignType) ? 'active' : '';
+            signListEl.innerHTML += `
+                <li class="profile-item ${isAct}" onclick="project.activeSignType=${i}; updateUI();">
+                    <div class="profile-header"><span style="color:${st.color};">● ${st.name}</span>
+                        <div class="profile-actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button>
                         </div>
-                        <div>
-                            <label>${t.labelRowD}</label>
-                            <input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)">
-                        </div>
+                    </div>
+                    ${isAct ? `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
+                        <div><label>${t.labelColor}</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div>
+                        <div><label>${t.labelSizePx}</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div>
+                        <div><label>${t.labelSignText}</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div>
                     </div>` : ''}
                 </li>`;
         });
@@ -581,11 +658,9 @@
 
         const screenListEl = document.getElementById('screen-list');
         const emptyMsg = document.getElementById('no-screens-msg');
-        screenListEl.innerHTML = '';
-        const currentScreens = getActivePage().screens;
-        if (currentScreens.length === 0) {
-            emptyMsg.style.display = 'block';
-        } else {
+        screenListEl.innerHTML = ''; const currentScreens = getActivePage().screens;
+        if (currentScreens.length === 0) emptyMsg.style.display = 'block';
+        else {
             emptyMsg.style.display = 'none';
             currentScreens.forEach((s, i) => {
                 screenListEl.innerHTML += `
@@ -605,15 +680,13 @@
             });
         }
 
-        const areaListEl = document.getElementById('area-list');
-        const obsListEl = document.getElementById('obs-list');
+        const areaListEl = document.getElementById('area-list'); const obsListEl = document.getElementById('obs-list');
         areaListEl.innerHTML = ''; obsListEl.innerHTML = '';
         getActivePage().shapes.forEach((s, i) => {
             if (s.type === 'area') {
                 const sTypeIdx = s.seatTypeIndex ?? 0;
                 const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
                 let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
-                
                 areaListEl.innerHTML += `
                     <li class="area-item" style="border-left-color: ${strokeColor};">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -636,20 +709,33 @@
             }
         });
 
+        // Add Signs to Obs list
+        if (getActivePage().signs) {
+            getActivePage().signs.forEach((s, i) => {
+                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                obsListEl.innerHTML += `
+                    <li class="area-item" style="border-left-color: ${st.color}; background: #222; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size: 0.8em; color: #ccc;">${st.name} Sign</span>
+                            <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
+                        </div>
+                    </li>`;
+            });
+        }
+
         const scale = getActivePage().pixelsPerFoot;
         document.getElementById('scale-info').innerText = scale ? `${t.scalePrefix}${scale.toFixed(2)} px/ft` : t.scaleNotSet;
     }
 
     function switchPage(index) {
-        project.activePageIndex = index;
-        undoStack = []; redoStack = []; // Clear history on page switch
+        project.activePageIndex = index; undoStack = []; redoStack = [];
+        selectedSignIndex = -1; hoveredSignIndex = -1;
         const page = getActivePage();
         if (page.imgData) {
             bgImage = new Image();
             bgImage.onload = () => {
                 view.zoom = Math.min(canvas.width / bgImage.width, canvas.height / bgImage.height) * 0.9;
-                view.x = (canvas.width - bgImage.width * view.zoom) / 2;
-                view.y = (canvas.height - bgImage.height * view.zoom) / 2;
+                view.x = (canvas.width - bgImage.width * view.zoom) / 2; view.y = (canvas.height - bgImage.height * view.zoom) / 2;
                 render();
             };
             bgImage.src = page.imgData;
@@ -658,44 +744,100 @@
     }
 
     async function handleImageUpload(input) {
-        const t = translations[currentLang];
-        const file = input.files[0];
-        if (!file) return;
+        const t = translations[currentLang]; const file = input.files[0]; if (!file) return;
         const label = document.getElementById('upload-label'); label.innerText = t.uploadProcessing;
         const reader = new FileReader();
-        reader.onload = (e) => { 
-            getActivePage().imgData = e.target.result; 
-            switchPage(project.activePageIndex); 
-            label.innerText = t.uploadLabel;
-        };
+        reader.onload = (e) => { getActivePage().imgData = e.target.result; switchPage(project.activePageIndex); label.innerText = t.uploadLabel; };
         reader.readAsDataURL(file);
     }
 
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
-    function getMousePos(e) {
-        const rect = canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    function getMousePos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+
+    // Hit detection for signs
+    function getHitSign(worldPt) {
+        const page = getActivePage();
+        if (!page.signs) return -1;
+        for (let i = page.signs.length - 1; i >= 0; i--) {
+            const s = page.signs[i];
+            const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+            const dist = Math.hypot(worldPt.x - s.x, worldPt.y - s.y);
+            if (dist <= st.size) return i;
+        }
+        return -1;
     }
 
     canvas.onwheel = (e) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const m = getMousePos(e); const world = toWorld(m);
-        view.zoom *= delta;
-        view.x = m.x - world.x * view.zoom; view.y = m.y - world.y * view.zoom;
-        render();
+        view.zoom *= delta; view.x = m.x - world.x * view.zoom; view.y = m.y - world.y * view.zoom; render();
     };
 
     canvas.onmousedown = (e) => {
         let world = toWorld(getMousePos(e));
+        const page = getActivePage();
+
+        // 1. Check Legend Hit Detection First
+        if (page.legend && page.legend.show) {
+            let activeSignIndices = new Set();
+            if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
+            let items = Array.from(activeSignIndices);
+            
+            if (items.length > 0) {
+                let legW = 250 * page.legend.scale;
+                let legH = (50 + (items.length * 35)) * page.legend.scale;
+                let lx = page.legend.x;
+                let ly = page.legend.y;
+                let handleSize = 25 * page.legend.scale; 
+                
+                if (world.x > lx + legW - handleSize && world.x < lx + legW && world.y > ly + legH - handleSize && world.y < ly + legH) {
+                    saveState();
+                    mode = 'resize-legend';
+                    project.dragStartScale = page.legend.scale;
+                    project.dragStartX = world.x;
+                    return; 
+                } else if (world.x > lx && world.x < lx + legW && world.y > ly && world.y < ly + legH) {
+                    saveState();
+                    mode = 'drag-legend';
+                    project.dragOffsetX = world.x - lx;
+                    project.dragOffsetY = world.y - ly;
+                    return;
+                }
+            }
+        }
+
+        // 2. Check for Panning (Right or Middle Click)
         if (e.button !== 0) { isPanning = true; lastMouse = getMousePos(e); return; }
         
+        // 3. Selection and Dragging in IDLE mode
+        if (mode === 'idle') {
+            const hitSign = getHitSign(world);
+            if (hitSign !== -1) {
+                selectedSignIndex = hitSign;
+                isDraggingSign = true;
+                hasDraggedSign = false;
+                project.dragOffsetX = world.x - page.signs[hitSign].x;
+                project.dragOffsetY = world.y - page.signs[hitSign].y;
+                updateUI(); // Highlights the correct sign in the list
+                render();
+                return;
+            } else {
+                if (selectedSignIndex !== -1) {
+                    selectedSignIndex = -1; // Deselect
+                    updateUI();
+                    render();
+                }
+            }
+        }
+
+        // 4. Shift alignment constraint for drawing
         if (isShiftDown && currentPoints.length > 0 && mode.startsWith('draw-')) {
             const last = currentPoints[currentPoints.length - 1];
             if (Math.abs(world.x - last.x) > Math.abs(world.y - last.y)) world.y = last.y;
             else world.x = last.x;
         }
 
+        // 5. Drawing commands
         if (mode === 'calibrate') {
             if (!calPoint) calPoint = world;
             else {
@@ -707,19 +849,73 @@
             saveState();
             let sNum = getActivePage().screens.length + 1;
             getActivePage().screens.push({ x: world.x, y: world.y, rot: 90, active: true, radius: 60, name: "Screen " + sNum });
-            markSeatCachesDirty();
-            setMode('idle');
-        } else if (mode.startsWith('draw')) currentPoints.push(world);
+            markSeatCachesDirty(); setMode('idle');
+        } else if (mode === 'draw-sign') {
+            saveState();
+            if (!getActivePage().signs) getActivePage().signs = [];
+            getActivePage().signs.push({ x: world.x, y: world.y, typeIndex: project.activeSignType ?? 0 });
+            updateUI(); render(); // Keep mode active to drop multiple signs rapidly
+        } else if (mode.startsWith('draw')) {
+            currentPoints.push(world);
+        }
         render();
     };
 
     window.onmousemove = (e) => {
         mousePos = getMousePos(e);
+        let world = toWorld(mousePos);
+        
+        // Hover Detection
+        if (mode === 'idle') {
+            hoveredSignIndex = getHitSign(world);
+        } else {
+            hoveredSignIndex = -1;
+        }
+
+        if (mode === 'drag-legend') {
+            getActivePage().legend.x = world.x - project.dragOffsetX;
+            getActivePage().legend.y = world.y - project.dragOffsetY;
+            hasUnsavedChanges = true;
+            render();
+            return;
+        }
+        
+        if (mode === 'resize-legend') {
+            let dx = world.x - project.dragStartX;
+            let newScale = project.dragStartScale + (dx / 250);
+            if (newScale < 0.3) newScale = 0.3;
+            if (newScale > 10.0) newScale = 10.0;
+            getActivePage().legend.scale = newScale;
+            hasUnsavedChanges = true;
+            render();
+            return;
+        }
+
+        if (isDraggingSign && selectedSignIndex !== -1) {
+            if (!hasDraggedSign) { saveState(); hasDraggedSign = true; }
+            const page = getActivePage();
+            page.signs[selectedSignIndex].x = world.x - project.dragOffsetX;
+            page.signs[selectedSignIndex].y = world.y - project.dragOffsetY;
+            hasUnsavedChanges = true;
+            render();
+            return;
+        }
+
         if (isPanning) { view.x += mousePos.x - lastMouse.x; view.y += mousePos.y - lastMouse.y; lastMouse = mousePos; }
         render();
     };
 
-    window.onmouseup = () => isPanning = false;
+    window.onmouseup = () => {
+        isPanning = false;
+        if (isDraggingSign) {
+            isDraggingSign = false;
+            if (hasDraggedSign) { updateUI(); } // Refresh UI data if actually moved
+        }
+        if (mode === 'drag-legend' || mode === 'resize-legend') {
+            setMode('idle');
+        }
+    };
+
     canvas.ondblclick = () => {
         if (currentPoints.length > 2 && mode.startsWith('draw-')) {
             saveState();
@@ -739,8 +935,7 @@
     }
 
     function getIntersection(A, B, C, D) {
-        const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y);
-        if (bottom === 0) return false;
+        const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y); if (bottom === 0) return false;
         const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
         const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y);
         const t = tTop / bottom; const u = uTop / bottom;
@@ -750,17 +945,13 @@
     function isInCone(pt, sc, radiusPixels) {
         const dx = pt.x - sc.x; const dy = pt.y - sc.y;
         if (Math.hypot(dx, dy) > radiusPixels) return false;
-        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        if (angle < 0) angle += 360;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI; if (angle < 0) angle += 360;
         let sRot = sc.rot % 360; if (sRot < 0) sRot += 360;
-        let diff = Math.abs(angle - sRot);
-        if (diff > 180) diff = 360 - diff;
+        let diff = Math.abs(angle - sRot); if (diff > 180) diff = 360 - diff;
         return diff <= 60; 
     }
 
-    function markSeatCachesDirty() {
-        project.pages.forEach(p => p.shapes.forEach(s => s.cacheDirty = true));
-    }
+    function markSeatCachesDirty() { project.pages.forEach(p => p.shapes.forEach(s => s.cacheDirty = true)); }
 
     function rebuildSeatCache(area, page) {
         area.cachedSeats = []; area.count = 0;
@@ -773,20 +964,16 @@
         const minX = Math.min(...lPts.map(p=>p.x)); const maxX = Math.max(...lPts.map(p=>p.x));
         const minY = Math.min(...lPts.map(p=>p.y)); const maxY = Math.max(...lPts.map(p=>p.y));
         
-        const cols = Math.floor((maxX - minX) / cw);
-        const rows = Math.floor((maxY - minY) / rd);
-        const offsetX = ((maxX - minX) - (cols * cw)) / 2;
-        const offsetY = ((maxY - minY) - (rows * rd)) / 2;
-        const startX = minX + offsetX + (cw / 2);
-        const startY = minY + offsetY + (rd / 2);
+        const cols = Math.floor((maxX - minX) / cw); const rows = Math.floor((maxY - minY) / rd);
+        const offsetX = ((maxX - minX) - (cols * cw)) / 2; const offsetY = ((maxY - minY) - (rows * rd)) / 2;
+        const startX = minX + offsetX + (cw / 2); const startY = minY + offsetY + (rd / 2);
         const eps = 0.1;
 
         for (let i = 0; i < cols; i++) {
             let lx = startX + (i * cw);
             for (let j = 0; j < rows; j++) {
                 let ly = startY + (j * rd);
-                const rx = lx * Math.cos(rotRad) - ly * Math.sin(rotRad);
-                const ry = lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
+                const rx = lx * Math.cos(rotRad) - ly * Math.sin(rotRad); const ry = lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
                 
                 const corners = [
                     { x: -cw/2 + eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: -rd/2 + eps },
@@ -810,8 +997,7 @@
         if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
         
         const page = getActivePage(); 
-        let pageTotal = 0;
-        let typeTotals = new Array(project.seatTypes.length).fill(0);
+        let pageTotal = 0; let typeTotals = new Array(project.seatTypes.length).fill(0);
         const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
         const hasScreens = activeScreens.length > 0;
 
@@ -890,6 +1076,125 @@
             targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); targetCtx.restore();
         });
 
+        // RENDER SIGNS
+        if (page.signs) {
+            page.signs.forEach((s, i) => {
+                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                targetCtx.beginPath();
+                targetCtx.arc(s.x, s.y, st.size, 0, Math.PI * 2);
+                targetCtx.fillStyle = st.color;
+                targetCtx.fill();
+                
+                // Active/Hover Highlighting
+                if (isLive && i === selectedSignIndex) {
+                    targetCtx.lineWidth = 3 / v.zoom;
+                    targetCtx.strokeStyle = 'white';
+                    targetCtx.stroke();
+                    targetCtx.beginPath();
+                    targetCtx.arc(s.x, s.y, st.size + (6/v.zoom), 0, Math.PI * 2);
+                    targetCtx.strokeStyle = '#2ecc71'; 
+                    targetCtx.lineWidth = 3 / v.zoom;
+                    targetCtx.stroke();
+                } else if (isLive && i === hoveredSignIndex) {
+                    targetCtx.lineWidth = 4 / v.zoom;
+                    targetCtx.strokeStyle = '#f1c40f'; 
+                    targetCtx.stroke();
+                } else {
+                    targetCtx.lineWidth = 2 / v.zoom; 
+                    targetCtx.strokeStyle = 'white';
+                    targetCtx.stroke();
+                }
+
+                if (st.label) {
+                    targetCtx.font = `bold ${st.size}px Arial`;
+                    targetCtx.textAlign = "center";
+                    targetCtx.textBaseline = "middle";
+                    targetCtx.lineWidth = 2 / v.zoom;
+                    targetCtx.strokeStyle = "rgba(0,0,0,0.6)";
+                    targetCtx.strokeText(st.label, s.x, s.y);
+                    targetCtx.fillStyle = "white";
+                    targetCtx.fillText(st.label, s.x, s.y);
+                }
+            });
+        }
+
+        // RENDER LIVE LEGEND
+        if (page.legend && page.legend.show) {
+            let activeSignIndices = new Set();
+            if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
+            let items = Array.from(activeSignIndices);
+            
+            if (items.length > 0) {
+                let legW = 250; 
+                let legH = 50 + (items.length * 35);
+                let s = page.legend.scale || 1;
+                
+                targetCtx.save();
+                targetCtx.translate(page.legend.x, page.legend.y);
+                targetCtx.scale(s, s);
+                
+                targetCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                targetCtx.strokeStyle = "black";
+                targetCtx.lineWidth = 2;
+                
+                if(targetCtx.roundRect) {
+                    targetCtx.beginPath(); targetCtx.roundRect(0, 0, legW, legH, 8);
+                    targetCtx.fill(); targetCtx.stroke();
+                } else {
+                    targetCtx.fillRect(0, 0, legW, legH);
+                    targetCtx.strokeRect(0, 0, legW, legH);
+                }
+                
+                targetCtx.fillStyle = "black";
+                targetCtx.font = "bold 18px Arial";
+                targetCtx.textAlign = "left";
+                targetCtx.textBaseline = "alphabetic";
+                targetCtx.fillText("SIGNAGE LEGEND", 15, 30);
+                
+                targetCtx.beginPath();
+                targetCtx.moveTo(15, 40);
+                targetCtx.lineTo(legW - 15, 40);
+                targetCtx.lineWidth = 1;
+                targetCtx.stroke();
+                
+                let yOffset = 65;
+                items.forEach(idx => {
+                    const st = project.signTypes[idx] || project.signTypes[0];
+                    targetCtx.beginPath();
+                    targetCtx.arc(30, yOffset - 5, 12, 0, Math.PI * 2);
+                    targetCtx.fillStyle = st.color;
+                    targetCtx.fill();
+                    targetCtx.lineWidth = 1;
+                    targetCtx.stroke();
+                    
+                    if (st.label) {
+                        targetCtx.fillStyle = "white";
+                        targetCtx.font = "bold 12px Arial";
+                        targetCtx.textAlign = "center";
+                        targetCtx.textBaseline = "middle";
+                        targetCtx.fillText(st.label, 30, yOffset - 5);
+                    }
+                    
+                    targetCtx.fillStyle = "black";
+                    targetCtx.font = "16px Arial";
+                    targetCtx.textAlign = "left";
+                    targetCtx.fillText(st.name, 55, yOffset);
+                    yOffset += 35;
+                });
+                
+                if (isLive) {
+                    targetCtx.fillStyle = "rgba(0,0,0,0.3)";
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(legW - 20, legH);
+                    targetCtx.lineTo(legW, legH - 20);
+                    targetCtx.lineTo(legW, legH);
+                    targetCtx.fill();
+                }
+                
+                targetCtx.restore();
+            }
+        }
+
         if (isLive) {
             if (calPoint) { targetCtx.fillStyle = "yellow"; targetCtx.beginPath(); targetCtx.arc(calPoint.x, calPoint.y, 5/v.zoom, 0, Math.PI*2); targetCtx.fill(); }
             if (currentPoints.length > 0) { 
@@ -905,10 +1210,19 @@
             }
             targetCtx.restore();
             
+            // Custom Dynamic Crosshair
             ctx.strokeStyle = "rgba(0,0,0,0.8)"; ctx.lineWidth = 2.5; ctx.beginPath();
             ctx.moveTo(mousePos.x, 0); ctx.lineTo(mousePos.x, canvas.height);
             ctx.moveTo(0, mousePos.y); ctx.lineTo(canvas.width, mousePos.y); ctx.stroke();
-            ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 0.5; ctx.stroke();
+            
+            if (hoveredSignIndex !== -1 || isDraggingSign) {
+                ctx.strokeStyle = "#f1c40f"; // Yellow when interactive
+                ctx.lineWidth = 1.5;
+            } else {
+                ctx.strokeStyle = "#e74c3c"; // Red normally
+                ctx.lineWidth = 0.5;
+            }
+            ctx.stroke();
             
             const t = translations[currentLang];
             let totalsHTML = '';
@@ -932,8 +1246,9 @@
 
     function setMode(m) { 
         mode = m; currentPoints = []; calPoint = null; 
+        selectedSignIndex = -1; // Deselect signs on mode change
         document.querySelectorAll('.fixed-tools .tool-btn').forEach(btn => btn.classList.remove('active'));
-        const buttonMap = { 'calibrate':'btn-calibrate', 'draw-area':'btn-draw-area', 'draw-obs':'btn-draw-obs', 'draw-screen':'btn-draw-screen' };
+        const buttonMap = { 'calibrate':'btn-calibrate', 'draw-area':'btn-draw-area', 'draw-obs':'btn-draw-obs', 'draw-screen':'btn-draw-screen', 'draw-sign':'btn-draw-sign' };
         if (buttonMap[m]) { const btn = document.getElementById(buttonMap[m]); if(btn) btn.classList.add('active'); }
         updateUI(); render(); 
     }
@@ -942,13 +1257,15 @@
     document.getElementById('btn-draw-area').onclick = () => setMode('draw-area');
     document.getElementById('btn-draw-obs').onclick = () => setMode('draw-obs');
     document.getElementById('btn-draw-screen').onclick = () => setMode('draw-screen');
+    document.getElementById('btn-draw-sign').onclick = () => setMode('draw-sign');
 
     function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
     function deleteScreen(i) { saveState(); getActivePage().screens.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
+    function deleteSign(i) { saveState(); getActivePage().signs.splice(i,1); selectedSignIndex = -1; updateUI(); render(); }
 
     function addNewPage() { 
         const n = prompt(translations[currentLang].pageNamePrompt); 
-        if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[]}); switchPage(project.pages.length-1); }
+        if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], legend:{show:true, x:40, y:40, scale:1}}); switchPage(project.pages.length-1); }
     }
     
     function deleteCurrentPage() { 
@@ -969,12 +1286,20 @@
         reader.onload = (e) => { 
             project = JSON.parse(e.target.result);
             if (!project.seatTypes) {
-                project.seatTypes = [
-                    { name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }
-                ];
-                project.activeSeatType = 0;
-                project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; }));
+                project.seatTypes = [{ name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }];
+                project.activeSeatType = 0; project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; }));
             }
+            if (!project.signTypes) {
+                project.signTypes = [{ name: "Default Sign", color: '#e74c3c', size: 20, label: "1" }];
+                project.activeSignType = 0; project.pages.forEach(p => { if(!p.signs) p.signs = []; });
+            } else {
+                project.signTypes.forEach((st, i) => { if (st.label === undefined) st.label = (i + 1).toString(); });
+            }
+            
+            project.pages.forEach(p => {
+                if(!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 };
+            });
+
             markSeatCachesDirty(); switchPage(0); hasUnsavedChanges = false;
         };
         reader.readAsText(input.files[0]);
@@ -983,13 +1308,16 @@
     function printReport(type) {
         const t = translations[currentLang];
         document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
-        document.getElementById('rpt-title-print').innerText = project.title + t.printTitleSuffix;
         const dateStr = new Date().toLocaleDateString();
         document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
 
         if (type === 'summary') {
+            document.getElementById('rpt-title-print').innerText = project.title + t.printTitleSuffix;
+            document.getElementById('rpt-table-header').innerHTML = `<th>${t.sectionNameCol}</th><th>${t.countCol}</th>`;
+            
             const body = document.getElementById('rpt-body'); body.innerHTML = '';
             let typeGrandTotals = new Array(project.seatTypes.length).fill(0);
+            let signGrandTotals = new Array(project.signTypes.length).fill(0);
             const origIndex = project.activePageIndex;
             
             project.pages.forEach((p, idx) => {
@@ -997,6 +1325,7 @@
                 const dummyCtx = document.createElement('canvas').getContext('2d'); render(dummyCtx, {x:0, y:0, zoom:1}, false);
                 let pageRows = ''; let hasAreas = false;
                 
+                // SEATS
                 project.seatTypes.forEach((st, typeIdx) => {
                     let typeSubtotal = 0; let typeRows = '';
                     p.shapes.forEach(s => { 
@@ -1013,6 +1342,20 @@
                         typeGrandTotals[typeIdx] += typeSubtotal;
                     }
                 });
+
+                // SIGNS
+                if (p.signs && p.signs.length > 0) {
+                    hasAreas = true;
+                    pageRows += `<tr style="background: #fff3e0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #e67e22;">SIGNAGE PLACEMENTS</td></tr>`;
+                    project.signTypes.forEach((st, typeIdx) => {
+                        let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length;
+                        if (signCount > 0) {
+                            pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${st.color}">●</span> ${st.name}</td><td>${signCount}</td></tr>`;
+                            signGrandTotals[typeIdx] += signCount;
+                        }
+                    });
+                }
+
                 if (hasAreas) {
                     body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`;
                     body.innerHTML += pageRows;
@@ -1028,8 +1371,61 @@
                 }
             });
             footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${t.printGrandTotal}</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
+            
+            let hasSigns = signGrandTotals.some(x => x > 0);
+            if (hasSigns) {
+                footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
+                project.signTypes.forEach((st, i) => {
+                    if (signGrandTotals[i] > 0) {
+                        footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()} SIGNS</td><td>${signGrandTotals[i]}</td></tr>`;
+                    }
+                });
+            }
+
             document.querySelector('#print-report-container tfoot').innerHTML = footHTML;
             document.body.className = 'summary-only'; window.print();
+
+        } else if (type === 'signs') {
+            
+            document.getElementById('rpt-title-print').innerText = project.title + " - Signage Report";
+            document.getElementById('rpt-table-header').innerHTML = `<th>Sign Type</th><th>Total Count (All Pages)</th>`;
+            
+            let signGrandTotals = new Array(project.signTypes.length).fill(0);
+            project.pages.forEach(p => {
+                if (p.signs) {
+                    p.signs.forEach(s => { signGrandTotals[s.typeIndex ?? 0]++; });
+                }
+            });
+
+            let bodyHTML = '';
+            let absoluteTotal = 0;
+            project.signTypes.forEach((st, i) => {
+                if (signGrandTotals[i] > 0) {
+                    bodyHTML += `<tr>
+                        <td style="padding-left: 20px;">
+                            <span style="display:inline-block; width:24px; height:24px; background-color:${st.color}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${st.label || ''}</span>
+                            ${st.name}
+                        </td>
+                        <td>${signGrandTotals[i]}</td>
+                    </tr>`;
+                    absoluteTotal += signGrandTotals[i];
+                }
+            });
+
+            if (absoluteTotal === 0) {
+                bodyHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">No signs placed in this project.</td></tr>`;
+            }
+
+            document.getElementById('rpt-body').innerHTML = bodyHTML;
+            document.querySelector('#print-report-container tfoot').innerHTML = `
+                <tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <td style="text-align: right;">GRAND TOTAL ALL SIGNS</td>
+                    <td>${absoluteTotal}</td>
+                </tr>
+            `;
+
+            document.body.className = 'summary-only'; 
+            window.print();
             
         } else {
             const page = getActivePage();
@@ -1037,7 +1433,7 @@
             const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
             const hasScreens = activeScreens.length > 0;
 
-            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact;">`;
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
             if (bgImage.src) svg += `<image href="${bgImage.src}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
 
             svg += `<defs>`;
@@ -1079,8 +1475,8 @@
 
                     svg += `<circle cx="${sc.x}" cy="${sc.y}" r="10" fill="${COLORS.screen}" stroke="white" stroke-width="2" />`;
                     svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*30}" y2="${sc.y + Math.sin(rotRad)*30}" stroke="white" stroke-width="2" />`;
-                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${sc.name}</text>`;
-                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
+                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-size="16px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${sc.name}</text>`;
+                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-size="16px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
                 });
             }
 
@@ -1118,9 +1514,49 @@
                 
                 let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; });
                 const cen = { x: sX / s.points.length, y: sY / s.points.length };
-                svg += `<text x="${cen.x}" y="${cen.y}" font-family="Arial" font-size="18px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${s.name}</text>`;
-                svg += `<text x="${cen.x}" y="${cen.y}" font-family="Arial" font-size="18px" font-weight="bold" text-anchor="middle" fill="white">${s.name}</text>`;
+                svg += `<text x="${cen.x}" y="${cen.y}" font-size="18px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${s.name}</text>`;
+                svg += `<text x="${cen.x}" y="${cen.y}" font-size="18px" font-weight="bold" text-anchor="middle" fill="white">${s.name}</text>`;
             });
+
+            // RENDER SIGNS TO SVG
+            if (page.signs && page.signs.length > 0) {
+                let activeSignIndices = new Set();
+                page.signs.forEach(s => {
+                    activeSignIndices.add(s.typeIndex ?? 0);
+                    const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                    svg += `<circle cx="${s.x}" cy="${s.y}" r="${st.size}" fill="${st.color}" stroke="white" stroke-width="2" />`;
+                    if (st.label) {
+                        svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" stroke="rgba(0,0,0,0.6)" stroke-width="1" fill="white">${st.label}</text>`;
+                    }
+                });
+
+                // --- INJECT LEGEND OVERLAY ---
+                if (page.legend && page.legend.show) {
+                    let legendX = page.legend.x; 
+                    let legendY = page.legend.y;
+                    let s = page.legend.scale || 1;
+                    let legendWidth = 250; 
+                    let legendHeight = 50 + (activeSignIndices.size * 35);
+                    
+                    svg += `<g transform="translate(${legendX}, ${legendY}) scale(${s})">`;
+                    svg += `<rect x="0" y="0" width="${legendWidth}" height="${legendHeight}" fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="2" rx="8" ry="8" />`;
+                    svg += `<text x="15" y="30" font-family="Arial" font-size="18px" font-weight="bold" fill="black">SIGNAGE LEGEND</text>`;
+                    svg += `<line x1="15" y1="40" x2="${legendWidth - 15}" y2="40" stroke="black" stroke-width="1" />`;
+                    
+                    let yOffset = 65;
+                    Array.from(activeSignIndices).forEach(idx => {
+                        const st = project.signTypes[idx];
+                        svg += `<circle cx="30" cy="${yOffset - 5}" r="12" fill="${st.color}" stroke="black" stroke-width="1" />`;
+                        if (st.label) {
+                            svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                        }
+                        svg += `<text x="55" y="${yOffset}" font-family="Arial" font-size="16px" fill="black">${st.name}</text>`;
+                        yOffset += 35;
+                    });
+                    svg += `</g>`;
+                }
+            }
+
             svg += `</svg>`;
             document.getElementById('svg-print-wrapper').innerHTML = svg;
             document.body.className = 'layout-only'; setTimeout(() => window.print(), 300);
