@@ -1,227 +1,278 @@
+<!--
+Convention Planner
+Copyright (C) 2026 Abarca Services, LLC
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see https://www.gnu.org/licenses/.
+-->
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Convention Planner | Project Edition</title>
+    <title>Convention Planner | Professional UI</title>
     
-    <link rel="icon" type="image/png" href="cp_logo.png">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007acc%22/><text x=%2250%22 y=%2268%22 font-size=%2255%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22>CP</text></svg>">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     
     <style>
-        :root { --bg: #1a1a24; --sidebar: #252535; --accent: #3498db; --danger: #e74c3c; --success: #2ecc71; --warning: #f1c40f; --screen: #e67e22; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        :root { --bg: #1e1e1e; --panel-bg: #252526; --ribbon-bg: #333333; --accent: #007acc; --danger: #e74c3c; --success: #4caf50; --warning: #f1c40f; --screen: #e67e22; --text: #cccccc; --text-light: #ffffff; --border: #3e3e42; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; top: 0 !important; }
         
-        #sidebar { width: 340px; background: var(--sidebar); padding: 15px; box-shadow: 4px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; z-index: 100; box-sizing: border-box; }
-        .scroll-content { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
-        
-        .brand-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 12px; }
-        h2 { margin: 0; color: var(--accent); font-size: 1.3em; }
-        
-        .fixed-tools { border-bottom: 2px solid #444; padding-bottom: 15px; margin-bottom: 10px; flex-shrink: 0; }
-        
-        .collapsible-header { 
-            font-size: 0.75em; color: #888; text-transform: uppercase; margin: 15px 0 8px 0; 
-            letter-spacing: 1px; border-left: 3px solid var(--accent); padding-left: 8px; 
-            cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center;
-            transition: color 0.2s;
-        }
-        .collapsible-header:hover { color: #fff; }
-        .collapsible-header::after { content: '▼'; font-size: 0.9em; transition: transform 0.2s; }
-        .collapsible-header.collapsed::after { transform: rotate(-90deg); }
-        .collapsible-content { display: block; overflow: hidden; }
-        
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-        .tool-btn { padding: 7px; border: none; border-radius: 4px; cursor: pointer; background: #444; color: white; font-weight: 600; font-size: 0.7em; transition: 0.2s; text-align: center; }
-        
-        .tool-btn.report { background: #673ab7; }
-        .tool-btn.layout { background: var(--success); }
-        .tool-btn.danger { background: var(--danger); }
-        .tool-btn.undo-btn { background: #555; color: #ccc; }
-        .tool-btn.undo-btn:hover { background: #777; color: white; }
+        /* --- NEW TOP RIBBON --- */
+        #top-ribbon { height: 60px; background: var(--ribbon-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; flex-shrink: 0; gap: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 100; }
+        .ribbon-group { display: flex; align-items: center; gap: 5px; border-right: 1px solid var(--border); padding-right: 20px; height: 40px; }
+        .ribbon-group:last-child { border-right: none; }
+        .ribbon-title { font-size: 0.65em; color: #888; text-transform: uppercase; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+        .ribbon-group-wrapper { position: relative; display: flex; align-items: center; height: 100%; }
 
-        .input-group { margin-bottom: 10px; }
-        label { display: block; font-size: 0.7em; margin-bottom: 4px; color: #999; text-transform: uppercase; }
+        .ribbon-btn { background: transparent; border: 1px solid transparent; color: var(--text-light); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; }
+        .ribbon-btn:hover { background: rgba(255,255,255,0.1); }
+        .ribbon-btn.active { background: rgba(0, 122, 204, 0.4); border-color: var(--accent); color: white; }
+        .ribbon-btn.action { background: #444; border: 1px solid #555; }
+        .ribbon-btn.action:hover { background: #555; }
+
+        /* --- MAIN LAYOUT --- */
+        #workspace { display: flex; flex-grow: 1; overflow: hidden; }
         
-        input[type="text"], input[type="number"], select, input[type="color"] { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 6px; border-radius: 4px; box-sizing: border-box; font-size: 0.85em; outline: none; }
-        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
-        input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-        input[type="color"] { padding: 2px; height: 28px; cursor: pointer; }
-
-        ul.item-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
-        .page-item { background: #333; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; }
-        .page-item.active { background: var(--accent); border-color: white; }
-        .page-item .page-name { flex-grow: 1; pointer-events: none; }
-
-        .area-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 8px; border-radius: 6px; border-left: 4px solid var(--success); }
-        .area-item.type-obs { border-left-color: var(--danger); }
-        .screen-item { background: rgba(0,0,0,0.3); margin-bottom: 5px; padding: 8px; border-radius: 6px; border-left: 4px solid var(--screen); }
+        /* --- CONTEXTUAL SIDEBAR --- */
+        #properties-sidebar { width: 320px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; }
+        .sidebar-header { background: #2d2d30; padding: 10px 15px; font-weight: bold; color: var(--text-light); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .panel-content { flex-grow: 1; overflow-y: auto; padding: 15px; display: none; } 
+        .panel-content.active { display: block; } 
         
-        .profile-item { background: #2a2a35; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; gap: 6px; border: 1px solid #444; margin-bottom: 5px; }
-        .profile-item.active { border-color: var(--accent); background: #323245; }
-        .profile-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .profile-actions { display: flex; gap: 5px; }
+        .stats-summary { background: #1e1e1e; padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; font-size: 0.9em; }
 
-        .stats-summary { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-top: 2px solid var(--success); margin-top: 10px; flex-shrink: 0; }
+        /* --- VIEWPORT --- */
+        #viewport { flex-grow: 1; position: relative; background: #0b0b0f; overflow: hidden; cursor: crosshair; }
+        canvas { position: absolute; top: 0; left: 0; image-rendering: high-quality; }
+
+        /* --- UI COMPONENTS --- */
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.75em; margin-bottom: 4px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="text"], input[type="number"], select, input[type="color"] { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px; box-sizing: border-box; font-size: 0.9em; outline: none; transition: border 0.2s; }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus { border-color: var(--accent); }
+        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="color"] { padding: 2px; height: 32px; cursor: pointer; }
+
+        .btn-full { width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; color: white; transition: border 0.2s; }
+        .btn-primary { background: var(--accent); }
+        .btn-primary:hover { background: #0098ff; }
+        .btn-danger { background: var(--danger); }
+
+        ul.item-list { list-style: none; padding: 0; margin: 0 0 15px 0; display: flex; flex-direction: column; gap: 6px; }
+        .list-item { background: #333; padding: 10px; border-radius: 4px; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; cursor: pointer; }
+        .list-item.active { border-color: var(--accent); background: #3a3a40; }
         
-        #viewport { flex-grow: 1; position: relative; background: #0b0b0f; overflow: hidden; cursor: none; }
-        canvas { position: absolute; top: 0; left: 0; }
+        .profile-item { background: #2d2d30; padding: 10px; border-radius: 4px; font-size: 0.85em; display: flex; flex-direction: column; gap: 8px; border: 1px solid #444; margin-bottom: 8px; cursor: pointer; }
+        .profile-item.active { border-color: var(--accent); background: #333337; }
+        .profile-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1em; }
+        
+        .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 4px; border-radius: 3px; font-size: 1.1em; line-height: 1; }
+        .icon-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+        .text-input-dark { padding: 4px 6px; border: 1px solid transparent; background: transparent; color: white; border-radius: 3px; box-sizing: border-box; width: 100%; }
+        .text-input-dark:focus { border-color: var(--accent); background: #222; }
 
+        /* Google Translate Dark Theme Overrides */
+        .skiptranslate iframe { display: none !important; }
+        #goog-gt-tt { display: none !important; top: 0px !important; }
+        .goog-te-gadget { color: transparent !important; display: flex; align-items: center; }
+        .goog-te-gadget .goog-te-combo { background: #222; color: white; border: 1px solid #555; padding: 6px; border-radius: 4px; outline: none; font-size: 0.85em; cursor: pointer; margin: 0; }
+        .goog-te-gadget .goog-te-combo:focus { border-color: var(--accent); }
+
+        /* Print Styles */
         #print-report-container, #print-layout-container { display: none; }
-
         @media print {
+            @page { size: auto; margin: 0.15in; }
             body { background: white; color: black; display: block; height: auto; overflow: visible; }
-            #sidebar, #viewport, .no-print { display: none !important; }
-            .print-header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-            .print-header h1 { margin: 0; font-size: 22pt; color: black; line-height: 1.1; }
+            #top-ribbon, #properties-sidebar, #viewport { display: none !important; }
+            .print-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .print-header h1 { margin: 0; font-size: 20pt; color: black; line-height: 1.1; }
             .print-subtitle { font-size: 10pt; color: #666; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
-            #print-layout-container { display: block !important; width: 100%; text-align: center; }
-            
-            #svg-print-wrapper svg { display: block; width: 100%; height: auto; max-height: 85vh; border: 1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            
+            #print-layout-container { display: block !important; width: 100%; height: 100%; max-width: 100vw; text-align: center; box-sizing: border-box; }
+            #svg-print-wrapper svg { display: block !important; width: 100% !important; height: 90vh !important; max-height: 100% !important; margin: 0 auto; object-fit: contain; }
             .summary-only #print-layout-container { display: none !important; }
             .summary-only #print-report-container { display: block !important; padding: 20px; }
             .layout-only #print-report-container { display: none !important; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; color: black; }
             th, td { border: 1px solid #333; padding: 8px; text-align: left; vertical-align: middle; }
             th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            @page { size: auto; margin: 0.5in; }
         }
-
-        .icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 0; font-size: 1em; }
-        .icon-btn:hover { color: white; }
-        .text-input-dark { padding: 4px; border: 1px solid #444; background: #111; color: white; border-radius: 3px; box-sizing: border-box; }
-        .tool-btn.active { background: var(--accent) !important; outline: 2px solid white; box-shadow: 0 0 10px rgba(255,255,255,0.35); }
-        .lang-option { padding: 8px 16px; cursor: pointer; font-size: 0.85em; transition: background 0.2s; color: white; }
-        .lang-option:hover { background: var(--accent); }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <div class="brand-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; border-radius: 4px;">
-            <h2 id="ui-title">Convention Planner</h2>
-        </div>
-        
-        <div style="position: relative;">
-            <button class="tool-btn" onclick="toggleLangMenu(event)" style="padding: 6px; display: flex; align-items: center; justify-content: center; background: #444;">
-                <svg fill="#fff" width="16" height="16" viewBox="0 0 24 24" title="Language">
-                    <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-                </svg>
-            </button>
-            <div id="lang-menu" style="display: none; position: absolute; right: 0; top: 35px; background: #333; border: 1px solid #555; border-radius: 4px; z-index: 1000; min-width: 100px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); overflow: hidden;">
-                <div class="lang-option" onclick="setLanguage('en')" style="border-bottom: 1px solid #444;">English</div>
-                <div class="lang-option" onclick="setLanguage('es')">Español</div>
-            </div>
-        </div>
+<div id="top-ribbon">
+    <div style="display: flex; align-items: center; gap: 12px; margin-right: 20px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width: 32px; height: 32px;">
+            <rect width="100" height="100" rx="20" fill="var(--accent)"/>
+            <text x="50" y="68" font-size="55" font-family="Arial" font-weight="bold" fill="white" text-anchor="middle">CP</text>
+        </svg>
+        <h2 style="margin: 0; color: var(--accent); font-size: 1.2em;">Convention Planner</h2>
     </div>
-    
-    <div class="fixed-tools">
-        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
-            <button class="tool-btn" id="ui-save" style="background:#2980b9" onclick="saveProject()">Save JSON</button>
-            <button class="tool-btn" id="ui-open" style="background:#8e44ad" onclick="document.getElementById('load-input').click()">Open JSON</button>
+
+    <div class="ribbon-group-wrapper">
+        <div class="ribbon-group">
+            <button class="ribbon-btn action" onclick="saveProject()">💾 Save</button>
+            <button class="ribbon-btn action" onclick="document.getElementById('load-input').click()">📁 Open</button>
             <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadProject(this)">
-        </div>
-        
-        <div class="btn-group" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
-            <button class="tool-btn" id="btn-draw-area">Area</button>
-            <button class="tool-btn" id="btn-draw-obs">Obstacle</button>
-            <button class="tool-btn" id="btn-draw-screen">Screen</button>
-            <button class="tool-btn" id="btn-draw-sign">Sign</button>
-        </div>
-        
-        <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
-            <button class="tool-btn undo-btn" onclick="undo()" title="Undo Action">↶ Undo</button>
-            <button class="tool-btn undo-btn" onclick="redo()" title="Redo Action">↷ Redo</button>
-        </div>
-
-        <div class="input-group" style="display:flex; gap:5px; margin-bottom:8px;">
-            <select id="print-type-select" style="flex-grow: 1; padding: 6px;">
-                <option value="summary" id="opt-summary">Project Summary</option>
-                <option value="layout" id="opt-layout">Current Layout</option>
-                <option value="signs" id="opt-signs">Signage Report</option>
+            
+            <select id="print-type-select" style="width: 120px; margin-left: 10px; padding: 4px; font-size: 0.8em; background: #222;">
+                <option value="summary">Summary</option>
+                <option value="layout">Layout</option>
+                <option value="signs">Sign Report</option>
             </select>
-            <button class="tool-btn report" id="ui-btn-print-action" onclick="printReport(document.getElementById('print-type-select').value)" style="width: 80px;">Print</button>
+            <button class="ribbon-btn action" onclick="printReport(document.getElementById('print-type-select').value)" style="background: var(--accent); border-color: var(--accent);">🖨️ Print</button>
         </div>
-        
-        <div id="dynamic-draft-mode" style="margin-top: 5px;"></div>
+        <div class="ribbon-title">System</div>
+    </div>
+
+    <div class="ribbon-group-wrapper">
+        <div class="ribbon-group">
+            <button class="ribbon-btn action" onclick="undo()" title="Undo">↶</button>
+            <button class="ribbon-btn action" onclick="redo()" title="Redo">↷</button>
+        </div>
+        <div class="ribbon-title">Edit</div>
+    </div>
+
+    <div class="ribbon-group-wrapper">
+        <div class="ribbon-group">
+            <button class="ribbon-btn tab-btn active" id="tab-project" onclick="setTab('project')">⚙️ Project Settings</button>
+            <button class="ribbon-btn tab-btn" id="tab-area" onclick="setTab('area')">🟩 Seating Areas</button>
+            <button class="ribbon-btn tab-btn" id="tab-obs" onclick="setTab('obs')">🟥 Obstacles</button>
+            <button class="ribbon-btn tab-btn" id="tab-screen" onclick="setTab('screen')">🟨 A/V Screens</button>
+            <button class="ribbon-btn tab-btn" id="tab-sign" onclick="setTab('sign')">🔴 Signage</button>
+            <button class="ribbon-btn tab-btn" id="tab-annotate" onclick="setTab('annotate')">📏 Annotate</button>
+        </div>
+        <div class="ribbon-title">Tool Categories</div>
     </div>
     
-    <div class="scroll-content">
-        <div class="input-group">
-            <input type="text" id="project-title" value="New Project" oninput="project.title=this.value; hasUnsavedChanges=true;">
-        </div>
+    <div style="flex-grow: 1;"></div>
+    
+    <div id="google_translate_element" style="margin-right: 15px;"></div>
 
-        <h3 class="collapsible-header" id="header-pages" onclick="toggleSection('pages')">Layout Pages</h3>
-        <div class="collapsible-content" id="content-pages">
-            <div class="input-group">
-                <label id="upload-label">Upload Image or PDF</label>
-                <input type="file" id="upload" accept="image/*, .pdf" onchange="handleImageUpload(this)">
-            </div>
-            <div class="btn-group" style="grid-template-columns: 1fr 1fr;">
-                <button class="tool-btn" id="btn-calibrate">Set Scale</button>
-                <button class="tool-btn danger" id="ui-del-page" onclick="deleteCurrentPage()">Del Page</button>
-            </div>
-            <ul class="item-list" id="page-list"></ul>
-            <button class="tool-btn add-page" id="ui-new-page" onclick="addNewPage()" style="margin-top:5px; width:100%;">+ New Page</button>
-        </div>
-
-        <h3 class="collapsible-header" id="header-signs" onclick="toggleSection('signs')">Signage Profiles</h3>
-        <div class="collapsible-content" id="content-signs">
-            <ul class="item-list" id="sign-type-list"></ul>
-            <button class="tool-btn" id="ui-add-sign-type" onclick="addSignType()" style="margin-top:5px; width:100%; background: #e67e22;">+ Add Sign Type</button>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:8px; border-radius:4px; margin-top:10px; border: 1px solid #444;">
-                <label id="ui-label-legend" style="margin:0; color:#ccc; font-weight:bold; cursor:pointer;" for="ui-toggle-legend">Canvas Legend</label>
-                <input type="checkbox" id="ui-toggle-legend" onchange="toggleLegend(this.checked)" style="width:auto; cursor:pointer;">
-            </div>
-        </div>
-
-        <h3 class="collapsible-header" id="header-seats" onclick="toggleSection('seats')">Seat Profiles</h3>
-        <div class="collapsible-content" id="content-seats">
-            <ul class="item-list" id="seat-type-list"></ul>
-            <button class="tool-btn" id="ui-add-seat-type" onclick="addSeatType()" style="margin-top:5px; width:100%;">+ Add Seat Profile</button>
-        </div>
-        
-        <h3 class="collapsible-header" id="header-screens" onclick="toggleSection('screens')">Screens (Sightlines)</h3>
-        <div class="collapsible-content" id="content-screens">
-            <ul class="item-list" id="screen-list"></ul>
-            <div id="no-screens-msg" style="color:#888; font-size:0.8em; font-style:italic; text-align:center; padding:10px 0; display:none;">No screens added yet.</div>
-        </div>
-
-        <h3 class="collapsible-header" id="header-areas" onclick="toggleSection('areas')">Seating Areas</h3>
-        <div class="collapsible-content" id="content-areas">
-            <ul class="item-list" id="area-list"></ul>
-        </div>
-
-        <h3 class="collapsible-header" id="header-obs" onclick="toggleSection('obs')">Obstacles & Signs</h3>
-        <div class="collapsible-content" id="content-obs">
-            <ul class="item-list" id="obs-list"></ul>
-        </div>
-    </div>
-
-    <div class="stats-summary">
-        <label id="ui-page-totals-header" style="border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 8px;">PAGE TOTALS</label>
-        <div id="page-totals-container"></div>
-        <div id="scale-info" style="font-size:0.65em; color:#888; margin-top:8px;">Scale: Not Set</div>
+    <div style="display:flex; align-items:center; gap:8px; background: rgba(241,196,15,0.1); padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(241,196,15,0.3);">
+        <label style="margin:0; color: var(--warning); cursor:pointer;" for="ui-toggle-draft">👁️ Show Sightlines</label>
+        <input type="checkbox" id="ui-toggle-draft" checked onchange="uiState.draftMode=!this.checked; markSeatCachesDirty(); triggerUpdate();">
     </div>
 </div>
 
-<div id="viewport">
-    <canvas id="mainCanvas"></canvas>
+<div id="workspace">
+    
+    <div id="properties-sidebar">
+        <div class="sidebar-header">
+            <span id="panel-title">Project Settings</span>
+        </div>
+
+        <div id="panel-project" class="panel-content active">
+            <div class="input-group">
+                <label>Project Title</label>
+                <input type="text" id="project-title" value="New Project" oninput="project.title=this.value; hasUnsavedChanges=true;">
+            </div>
+            
+            <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Pages & Backgrounds</div>
+            <ul class="item-list" id="page-list"></ul>
+            <button class="btn-full btn-primary" onclick="addNewPage()">+ New Page</button>
+            
+            <div class="input-group" style="margin-top: 15px;">
+                <label id="upload-label">Upload Blueprint (Img/PDF)</label>
+                <input type="file" id="upload" accept="image/*, .pdf" onchange="handleImageUpload(this)" style="background: #222;">
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-start-calibrate" class="btn-full" style="background: #555;" onclick="setMode('calibrate')">Set Scale</button>
+                <button class="btn-full btn-danger" onclick="deleteCurrentPage()">Del Page</button>
+            </div>
+        </div>
+
+        <div id="panel-area" class="panel-content">
+            <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Seat Profiles</div>
+            <ul class="item-list" id="seat-type-list"></ul>
+            <button class="btn-full btn-primary" onclick="addSeatType()">+ Add Profile</button>
+            
+            <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Areas</div>
+            <ul class="item-list" id="area-list"></ul>
+        </div>
+
+        <div id="panel-obs" class="panel-content">
+            <button id="btn-start-obs" class="btn-full btn-primary" onclick="setMode('draw-obs')">➕ Draw New Obstacle</button>
+            <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Obstacles</div>
+            <ul class="item-list" id="obs-list"></ul>
+        </div>
+
+        <div id="panel-screen" class="panel-content">
+            <button id="btn-start-screen" class="btn-full btn-primary" onclick="setMode('draw-screen')">➕ Place New Screen</button>
+            <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">A/V Screens (Sightlines)</div>
+            <ul class="item-list" id="screen-list"></ul>
+            <div id="no-screens-msg" style="color:#888; font-size:0.8em; font-style:italic; text-align:center; padding:10px 0;">No screens added yet.</div>
+        </div>
+
+        <div id="panel-sign" class="panel-content">
+            <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Signage Types</div>
+            <ul class="item-list" id="sign-type-list"></ul>
+            <button class="btn-full btn-primary" onclick="addSignType()">+ Add Sign Type</button>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#333; padding:10px; border-radius:4px; margin-top:15px; border: 1px solid #444;">
+                <label style="margin:0; font-weight:bold; color: white;">Show Map Legend</label>
+                <input type="checkbox" id="ui-toggle-legend" onchange="toggleLegend(this.checked)">
+            </div>
+
+            <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Placed Signs</div>
+            <ul class="item-list" id="placed-sign-list"></ul>
+        </div>
+
+        <div id="panel-line" class="panel-content">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:5px;">
+                <button id="btn-start-dim" class="btn-full btn-primary" onclick="setMode('draw-dim')">📏 Dim</button>
+                <button id="btn-start-line" class="btn-full btn-primary" onclick="setMode('draw-line')">➖ Line</button>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:15px;">
+                <button id="btn-start-poly" class="btn-full btn-primary" onclick="setMode('draw-poly')">〰️ Poly</button>
+                <button id="btn-start-text" class="btn-full btn-primary" onclick="setMode('place-text')">📝 Text</button>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#333; padding:10px; border-radius:4px; margin-bottom:15px; border: 1px solid #444;">
+                <label style="margin:0; font-weight:bold; color: white;">Show Annotations</label>
+                <input type="checkbox" id="ui-toggle-lines" checked onchange="uiState.showLines=this.checked; render();">
+            </div>
+            
+            <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Lines</div>
+            <ul class="item-list" id="line-list"></ul>
+
+            <div style="margin-bottom: 10px; margin-top: 20px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Text Annotations</div>
+            <ul class="item-list" id="text-list"></ul>
+        </div>
+
+        <div class="stats-summary">
+            <div id="scale-info" style="font-size:0.85em; color:#aaa; margin-bottom:8px; border-bottom: 1px solid #444; padding-bottom: 4px;">Scale: Not Set</div>
+            <div id="page-totals-container"></div>
+        </div>
+    </div>
+
+    <div id="viewport">
+        <canvas id="mainCanvas"></canvas>
+    </div>
 </div>
 
 <div id="print-layout-container">
     <div class="print-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-            <div>
-                <h1 id="lay-title-print">Layout</h1>
-                <div class="print-subtitle">Convention Planner</div>
-            </div>
+        <div>
+            <h1 id="lay-title-print">Layout</h1>
+            <div class="print-subtitle">Convention Planner</div>
         </div>
         <span id="lay-date-print" style="font-weight: bold; font-size: 11pt;"></span>
     </div>
@@ -230,12 +281,9 @@
 
 <div id="print-report-container">
     <div class="print-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="cp_logo.png" alt="Convention Planner Logo" style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-            <div>
-                <h1 id="rpt-title-print">Project Summary</h1>
-                <div class="print-subtitle">Convention Planner</div>
-            </div>
+        <div>
+            <h1 id="rpt-title-print">Project Summary</h1>
+            <div class="print-subtitle">Convention Planner</div>
         </div>
         <span id="rpt-date-print" style="font-weight: bold; font-size: 11pt;"></span>
     </div>
@@ -246,525 +294,480 @@
     </table>
 </div>
 
+<script type="text/javascript">
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'en,es,fr,it,ja,zh-CN,zh-TW,de,ru,ko,pt,ar',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
+        }, 'google_translate_element');
+    }
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 <script>
+    // --- CORE SETUP ---
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-    let currentLang = 'en';
-
-    const translations = {
-        en: {
-            title: "Convention Planner",
-            saveJSON: "Save JSON",
-            openJSON: "Open JSON",
-            headerPages: "Layout Pages",
-            btnNewPage: "+ New Page",
-            uploadLabel: "Upload Image or PDF",
-            uploadProcessing: "Processing...",
-            btnCalibrate: "Set Scale",
-            btnAddArea: "Area",
-            btnAddObs: "Obstacle",
-            btnAddScreen: "Screen",
-            btnAddSign: "Sign",
-            btnDelPage: "Del Page",
-            printOptSummary: "Project Summary",
-            printOptLayout: "Current Layout",
-            printOptSigns: "Signage Report",
-            btnPrintAction: "Print",
-            headerSeats: "Seat Profiles",
-            headerSigns: "Signage Profiles",
-            btnAddSeatType: "+ Add Seat Profile",
-            btnAddSignType: "+ Add Sign Type",
-            labelRename: "✎ Rename",
-            labelChairW: "Width (ft)",
-            labelRowD: "Depth (ft)",
-            labelColor: "Color",
-            labelSizePx: "Size (px)",
-            labelSignText: "Text",
-            labelLegend: "Canvas Legend",
-            headerScreens: "Screens (Sightlines)",
-            labelDraft: "⚡ Draft Mode",
-            msgNoScreens: "No screens added yet.",
-            headerAreas: "Seating Areas",
-            headerObs: "Obstacles & Signs",
-            scaleNotSet: "Scale: Not Set",
-            scalePrefix: "Scale: ",
-            labelTotal: "Total Seats:",
-            pageNamePrompt: "Page Name?",
-            seatNamePrompt: "Enter name for this seat type profile:",
-            signNamePrompt: "Enter name for this signage profile:",
-            calibPrompt: "Distance in feet:",
-            delPageConfirm: "Delete this page?",
-            delPageError: "Cannot delete the last page.",
-            errInUse: "Cannot delete: This profile is currently in use on the map.",
-            pdfError: "Error loading PDF: ",
-            printTitleSuffix: " - Project Summary",
-            printTotalGroup: " Group",
-            printSubtotal: " Subtotal:",
-            printTotalType: "TOTAL ",
-            printGrandTotal: "GRAND TOTAL ALL CHAIRS",
-            pageTotalsHeader: "PAGE TOTALS",
-            sectionNameCol: "Section Name",
-            countCol: "Count"
-        },
-        es: {
-            title: "Convention Planner",
-            saveJSON: "Guardar JSON",
-            openJSON: "Abrir JSON",
-            headerPages: "Páginas de Diseño",
-            btnNewPage: "+ Nueva Pág",
-            uploadLabel: "Subir Imagen o PDF",
-            uploadProcessing: "Procesando...",
-            btnCalibrate: "Escala",
-            btnAddArea: "Área",
-            btnAddObs: "Obstáculo",
-            btnAddScreen: "Pantalla",
-            btnAddSign: "Letrero",
-            btnDelPage: "Eliminar Pág",
-            printOptSummary: "Resumen del Proyecto",
-            printOptLayout: "Diseño Actual",
-            printOptSigns: "Reporte de Letreros",
-            btnPrintAction: "Imprimir",
-            headerSeats: "Perfiles de Asientos",
-            headerSigns: "Perfiles de Letreros",
-            btnAddSeatType: "+ Añadir Asiento",
-            btnAddSignType: "+ Añadir Letrero",
-            labelRename: "✎ Renombrar",
-            labelChairW: "Ancho (ft)",
-            labelRowD: "Profundidad (ft)",
-            labelColor: "Color",
-            labelSizePx: "Tamaño (px)",
-            labelSignText: "Texto",
-            labelLegend: "Leyenda del Lienzo",
-            headerScreens: "Pantallas",
-            labelDraft: "⚡ Modo Borrador",
-            msgNoScreens: "Sin pantallas.",
-            headerAreas: "Áreas",
-            headerObs: "Obstáculos y Letreros",
-            scaleNotSet: "Escala: No Set",
-            scalePrefix: "Escala: ",
-            labelTotal: "Total Asientos:",
-            pageNamePrompt: "¿Nombre?",
-            seatNamePrompt: "Nombre perfil de asiento:",
-            signNamePrompt: "Nombre perfil de letrero:",
-            calibPrompt: "Pies (ft):",
-            delPageConfirm: "¿Eliminar?",
-            delPageError: "No puedes eliminar la única página.",
-            errInUse: "No se puede eliminar: El perfil está en uso.",
-            pdfError: "Error PDF: ",
-            printTitleSuffix: " - Resumen",
-            printTotalGroup: " Grupo",
-            printSubtotal: " Subtotal:",
-            printTotalType: "TOTAL ",
-            printGrandTotal: "GRAN TOTAL",
-            pageTotalsHeader: "TOTALES PÁGINA",
-            sectionNameCol: "Sección",
-            countCol: "Count"
-        }
-    };
-
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
     
+    let layerCache = document.createElement('canvas');
+    let needsCacheUpdate = true;
+    let globalPageTotal = 0;
+    let globalTypeTotals = [];
+
     let project = {
         title: "New Project", 
         seatTypes: [
-            { name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' },
-            { name: "Type 2", w: 2.5, d: 3.5, color: 'rgba(52, 152, 219, 0.4)', stroke: '#3498db', los: 'rgba(52, 152, 219, 0.9)' }
+            { name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }
         ],
         signTypes: [
-            { name: "Directional", color: '#e74c3c', size: 20, label: "1" },
-            { name: "Restrooms", color: '#f1c40f', size: 20, label: "2" },
-            { name: "First Aid", color: '#3498db', size: 20, label: "3" }
+            { name: "Directional", color: '#e74c3c', size: 20, label: "1" }
         ],
         activeSeatType: 0,
         activeSignType: 0,
         activePageIndex: 0,
-        pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], legend: { show: true, x: 40, y: 40, scale: 1 } }]
+        pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], lines: [], texts: [], legend: { show: true, x: 40, y: 40, scale: 1 } }]
     };
 
-    let uiState = { pages: true, seats: false, signs: true, screens: true, areas: true, obs: true, draftMode: false };
+    let activeTab = 'project'; 
+    let uiState = { draftMode: false, showLines: true };
     let view = { x: 0, y: 0, zoom: 1 };
     let mode = 'idle', currentPoints = [], calPoint = null;
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
     let bgImage = new Image();
     
-    let undoStack = [];
-    let redoStack = [];
+    let undoStack = [], redoStack = [];
+    let selectedSignIndex = -1, hoveredSignIndex = -1, isDraggingSign = false, hasDraggedSign = false;
+    let selectedLineIndex = -1, hoveredLineIndex = -1, isDraggingLine = false, hasDraggedLine = false;
+    let selectedScreenIndex = -1, hoveredScreenIndex = -1, isDraggingScreen = false, hasDraggedScreen = false;
+    let selectedTextIndex = -1, hoveredTextIndex = -1, isDraggingText = false, hasDraggedText = false;
+    let hasUnsavedChanges = false;
+    const COLORS = { screen: '#e67e22', success: '#2ecc71', danger: '#e74c3c' };
 
-    // --- NEW VARIABLES FOR SIGN INTERACTION ---
-    let selectedSignIndex = -1;
-    let hoveredSignIndex = -1;
-    let isDraggingSign = false;
-    let hasDraggedSign = false;
-
+    // --- STATE MANAGEMENT ---
     function saveState() {
         const page = getActivePage();
-        const state = JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend });
+        const state = JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend });
         undoStack.push(state);
         if (undoStack.length > 30) undoStack.shift(); 
         redoStack = [];
         hasUnsavedChanges = true;
     }
 
+    function triggerUpdate() { hasUnsavedChanges = true; needsCacheUpdate = true; render(); }
+
     function undo() {
         if (undoStack.length === 0) return;
         const page = getActivePage();
-        redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend }));
+        redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend }));
         const prevState = JSON.parse(undoStack.pop());
-        page.shapes = prevState.shapes; page.screens = prevState.screens; page.signs = prevState.signs;
-        page.legend = prevState.legend || { show: true, x: 40, y: 40, scale: 1 };
-        selectedSignIndex = -1;
-        markSeatCachesDirty(); updateUI(); render();
+        page.shapes = prevState.shapes; page.screens = prevState.screens; page.signs = prevState.signs; page.lines = prevState.lines || []; page.texts = prevState.texts || []; page.legend = prevState.legend || { show: true, x: 40, y: 40, scale: 1 };
+        selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1;
+        markSeatCachesDirty(); updateUI(); triggerUpdate();
     }
 
     function redo() {
         if (redoStack.length === 0) return;
         const page = getActivePage();
-        undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, legend: page.legend }));
+        undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend }));
         const nextState = JSON.parse(redoStack.pop());
-        page.shapes = nextState.shapes; page.screens = nextState.screens; page.signs = nextState.signs;
-        page.legend = nextState.legend || { show: true, x: 40, y: 40, scale: 1 };
-        selectedSignIndex = -1;
-        markSeatCachesDirty(); updateUI(); render();
+        page.shapes = nextState.shapes; page.screens = nextState.screens; page.signs = nextState.signs; page.lines = nextState.lines || []; page.texts = nextState.texts || []; page.legend = nextState.legend || { show: true, x: 40, y: 40, scale: 1 };
+        selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1;
+        markSeatCachesDirty(); updateUI(); triggerUpdate();
     }
-    
-    let isShiftDown = false;
-    window.addEventListener('keydown', e => { 
-        if (e.key === 'Escape') setMode('idle');
-        if (e.key === 'Shift') isShiftDown = true; 
-        if (e.ctrlKey && e.key === 'z') undo();
-        if (e.ctrlKey && e.key === 'y') redo();
 
-        // Sign Deletion Hotkey
-        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedSignIndex !== -1 && mode === 'idle') {
-            // Prevent deleting if typing in an input field!
-            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
-            
-            saveState();
-            getActivePage().signs.splice(selectedSignIndex, 1);
-            selectedSignIndex = -1;
-            hoveredSignIndex = -1;
-            updateUI();
-            render();
-        }
-    });
-    window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
-
-    window.addEventListener('click', () => {
-        const menu = document.getElementById('lang-menu');
-        if (menu && menu.style.display === 'block') menu.style.display = 'none';
-    });
-
-    function toggleLangMenu(event) {
-        event.stopPropagation();
-        const menu = document.getElementById('lang-menu');
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    // --- UI TABS & TWO-STEP WORKFLOW ---
+    function setTab(t) {
+        if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle'); 
+        activeTab = t;
+        updateUI();
     }
-    
-    const COLORS = { screen: '#e67e22', success: '#2ecc71', danger: '#e74c3c' };
-    let hasUnsavedChanges = false;
 
-    window.addEventListener('beforeunload', function (e) {
-        if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; }
-    });
-
-    function setLanguage(lang) { currentLang = lang; applyTranslations(); }
-
-    function applyTranslations() {
-        const t = translations[currentLang];
-        document.getElementById('ui-title').innerText = t.title;
-        document.getElementById('ui-save').innerText = t.saveJSON;
-        document.getElementById('ui-open').innerText = t.openJSON;
-        document.getElementById('ui-new-page').innerText = t.btnNewPage;
-        document.getElementById('header-pages').innerText = t.headerPages;
-        document.getElementById('header-seats').innerText = t.headerSeats;
-        document.getElementById('header-signs').innerText = t.headerSigns;
-        document.getElementById('header-screens').innerText = t.headerScreens;
-        document.getElementById('header-areas').innerText = t.headerAreas;
-        document.getElementById('header-obs').innerText = t.headerObs;
-        document.getElementById('ui-page-totals-header').innerText = t.pageTotalsHeader;
-        document.getElementById('btn-calibrate').innerText = t.btnCalibrate;
-        document.getElementById('btn-draw-area').innerText = t.btnAddArea;
-        document.getElementById('btn-draw-obs').innerText = t.btnAddObs;
-        document.getElementById('btn-draw-screen').innerText = t.btnAddScreen;
-        document.getElementById('btn-draw-sign').innerText = t.btnAddSign;
-        document.getElementById('ui-del-page').innerText = t.btnDelPage;
-        document.getElementById('ui-add-seat-type').innerText = t.btnAddSeatType;
-        document.getElementById('ui-add-sign-type').innerText = t.btnAddSignType;
-        document.getElementById('ui-label-legend').innerText = t.labelLegend;
-        
-        document.getElementById('opt-summary').innerText = t.printOptSummary;
-        document.getElementById('opt-layout').innerText = t.printOptLayout;
-        document.getElementById('opt-signs').innerText = t.printOptSigns;
-        document.getElementById('ui-btn-print-action').innerText = t.btnPrintAction;
-
+    function setMode(m) { 
+        mode = m; currentPoints = []; calPoint = null; 
+        if (m !== 'idle') { selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; }
         updateUI(); render(); 
     }
 
-    function init() { applyTranslations(); window.onresize = resize; resize(); updateUI(); }
-
-    function resize() {
-        const v = document.getElementById('viewport');
-        canvas.width = v.clientWidth; canvas.height = v.clientHeight; render();
-    }
-
-    function getActivePage() { return project.pages[project.activePageIndex]; }
-    function toggleSection(sec) { uiState[sec] = !uiState[sec]; updateUI(); }
-
-    function toggleLegend(show) {
-        saveState();
-        let p = getActivePage();
-        if (!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 };
-        p.legend.show = show;
-        render();
-    }
-
-    // --- PROFILES ---
-    function addSeatType() {
-        const t = translations[currentLang];
-        const n = prompt(t.seatNamePrompt, "New Seat");
-        if(n) {
-            const colors = ['#2ecc71', '#3498db', '#9b59b6', '#1abc9c', '#f1c40f', '#e67e22'];
-            const c = colors[project.seatTypes.length % colors.length];
-            project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' });
-            project.activeSeatType = project.seatTypes.length - 1; hasUnsavedChanges = true; updateUI();
-        }
-    }
-
-    function addSignType() {
-        const t = translations[currentLang];
-        const n = prompt(t.signNamePrompt, "New Sign");
-        if(n) {
-            const colors = ['#e74c3c', '#9b59b6', '#f1c40f', '#2ecc71', '#3498db', '#e67e22'];
-            const c = colors[project.signTypes.length % colors.length];
-            project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString() });
-            project.activeSignType = project.signTypes.length - 1; hasUnsavedChanges = true; updateUI();
-        }
-    }
-
-    function editProfile(type, index) {
-        const t = translations[currentLang];
-        const arr = type === 'seat' ? project.seatTypes : project.signTypes;
-        const promptTxt = type === 'seat' ? t.seatNamePrompt : t.signNamePrompt;
-        const newName = prompt(promptTxt, arr[index].name);
-        if (newName && newName.trim() !== "") { arr[index].name = newName.trim(); hasUnsavedChanges = true; updateUI(); render(); }
-    }
-
-    function deleteProfile(type, index) {
-        const t = translations[currentLang];
-        const arr = type === 'seat' ? project.seatTypes : project.signTypes;
-        if(arr.length <= 1) { alert("You must have at least one active profile."); return; }
+    function updateUI() {
+        document.getElementById('project-title').value = project.title;
+        document.getElementById('ui-toggle-draft').checked = !uiState.draftMode; 
         
-        let inUse = false;
-        project.pages.forEach(p => {
-            if (type === 'seat' && p.shapes) {
-                p.shapes.forEach(s => { if(s.type === 'area' && (s.seatTypeIndex === index || (s.seatTypeIndex === undefined && index === 0))) inUse = true; });
-            } else if (type === 'sign' && p.signs) {
-                p.signs.forEach(s => { if(s.typeIndex === index || (s.typeIndex === undefined && index === 0)) inUse = true; });
+        const pActive = getActivePage();
+        const legCheck = document.getElementById('ui-toggle-legend');
+        if (legCheck) legCheck.checked = pActive.legend && pActive.legend.show !== false;
+        const linesCheck = document.getElementById('ui-toggle-lines');
+        if (linesCheck) linesCheck.checked = uiState.showLines !== false;
+
+        document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.ribbon-btn.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        let activePanel = 'panel-project';
+        let panelTitle = 'Project Settings';
+
+        if (activeTab === 'area') { activePanel = 'panel-area'; panelTitle = 'Seating Area Tools'; }
+        else if (activeTab === 'obs') { activePanel = 'panel-obs'; panelTitle = 'Obstacle Tools'; }
+        else if (activeTab === 'screen') { activePanel = 'panel-screen'; panelTitle = 'A/V Screen Tools'; }
+        else if (activeTab === 'sign') { activePanel = 'panel-sign'; panelTitle = 'Signage Tools'; }
+        else if (activeTab === 'annotate') { activePanel = 'panel-line'; panelTitle = 'Annotation Tools'; }
+        
+        document.getElementById(activePanel).classList.add('active');
+        const tabBtn = document.getElementById('tab-' + activeTab);
+        if (tabBtn) tabBtn.classList.add('active');
+        document.getElementById('panel-title').innerText = panelTitle;
+
+        buildPagesList();
+        if (activeTab === 'area') { buildSeatProfiles(); buildAreaList(); }
+        if (activeTab === 'obs') buildObsList();
+        if (activeTab === 'screen') buildScreenList();
+        if (activeTab === 'sign') { buildSignProfiles(); buildPlacedSignsList(); }
+        if (activeTab === 'annotate') { buildLinesList(); buildTextList(); }
+
+        highlightActiveTool();
+
+        const scale = pActive.pixelsPerFoot;
+        document.getElementById('scale-info').innerText = scale ? `Scale: ${scale.toFixed(2)} px/ft` : "Scale: Not Set";
+    }
+
+    function highlightActiveTool() {
+        ['btn-start-obs', 'btn-start-screen', 'btn-start-dim', 'btn-start-line', 'btn-start-poly', 'btn-start-text', 'btn-start-calibrate'].forEach(id => {
+            let el = document.getElementById(id);
+            if(el) { el.style.border = '1px solid transparent'; el.style.background = id === 'btn-start-calibrate' ? '#555' : 'var(--accent)'; }
+        });
+        
+        const highlightCSS = '2px solid white';
+        const bgCSS = '#0098ff';
+
+        if (mode === 'draw-obs' && document.getElementById('btn-start-obs')) { document.getElementById('btn-start-obs').style.border = highlightCSS; document.getElementById('btn-start-obs').style.background = bgCSS; }
+        if (mode === 'draw-screen' && document.getElementById('btn-start-screen')) { document.getElementById('btn-start-screen').style.border = highlightCSS; document.getElementById('btn-start-screen').style.background = bgCSS; }
+        if (mode === 'draw-dim' && document.getElementById('btn-start-dim')) { document.getElementById('btn-start-dim').style.border = highlightCSS; document.getElementById('btn-start-dim').style.background = bgCSS; }
+        if (mode === 'draw-line' && document.getElementById('btn-start-line')) { document.getElementById('btn-start-line').style.border = highlightCSS; document.getElementById('btn-start-line').style.background = bgCSS; }
+        if (mode === 'draw-poly' && document.getElementById('btn-start-poly')) { document.getElementById('btn-start-poly').style.border = highlightCSS; document.getElementById('btn-start-poly').style.background = bgCSS; }
+        if (mode === 'place-text' && document.getElementById('btn-start-text')) { document.getElementById('btn-start-text').style.border = highlightCSS; document.getElementById('btn-start-text').style.background = bgCSS; }
+        if (mode === 'calibrate' && document.getElementById('btn-start-calibrate')) { document.getElementById('btn-start-calibrate').style.border = highlightCSS; }
+    }
+
+    function buildPagesList() {
+        const el = document.getElementById('page-list'); el.innerHTML = '';
+        project.pages.forEach((p, i) => {
+            el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})">
+                <span style="pointer-events: none;">${p.name}</span>
+                ${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}
+            </li>`;
+        });
+    }
+
+    function buildSeatProfiles() {
+        const el = document.getElementById('seat-type-list'); el.innerHTML = '';
+        project.seatTypes.forEach((st, i) => {
+            const isAct = (i === project.activeSeatType) ? 'active' : '';
+            const isDrawing = (isAct && mode === 'draw-area');
+            el.innerHTML += `
+                <li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();">
+                    <div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span>
+                        <div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div>
+                    </div>
+                    ${isAct ? `
+                    <div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
+                        <div><label>Width (ft)</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div>
+                        <div><label>Depth (ft)</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div>
+                    </div>
+                    <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>
+                    ` : ''}
+                </li>`;
+        });
+    }
+
+    function buildSignProfiles() {
+        const el = document.getElementById('sign-type-list'); el.innerHTML = '';
+        project.signTypes.forEach((st, i) => {
+            const isAct = (i === project.activeSignType) ? 'active' : '';
+            const isDrawing = (isAct && mode === 'draw-sign');
+            el.innerHTML += `
+                <li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();">
+                    <div class="profile-header"><span style="color:${st.color};">● ${st.name}</span>
+                        <div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div>
+                    </div>
+                    ${isAct ? `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
+                        <div><label>Color</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div>
+                        <div><label>Size</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div>
+                        <div><label>Text</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div>
+                    </div>
+                    <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Sign</button>
+                    ` : ''}
+                </li>`;
+        });
+    }
+
+    function buildAreaList() {
+        const el = document.getElementById('area-list'); el.innerHTML = '';
+        getActivePage().shapes.forEach((s, i) => {
+            if (s.type === 'area') {
+                const sTypeIdx = s.seatTypeIndex ?? 0;
+                const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
+                let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
+                el.innerHTML += `
+                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${strokeColor};">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();">
+                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                            <div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div>
+                            <div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div>
+                        </div>
+                    </li>`;
             }
         });
+    }
 
-        if(inUse) { alert(t.errInUse); return; }
+    function buildObsList() {
+        const el = document.getElementById('obs-list'); el.innerHTML = '';
+        getActivePage().shapes.forEach((s, i) => {
+            if (s.type === 'obs') {
+                el.innerHTML += `
+                    <li class="list-item" style="border-left: 4px solid var(--danger);">
+                        <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();">
+                        <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
+                    </li>`;
+            }
+        });
+    }
+    
+    function buildPlacedSignsList() {
+        const el = document.getElementById('placed-sign-list'); el.innerHTML = '';
+        if (getActivePage().signs) {
+            getActivePage().signs.forEach((s, i) => {
+                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                el.innerHTML += `
+                    <li class="list-item" style="border-left: 4px solid ${st.color}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}">
+                        <span style="font-size: 0.9em;">${st.name} Sign</span>
+                        <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
+                    </li>`;
+            });
+        }
+    }
+
+    function buildScreenList() {
+        const el = document.getElementById('screen-list'); el.innerHTML = '';
+        const currentScreens = getActivePage().screens;
+        document.getElementById('no-screens-msg').style.display = currentScreens.length === 0 ? 'block' : 'none';
         
+        currentScreens.forEach((s, i) => {
+            let beamVal = s.beamAngle !== undefined ? s.beamAngle : 120;
+            el.innerHTML += `
+                <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;">
+                        <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();">
+                        <button class="icon-btn" onclick="deleteScreen(${i})">✕</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
+                        <div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div>
+                        <div><label>Beam (°)</label><input type="number" value="${beamVal}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div>
+                        <div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); triggerUpdate();"></div>
+                    </div>
+                </li>`;
+        });
+    }
+
+    function buildLinesList() {
+        const el = document.getElementById('line-list'); el.innerHTML = '';
+        if (getActivePage().lines) {
+            getActivePage().lines.forEach((l, i) => {
+                let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db';
+                let activeColor = l.color || defaultColor;
+                let activeThick = l.thickness || 2;
+                
+                el.innerHTML += `
+                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <input type="text" class="text-input-dark" value="${l.name || l.type}" oninput="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();">
+                            <button class="icon-btn" onclick="deleteLine(${i})">✕</button>
+                        </div>
+                        ${i === selectedLineIndex ? `
+                        <div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
+                            <div><label>Color</label><input type="color" value="${activeColor}" oninput="updateLineProp(${i}, 'color', this.value)"></div>
+                            <div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" oninput="updateLineProp(${i}, 'thickness', this.value)"></div>
+                        </div>
+                        ` : ''}
+                    </li>`;
+            });
+        }
+    }
+
+    function buildTextList() {
+        const el = document.getElementById('text-list'); el.innerHTML = '';
+        if (getActivePage().texts) {
+            getActivePage().texts.forEach((t, i) => {
+                let activeColor = t.color || '#000000';
+                let activeSize = t.size || 24;
+                el.innerHTML += `
+                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <input type="text" class="text-input-dark" value="${t.text}" oninput="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();">
+                            <button class="icon-btn" onclick="deleteText(${i})">✕</button>
+                        </div>
+                        ${i === selectedTextIndex ? `
+                        <div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
+                            <div><label>Color</label><input type="color" value="${activeColor}" oninput="updateTextProp(${i}, 'color', this.value)"></div>
+                            <div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" oninput="updateTextProp(${i}, 'size', this.value)"></div>
+                        </div>
+                        ` : ''}
+                    </li>`;
+            });
+        }
+    }
+
+    function toggleLegend(show) { saveState(); let p = getActivePage(); if (!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 }; p.legend.show = show; triggerUpdate(); }
+    function getActivePage() { return project.pages[project.activePageIndex]; }
+    
+    function addSeatType() { const n = prompt("New Seat Profile Name:", "New Seat"); if(n) { const c = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f'][project.seatTypes.length % 4]; project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' }); project.activeSeatType = project.seatTypes.length - 1; updateUI(); triggerUpdate(); } }
+    function addSignType() { const n = prompt("New Signage Profile Name:", "New Sign"); if(n) { const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4]; project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString() }); project.activeSignType = project.signTypes.length - 1; updateUI(); triggerUpdate(); } }
+    
+    function editProfile(type, index) { const arr = type === 'seat' ? project.seatTypes : project.signTypes; const newName = prompt("Rename profile:", arr[index].name); if (newName && newName.trim() !== "") { arr[index].name = newName.trim(); updateUI(); triggerUpdate(); } }
+    function deleteProfile(type, index) {
+        const arr = type === 'seat' ? project.seatTypes : project.signTypes;
+        if(arr.length <= 1) { alert("You must have at least one active profile."); return; }
+        let inUse = false; project.pages.forEach(p => {
+            if (type === 'seat' && p.shapes) p.shapes.forEach(s => { if(s.type === 'area' && (s.seatTypeIndex === index || (s.seatTypeIndex === undefined && index === 0))) inUse = true; });
+            else if (type === 'sign' && p.signs) p.signs.forEach(s => { if(s.typeIndex === index || (s.typeIndex === undefined && index === 0)) inUse = true; });
+        });
+        if(inUse) { alert("Cannot delete: This profile is currently in use on the map."); return; }
         if(confirm("Delete this profile?")) {
             arr.splice(index, 1);
             project.pages.forEach(p => {
                 if (type === 'seat' && p.shapes) p.shapes.forEach(s => { if(s.type === 'area' && s.seatTypeIndex > index) s.seatTypeIndex--; });
                 if (type === 'sign' && p.signs) p.signs.forEach(s => { if(s.typeIndex > index) s.typeIndex--; });
             });
-            if (type === 'seat') project.activeSeatType = Math.max(0, arr.length - 1);
-            else project.activeSignType = Math.max(0, arr.length - 1);
-            
-            hasUnsavedChanges = true; markSeatCachesDirty(); updateUI(); render();
+            if (type === 'seat') project.activeSeatType = Math.max(0, arr.length - 1); else project.activeSignType = Math.max(0, arr.length - 1);
+            markSeatCachesDirty(); updateUI(); triggerUpdate();
         }
     }
 
-    function updateSeatProp(idx, prop, val) { project.seatTypes[idx][prop] = parseFloat(val) || 0; markSeatCachesDirty(); hasUnsavedChanges = true; render(); }
-    function updateSignProp(idx, prop, val) { 
-        if (prop === 'size') project.signTypes[idx][prop] = parseFloat(val) || 10;
-        else project.signTypes[idx][prop] = val; 
-        hasUnsavedChanges = true; render(); 
-    }
-
-    function updateUI() {
-        const t = translations[currentLang];
-        ['pages', 'seats', 'signs', 'screens', 'areas', 'obs'].forEach(sec => {
-            const head = document.getElementById(`header-${sec}`);
-            const cont = document.getElementById(`content-${sec}`);
-            if(head && cont) {
-                cont.style.display = uiState[sec] ? 'block' : 'none';
-                uiState[sec] ? head.classList.remove('collapsed') : head.classList.add('collapsed');
-            }
-        });
-
-        document.getElementById('project-title').value = project.title;
-        
-        document.getElementById('dynamic-draft-mode').innerHTML = `
-            <div style="background:rgba(241,196,15,0.1); padding:8px 10px; border-radius:4px; border:1px solid rgba(241,196,15,0.3); display:flex; justify-content:space-between; align-items:center;">
-                <label style="color:var(--warning); margin:0;">${t.labelDraft}</label>
-                <input type="checkbox" ${uiState.draftMode ? 'checked' : ''} onchange="uiState.draftMode=this.checked; render();" style="width:auto;">
-            </div>`;
-
-        const pActive = getActivePage();
-        const legCheck = document.getElementById('ui-toggle-legend');
-        if (legCheck) legCheck.checked = pActive.legend && pActive.legend.show !== false;
-
-        const seatListEl = document.getElementById('seat-type-list'); seatListEl.innerHTML = '';
-        project.seatTypes.forEach((st, i) => {
-            const isAct = (i === project.activeSeatType) ? 'active' : '';
-            seatListEl.innerHTML += `
-                <li class="profile-item ${isAct}" onclick="project.activeSeatType=${i}; updateUI();">
-                    <div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span>
-                        <div class="profile-actions">
-                            <button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button>
-                            <button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button>
-                        </div>
-                    </div>
-                    ${isAct ? `
-                    <div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
-                        <div><label>${t.labelChairW}</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div>
-                        <div><label>${t.labelRowD}</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div>
-                    </div>` : ''}
-                </li>`;
-        });
-
-        const signListEl = document.getElementById('sign-type-list'); signListEl.innerHTML = '';
-        project.signTypes.forEach((st, i) => {
-            const isAct = (i === project.activeSignType) ? 'active' : '';
-            signListEl.innerHTML += `
-                <li class="profile-item ${isAct}" onclick="project.activeSignType=${i}; updateUI();">
-                    <div class="profile-header"><span style="color:${st.color};">● ${st.name}</span>
-                        <div class="profile-actions">
-                            <button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button>
-                            <button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button>
-                        </div>
-                    </div>
-                    ${isAct ? `
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
-                        <div><label>${t.labelColor}</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div>
-                        <div><label>${t.labelSizePx}</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div>
-                        <div><label>${t.labelSignText}</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div>
-                    </div>` : ''}
-                </li>`;
-        });
-
-        const pageListEl = document.getElementById('page-list'); pageListEl.innerHTML = '';
-        project.pages.forEach((p, i) => {
-            const li = document.createElement('li'); li.className = `page-item ${i === project.activePageIndex ? 'active' : ''}`;
-            li.innerHTML = `<span class="page-name">${p.name}</span>`;
-            li.onclick = () => switchPage(i);
-            pageListEl.appendChild(li);
-        });
-
-        const screenListEl = document.getElementById('screen-list');
-        const emptyMsg = document.getElementById('no-screens-msg');
-        screenListEl.innerHTML = ''; const currentScreens = getActivePage().screens;
-        if (currentScreens.length === 0) emptyMsg.style.display = 'block';
-        else {
-            emptyMsg.style.display = 'none';
-            currentScreens.forEach((s, i) => {
-                screenListEl.innerHTML += `
-                    <li class="screen-item">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <label style="color:white; margin:0; display:flex; align-items:center; gap:5px; width:100%;">
-                                <input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); render();">
-                                <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
-                            </label>
-                            <button class="icon-btn" onclick="deleteScreen(${i})">✕</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                            <div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render();"></div>
-                            <div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); render();"></div>
-                        </div>
-                    </li>`;
-            });
-        }
-
-        const areaListEl = document.getElementById('area-list'); const obsListEl = document.getElementById('obs-list');
-        areaListEl.innerHTML = ''; obsListEl.innerHTML = '';
-        getActivePage().shapes.forEach((s, i) => {
-            if (s.type === 'area') {
-                const sTypeIdx = s.seatTypeIndex ?? 0;
-                const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
-                let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
-                areaListEl.innerHTML += `
-                    <li class="area-item" style="border-left-color: ${strokeColor};">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
-                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                            <div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); render();"></div>
-                            <div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); render(); updateUI();" style="padding: 6px;">${typeOptions}</select></div>
-                        </div>
-                    </li>`;
-            } else {
-                obsListEl.innerHTML += `
-                    <li class="area-item type-obs">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; render();" style="flex-grow:1; margin-right:5px;">
-                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                        </div>
-                    </li>`;
-            }
-        });
-
-        // Add Signs to Obs list
-        if (getActivePage().signs) {
-            getActivePage().signs.forEach((s, i) => {
-                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
-                obsListEl.innerHTML += `
-                    <li class="area-item" style="border-left-color: ${st.color}; background: #222; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size: 0.8em; color: #ccc;">${st.name} Sign</span>
-                            <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
-                        </div>
-                    </li>`;
-            });
-        }
-
-        const scale = getActivePage().pixelsPerFoot;
-        document.getElementById('scale-info').innerText = scale ? `${t.scalePrefix}${scale.toFixed(2)} px/ft` : t.scaleNotSet;
-    }
+    function updateSeatProp(idx, prop, val) { project.seatTypes[idx][prop] = parseFloat(val) || 0; markSeatCachesDirty(); triggerUpdate(); }
+    function updateSignProp(idx, prop, val) { if (prop === 'size') project.signTypes[idx][prop] = parseFloat(val) || 10; else project.signTypes[idx][prop] = val; triggerUpdate(); }
+    function updateLineProp(idx, prop, val) { saveState(); if (prop === 'thickness') project.pages[project.activePageIndex].lines[idx][prop] = parseFloat(val) || 2; else project.pages[project.activePageIndex].lines[idx][prop] = val; triggerUpdate(); }
+    function updateTextProp(idx, prop, val) { saveState(); if (prop === 'size') project.pages[project.activePageIndex].texts[idx][prop] = parseFloat(val) || 24; else project.pages[project.activePageIndex].texts[idx][prop] = val; triggerUpdate(); }
+    
+    function renamePage(i) { const newName = prompt("Rename page:", project.pages[i].name); if (newName && newName.trim() !== "") { project.pages[i].name = newName.trim(); updateUI(); triggerUpdate(); } }
+    function addNewPage() { const n = prompt("Page Name?"); if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], lines:[], texts:[], legend:{show:true, x:40, y:40, scale:1}}); switchPage(project.pages.length-1); } }
+    function deleteCurrentPage() { if(project.pages.length > 1) { if(confirm("Delete this page?")) { project.pages.splice(project.activePageIndex, 1); switchPage(0); } } else { alert("Cannot delete the last page."); } }
+    
+    function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); markSeatCachesDirty(); updateUI(); triggerUpdate(); }
+    function deleteScreen(i) { saveState(); getActivePage().screens.splice(i,1); selectedScreenIndex = -1; markSeatCachesDirty(); updateUI(); triggerUpdate(); }
+    function deleteSign(i) { saveState(); getActivePage().signs.splice(i,1); selectedSignIndex = -1; updateUI(); triggerUpdate(); }
+    function deleteLine(i) { saveState(); getActivePage().lines.splice(i,1); selectedLineIndex = -1; updateUI(); triggerUpdate(); }
+    function deleteText(i) { saveState(); getActivePage().texts.splice(i,1); selectedTextIndex = -1; updateUI(); triggerUpdate(); }
 
     function switchPage(index) {
         project.activePageIndex = index; undoStack = []; redoStack = [];
-        selectedSignIndex = -1; hoveredSignIndex = -1;
-        const page = getActivePage();
+        selectedSignIndex = -1; hoveredSignIndex = -1; selectedLineIndex = -1; hoveredLineIndex = -1; selectedScreenIndex = -1; hoveredScreenIndex = -1; selectedTextIndex = -1; hoveredTextIndex = -1;
+        const page = getActivePage(); needsCacheUpdate = true;
         if (page.imgData) {
             bgImage = new Image();
-            bgImage.onload = () => {
-                view.zoom = Math.min(canvas.width / bgImage.width, canvas.height / bgImage.height) * 0.9;
-                view.x = (canvas.width - bgImage.width * view.zoom) / 2; view.y = (canvas.height - bgImage.height * view.zoom) / 2;
-                render();
-            };
+            bgImage.onload = () => { view.zoom = Math.min(canvas.width / bgImage.width, canvas.height / bgImage.height) * 0.9; view.x = (canvas.width - bgImage.width * view.zoom) / 2; view.y = (canvas.height - bgImage.height * view.zoom) / 2; needsCacheUpdate = true; render(); };
             bgImage.src = page.imgData;
         } else { bgImage = new Image(); render(); }
         updateUI();
     }
 
     async function handleImageUpload(input) {
-        const t = translations[currentLang]; const file = input.files[0]; if (!file) return;
-        const label = document.getElementById('upload-label'); label.innerText = t.uploadProcessing;
-        const reader = new FileReader();
-        reader.onload = (e) => { getActivePage().imgData = e.target.result; switchPage(project.activePageIndex); label.innerText = t.uploadLabel; };
-        reader.readAsDataURL(file);
+        const file = input.files[0]; if (!file) return;
+        const label = document.getElementById('upload-label'); label.innerText = "Processing...";
+        if (file.type === 'application/pdf') {
+            try {
+                const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; const page = await pdf.getPage(1);
+                const baseViewport = page.getViewport({ scale: 1 }); const maxDimension = Math.max(baseViewport.width, baseViewport.height);
+                let highScale = Math.min(6000 / maxDimension, 4.0); if (highScale < 2.0) highScale = 2.0; 
+                const viewport = page.getViewport({ scale: highScale });
+                const offscreenCanvas = document.createElement('canvas'); const offscreenCtx = offscreenCanvas.getContext('2d');
+                offscreenCanvas.width = viewport.width; offscreenCanvas.height = viewport.height;
+                offscreenCtx.fillStyle = '#ffffff'; offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+                await page.render({ canvasContext: offscreenCtx, viewport: viewport }).promise;
+                getActivePage().imgData = offscreenCanvas.toDataURL('image/png'); switchPage(project.activePageIndex); label.innerText = "Upload Blueprint (Img/PDF)";
+            } catch (err) { alert("Error PDF: " + err.message); label.innerText = "Upload Blueprint (Img/PDF)"; }
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => { getActivePage().imgData = e.target.result; switchPage(project.activePageIndex); label.innerText = "Upload Blueprint (Img/PDF)"; };
+            reader.readAsDataURL(file);
+        }
+        input.value = ''; 
     }
+
+    function init() { window.onresize = resize; resize(); updateUI(); setMode('idle'); }
+    function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; render(); }
+
+    let isShiftDown = false;
+    window.addEventListener('keydown', e => { 
+        if (e.key === 'Escape') setMode('idle'); 
+        if (e.key === 'Shift') isShiftDown = true; 
+        if (e.ctrlKey && e.key === 'z') undo();
+        if (e.ctrlKey && e.key === 'y') redo();
+        if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'idle' && document.activeElement.tagName !== 'INPUT') {
+            if (selectedSignIndex !== -1) deleteSign(selectedSignIndex);
+            else if (selectedLineIndex !== -1) deleteLine(selectedLineIndex);
+            else if (selectedScreenIndex !== -1) deleteScreen(selectedScreenIndex);
+            else if (selectedTextIndex !== -1) deleteText(selectedTextIndex);
+        }
+    });
+    window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
+    window.addEventListener('beforeunload', function (e) { if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; } });
 
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
     function getMousePos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
 
-    // Hit detection for signs
-    function getHitSign(worldPt) {
-        const page = getActivePage();
-        if (!page.signs) return -1;
-        for (let i = page.signs.length - 1; i >= 0; i--) {
-            const s = page.signs[i];
-            const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
-            const dist = Math.hypot(worldPt.x - s.x, worldPt.y - s.y);
-            if (dist <= st.size) return i;
+    function sqr(x) { return x * x; }
+    function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y); }
+    function distToSegmentSquared(p, v, w) {
+      let l2 = dist2(v, w); if (l2 == 0) return dist2(p, v);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2; t = Math.max(0, Math.min(1, t));
+      return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+    }
+    
+    function getHitLine(worldPt) {
+        const page = getActivePage(); if (!page.lines || uiState.showLines === false) return -1;
+        for (let i = page.lines.length - 1; i >= 0; i--) {
+            const l = page.lines[i]; const lineThick = l.thickness || 2; const thresholdSq = sqr(Math.max(8, lineThick + 2) / view.zoom);
+            for (let j = 0; j < l.points.length - 1; j++) if (distToSegmentSquared(worldPt, l.points[j], l.points[j+1]) < thresholdSq) return i;
         }
         return -1;
+    }
+
+    function getHitSign(worldPt) {
+        const page = getActivePage(); if (!page.signs) return -1;
+        for (let i = page.signs.length - 1; i >= 0; i--) {
+            const s = page.signs[i]; const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+            if (Math.hypot(worldPt.x - s.x, worldPt.y - s.y) <= st.size) return i;
+        }
+        return -1;
+    }
+
+    function getHitScreen(worldPt) {
+        const page = getActivePage(); if (!page.screens) return -1;
+        for (let i = page.screens.length - 1; i >= 0; i--) {
+            if (Math.hypot(worldPt.x - page.screens[i].x, worldPt.y - page.screens[i].y) <= 15 / view.zoom) return i;
+        }
+        return -1;
+    }
+
+    function getHitText(worldPt) {
+        const page = getActivePage(); if (!page.texts || uiState.showLines === false) return -1;
+        ctx.save();
+        for (let i = page.texts.length - 1; i >= 0; i--) {
+            const t = page.texts[i];
+            const size = t.size || 24;
+            ctx.font = `bold ${size}px Arial`;
+            const metrics = ctx.measureText(t.text);
+            const w = metrics.width;
+            if (Math.abs(worldPt.x - t.x) <= (w / 2) + (10/view.zoom) && Math.abs(worldPt.y - t.y) <= (size / 2) + (10/view.zoom)) {
+                ctx.restore(); return i;
+            }
+        }
+        ctx.restore(); return -1;
     }
 
     canvas.onwheel = (e) => {
@@ -774,131 +777,122 @@
     };
 
     canvas.onmousedown = (e) => {
-        let world = toWorld(getMousePos(e));
-        const page = getActivePage();
+        let world = toWorld(getMousePos(e)); const page = getActivePage();
 
-        // 1. Check Legend Hit Detection First
-        if (page.legend && page.legend.show) {
-            let activeSignIndices = new Set();
-            if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
-            let items = Array.from(activeSignIndices);
-            
-            if (items.length > 0) {
-                let legW = 250 * page.legend.scale;
-                let legH = (50 + (items.length * 35)) * page.legend.scale;
-                let lx = page.legend.x;
-                let ly = page.legend.y;
-                let handleSize = 25 * page.legend.scale; 
-                
-                if (world.x > lx + legW - handleSize && world.x < lx + legW && world.y > ly + legH - handleSize && world.y < ly + legH) {
-                    saveState();
-                    mode = 'resize-legend';
-                    project.dragStartScale = page.legend.scale;
-                    project.dragStartX = world.x;
-                    return; 
-                } else if (world.x > lx && world.x < lx + legW && world.y > ly && world.y < ly + legH) {
-                    saveState();
-                    mode = 'drag-legend';
-                    project.dragOffsetX = world.x - lx;
-                    project.dragOffsetY = world.y - ly;
-                    return;
-                }
-            }
+        if (e.button === 1 || e.button === 2) { 
+            e.preventDefault(); isPanning = true; lastMouse = getMousePos(e); return; 
         }
 
-        // 2. Check for Panning (Right or Middle Click)
-        if (e.button !== 0) { isPanning = true; lastMouse = getMousePos(e); return; }
+        if (page.legend && page.legend.show) {
+            let activeSignIndices = new Set(); if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
+            let items = Array.from(activeSignIndices);
+            if (items.length > 0) {
+                let legW = 250 * page.legend.scale; let legH = (50 + (items.length * 35)) * page.legend.scale;
+                let lx = page.legend.x; let ly = page.legend.y; let handleSize = 25 * page.legend.scale; 
+                if (world.x > lx + legW - handleSize && world.x < lx + legW && world.y > ly + legH - handleSize && world.y < ly + legH) { saveState(); mode = 'resize-legend'; project.dragStartScale = page.legend.scale; project.dragStartX = world.x; return; } 
+                else if (world.x > lx && world.x < lx + legW && world.y > ly && world.y < ly + legH) { saveState(); mode = 'drag-legend'; project.dragOffsetX = world.x - lx; project.dragOffsetY = world.y - ly; return; }
+            }
+        }
         
-        // 3. Selection and Dragging in IDLE mode
         if (mode === 'idle') {
+            const hitScreen = getHitScreen(world);
+            if (hitScreen !== -1) {
+                activeTab = 'screen'; selectedScreenIndex = hitScreen; selectedSignIndex = -1; selectedLineIndex = -1; selectedTextIndex = -1; isDraggingScreen = true; hasDraggedScreen = false;
+                project.dragOffsetX = world.x - page.screens[hitScreen].x; project.dragOffsetY = world.y - page.screens[hitScreen].y;
+                updateUI(); render(); return;
+            }
+
             const hitSign = getHitSign(world);
             if (hitSign !== -1) {
-                selectedSignIndex = hitSign;
-                isDraggingSign = true;
-                hasDraggedSign = false;
-                project.dragOffsetX = world.x - page.signs[hitSign].x;
-                project.dragOffsetY = world.y - page.signs[hitSign].y;
-                updateUI(); // Highlights the correct sign in the list
-                render();
-                return;
-            } else {
-                if (selectedSignIndex !== -1) {
-                    selectedSignIndex = -1; // Deselect
-                    updateUI();
-                    render();
-                }
+                activeTab = 'sign'; selectedSignIndex = hitSign; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; isDraggingSign = true; hasDraggedSign = false;
+                project.dragOffsetX = world.x - page.signs[hitSign].x; project.dragOffsetY = world.y - page.signs[hitSign].y;
+                updateUI(); render(); return;
             }
+            
+            const hitText = getHitText(world);
+            if (hitText !== -1) {
+                activeTab = 'annotate'; selectedTextIndex = hitText; selectedLineIndex = -1; selectedSignIndex = -1; selectedScreenIndex = -1; isDraggingText = true; hasDraggedText = false;
+                project.dragOffsetX = world.x - page.texts[hitText].x; project.dragOffsetY = world.y - page.texts[hitText].y;
+                updateUI(); render(); return;
+            }
+
+            const hitLine = getHitLine(world);
+            if (hitLine !== -1) {
+                activeTab = 'annotate'; selectedLineIndex = hitLine; selectedSignIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; isDraggingLine = true; hasDraggedLine = false;
+                project.dragStartMouse = {x: world.x, y: world.y}; project.dragStartPoints = JSON.parse(JSON.stringify(page.lines[hitLine].points));
+                updateUI(); render(); return;
+            }
+
+            if (selectedSignIndex !== -1 || selectedLineIndex !== -1 || selectedScreenIndex !== -1 || selectedTextIndex !== -1) { selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; updateUI(); render(); }
         }
 
-        // 4. Shift alignment constraint for drawing
         if (isShiftDown && currentPoints.length > 0 && mode.startsWith('draw-')) {
             const last = currentPoints[currentPoints.length - 1];
-            if (Math.abs(world.x - last.x) > Math.abs(world.y - last.y)) world.y = last.y;
-            else world.x = last.x;
+            if (Math.abs(world.x - last.x) > Math.abs(world.y - last.y)) world.y = last.y; else world.x = last.x;
         }
 
-        // 5. Drawing commands
         if (mode === 'calibrate') {
             if (!calPoint) calPoint = world;
-            else {
-                const ft = prompt(translations[currentLang].calibPrompt);
-                if (ft) getActivePage().pixelsPerFoot = Math.hypot(world.x - calPoint.x, world.y - calPoint.y) / parseFloat(ft);
-                calPoint = null; setMode('idle');
-            }
+            else { const ft = prompt("Distance in feet:"); if (ft) { getActivePage().pixelsPerFoot = Math.hypot(world.x - calPoint.x, world.y - calPoint.y) / parseFloat(ft); triggerUpdate(); } calPoint = null; setMode('idle'); }
         } else if (mode === 'draw-screen') {
-            saveState();
-            let sNum = getActivePage().screens.length + 1;
-            getActivePage().screens.push({ x: world.x, y: world.y, rot: 90, active: true, radius: 60, name: "Screen " + sNum });
-            markSeatCachesDirty(); setMode('idle');
+            saveState(); let sNum = getActivePage().screens.length + 1;
+            getActivePage().screens.push({ x: world.x, y: world.y, rot: 90, beamAngle: 120, active: true, radius: 60, name: "Screen " + sNum });
+            markSeatCachesDirty(); setMode('idle'); triggerUpdate();
         } else if (mode === 'draw-sign') {
-            saveState();
-            if (!getActivePage().signs) getActivePage().signs = [];
+            saveState(); if (!getActivePage().signs) getActivePage().signs = [];
             getActivePage().signs.push({ x: world.x, y: world.y, typeIndex: project.activeSignType ?? 0 });
-            updateUI(); render(); // Keep mode active to drop multiple signs rapidly
-        } else if (mode.startsWith('draw')) {
+            updateUI(); triggerUpdate(); 
+        } else if (mode === 'place-text') {
+            const txt = prompt("Enter text for annotation:");
+            if (txt && txt.trim() !== '') {
+                saveState(); if (!getActivePage().texts) getActivePage().texts = [];
+                getActivePage().texts.push({ x: world.x, y: world.y, text: txt.trim(), color: '#000000', size: 36 });
+                setMode('idle'); triggerUpdate();
+            } else { setMode('idle'); }
+        } else if (mode === 'draw-dim' || mode === 'draw-line') {
             currentPoints.push(world);
-        }
+            if (currentPoints.length === 2) {
+                saveState(); if (!getActivePage().lines) getActivePage().lines = [];
+                let t = mode === 'draw-dim' ? 'dimension' : 'line'; let defaultC = mode === 'draw-dim' ? '#f39c12' : '#3498db';
+                getActivePage().lines.push({ type: t, points: [...currentPoints], name: mode === 'draw-dim' ? 'Dimension' : 'Line', color: defaultC, thickness: 2 });
+                setMode('idle'); triggerUpdate();
+            }
+        } else if (mode.startsWith('draw')) { currentPoints.push(world); }
         render();
     };
 
     window.onmousemove = (e) => {
-        mousePos = getMousePos(e);
-        let world = toWorld(mousePos);
+        mousePos = getMousePos(e); let world = toWorld(mousePos);
         
-        // Hover Detection
         if (mode === 'idle') {
-            hoveredSignIndex = getHitSign(world);
-        } else {
-            hoveredSignIndex = -1;
-        }
+            hoveredScreenIndex = getHitScreen(world);
+            if (hoveredScreenIndex !== -1) { hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredTextIndex = -1; } 
+            else { 
+                hoveredSignIndex = getHitSign(world); 
+                if (hoveredSignIndex !== -1) { hoveredLineIndex = -1; hoveredTextIndex = -1; }
+                else {
+                    hoveredTextIndex = getHitText(world);
+                    if (hoveredTextIndex !== -1) { hoveredLineIndex = -1; }
+                    else { hoveredLineIndex = getHitLine(world); }
+                }
+            }
+        } else { hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredScreenIndex = -1; hoveredTextIndex = -1; }
 
-        if (mode === 'drag-legend') {
-            getActivePage().legend.x = world.x - project.dragOffsetX;
-            getActivePage().legend.y = world.y - project.dragOffsetY;
-            hasUnsavedChanges = true;
-            render();
-            return;
-        }
-        
+        if (mode === 'drag-legend') { getActivePage().legend.x = world.x - project.dragOffsetX; getActivePage().legend.y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
         if (mode === 'resize-legend') {
-            let dx = world.x - project.dragStartX;
-            let newScale = project.dragStartScale + (dx / 250);
-            if (newScale < 0.3) newScale = 0.3;
-            if (newScale > 10.0) newScale = 10.0;
-            getActivePage().legend.scale = newScale;
-            hasUnsavedChanges = true;
-            render();
-            return;
+            let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / 250);
+            if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0;
+            getActivePage().legend.scale = newScale; hasUnsavedChanges = true; render(); return;
         }
 
-        if (isDraggingSign && selectedSignIndex !== -1) {
-            if (!hasDraggedSign) { saveState(); hasDraggedSign = true; }
-            const page = getActivePage();
-            page.signs[selectedSignIndex].x = world.x - project.dragOffsetX;
-            page.signs[selectedSignIndex].y = world.y - project.dragOffsetY;
-            hasUnsavedChanges = true;
-            render();
-            return;
+        if (isDraggingScreen && selectedScreenIndex !== -1) { if (!hasDraggedScreen) { saveState(); hasDraggedScreen = true; } getActivePage().screens[selectedScreenIndex].x = world.x - project.dragOffsetX; getActivePage().screens[selectedScreenIndex].y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
+        if (isDraggingSign && selectedSignIndex !== -1) { if (!hasDraggedSign) { saveState(); hasDraggedSign = true; } getActivePage().signs[selectedSignIndex].x = world.x - project.dragOffsetX; getActivePage().signs[selectedSignIndex].y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
+        if (isDraggingText && selectedTextIndex !== -1) { if (!hasDraggedText) { saveState(); hasDraggedText = true; } getActivePage().texts[selectedTextIndex].x = world.x - project.dragOffsetX; getActivePage().texts[selectedTextIndex].y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
+        if (isDraggingLine && selectedLineIndex !== -1) {
+            if (!hasDraggedLine) { saveState(); hasDraggedLine = true; }
+            const page = getActivePage(); const dx = world.x - project.dragStartMouse.x; const dy = world.y - project.dragStartMouse.y;
+            for(let i=0; i < page.lines[selectedLineIndex].points.length; i++) { page.lines[selectedLineIndex].points[i].x = project.dragStartPoints[i].x + dx; page.lines[selectedLineIndex].points[i].y = project.dragStartPoints[i].y + dy; }
+            hasUnsavedChanges = true; triggerUpdate(); return;
         }
 
         if (isPanning) { view.x += mousePos.x - lastMouse.x; view.y += mousePos.y - lastMouse.y; lastMouse = mousePos; }
@@ -907,48 +901,43 @@
 
     window.onmouseup = () => {
         isPanning = false;
-        if (isDraggingSign) {
-            isDraggingSign = false;
-            if (hasDraggedSign) { updateUI(); } // Refresh UI data if actually moved
-        }
-        if (mode === 'drag-legend' || mode === 'resize-legend') {
-            setMode('idle');
-        }
+        if (isDraggingScreen) { isDraggingScreen = false; if (hasDraggedScreen) { markSeatCachesDirty(); updateUI(); triggerUpdate(); } }
+        if (isDraggingSign) { isDraggingSign = false; if (hasDraggedSign) updateUI(); }
+        if (isDraggingText) { isDraggingText = false; if (hasDraggedText) updateUI(); }
+        if (isDraggingLine) { isDraggingLine = false; if (hasDraggedLine) updateUI(); }
+        if (mode === 'drag-legend' || mode === 'resize-legend') setMode('idle');
     };
 
     canvas.ondblclick = () => {
-        if (currentPoints.length > 2 && mode.startsWith('draw-')) {
-            saveState();
-            let defaultName = mode === 'draw-area' ? "Area " + (document.querySelectorAll('.type-area').length + 1) : "Obstacle " + (document.querySelectorAll('.type-obs').length + 1);
+        if (currentPoints.length > 2 && (mode === 'draw-area' || mode === 'draw-obs')) {
+            saveState(); let defaultName = mode === 'draw-area' ? "Area " + (document.querySelectorAll('.type-area').length + 1) : "Obstacle " + (document.querySelectorAll('.type-obs').length + 1);
             getActivePage().shapes.push({ type: mode==='draw-area'?'area':'obs', points: [...currentPoints], name: defaultName, rot: 0, count: 0, seatTypeIndex: project.activeSeatType ?? 0 });
-            markSeatCachesDirty();
+            markSeatCachesDirty(); triggerUpdate();
+        } else if (currentPoints.length > 1 && mode === 'draw-poly') {
+            saveState(); if (!getActivePage().lines) getActivePage().lines = [];
+            getActivePage().lines.push({ type: 'polyline', points: [...currentPoints], name: 'Polyline', color: '#3498db', thickness: 2 });
+            triggerUpdate();
         }
         setMode('idle');
     };
 
     function isInside(poly, pt) {
         let inside = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            if (((poly[i].y > pt.y) !== (poly[j].y > pt.y)) && (pt.x < (poly[j].x - poly[i].x) * (pt.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) inside = !inside;
-        }
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { if (((poly[i].y > pt.y) !== (poly[j].y > pt.y)) && (pt.x < (poly[j].x - poly[i].x) * (pt.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) inside = !inside; }
         return inside;
     }
 
     function getIntersection(A, B, C, D) {
         const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y); if (bottom === 0) return false;
-        const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
-        const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y);
-        const t = tTop / bottom; const u = uTop / bottom;
-        return (t >= 0 && t <= 1 && u >= 0 && u <= 1);
+        const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x); const uTop = (C.y - A.y) * (A.x - B.x) - (C.x - A.x) * (A.y - B.y);
+        const t = tTop / bottom; const u = uTop / bottom; return (t >= 0 && t <= 1 && u >= 0 && u <= 1);
     }
 
     function isInCone(pt, sc, radiusPixels) {
-        const dx = pt.x - sc.x; const dy = pt.y - sc.y;
-        if (Math.hypot(dx, dy) > radiusPixels) return false;
+        const dx = pt.x - sc.x; const dy = pt.y - sc.y; if (Math.hypot(dx, dy) > radiusPixels) return false;
         let angle = Math.atan2(dy, dx) * 180 / Math.PI; if (angle < 0) angle += 360;
-        let sRot = sc.rot % 360; if (sRot < 0) sRot += 360;
-        let diff = Math.abs(angle - sRot); if (diff > 180) diff = 360 - diff;
-        return diff <= 60; 
+        let sRot = sc.rot % 360; if (sRot < 0) sRot += 360; let diff = Math.abs(angle - sRot); if (diff > 180) diff = 360 - diff;
+        let beam = sc.beamAngle !== undefined ? sc.beamAngle : 120; return diff <= (beam / 2); 
     }
 
     function markSeatCachesDirty() { project.pages.forEach(p => p.shapes.forEach(s => s.cacheDirty = true)); }
@@ -957,240 +946,250 @@
         area.cachedSeats = []; area.count = 0;
         const st = project.seatTypes[area.seatTypeIndex ?? 0] || project.seatTypes[0];
         if (!page.pixelsPerFoot) return;
+        
         const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
-        const rotRad = (area.rot || 0) * Math.PI/180;
-        const cos = Math.cos(-rotRad); const sin = Math.sin(-rotRad);
+        const rotRad = (area.rot || 0) * Math.PI/180; const cos = Math.cos(-rotRad); const sin = Math.sin(-rotRad);
+        
         const lPts = area.points.map(p => ({ x: p.x*cos - p.y*sin, y: p.x*sin + p.y*cos }));
         const minX = Math.min(...lPts.map(p=>p.x)); const maxX = Math.max(...lPts.map(p=>p.x));
         const minY = Math.min(...lPts.map(p=>p.y)); const maxY = Math.max(...lPts.map(p=>p.y));
         
         const cols = Math.floor((maxX - minX) / cw); const rows = Math.floor((maxY - minY) / rd);
         const offsetX = ((maxX - minX) - (cols * cw)) / 2; const offsetY = ((maxY - minY) - (rows * rd)) / 2;
-        const startX = minX + offsetX + (cw / 2); const startY = minY + offsetY + (rd / 2);
-        const eps = 0.1;
+        const startX = minX + offsetX + (cw / 2); const startY = minY + offsetY + (rd / 2); const eps = 0.1;
+
+        const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+        const obstacles = page.shapes.filter(s => s.type === 'obs');
 
         for (let i = 0; i < cols; i++) {
             let lx = startX + (i * cw);
             for (let j = 0; j < rows; j++) {
                 let ly = startY + (j * rd);
                 const rx = lx * Math.cos(rotRad) - ly * Math.sin(rotRad); const ry = lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
-                
-                const corners = [
-                    { x: -cw/2 + eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: -rd/2 + eps },
-                    { x: cw/2 - eps, y: rd/2 - eps }, { x: -cw/2 + eps, y: rd/2 - eps }
-                ].map(c => ({
-                    x: rx + (c.x * Math.cos(rotRad) - c.y * Math.sin(rotRad)),
-                    y: ry + (c.x * Math.sin(rotRad) + c.y * Math.cos(rotRad))
-                }));
+                const corners = [ { x: -cw/2 + eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: rd/2 - eps }, { x: -cw/2 + eps, y: rd/2 - eps } ].map(c => ({ x: rx + (c.x * Math.cos(rotRad) - c.y * Math.sin(rotRad)), y: ry + (c.x * Math.sin(rotRad) + c.y * Math.cos(rotRad)) }));
 
                 if (!corners.every(cp => isInside(area.points, cp))) continue;
-                const blocked = page.shapes.filter(s => s.type === 'obs').some(obs => corners.some(cp => isInside(obs.points, cp)));
-                if (!blocked) { area.cachedSeats.push({x:rx, y:ry, rot:rotRad}); area.count++; }
+                const blocked = obstacles.some(obs => corners.some(cp => isInside(obs.points, cp)));
+                
+                if (!blocked) { 
+                    let seat = {x:rx, y:ry, rot:rotRad}; let seatFill = st.color;
+                    if (hasScreens && !uiState.draftMode) {
+                        let hasLOS = false; let inAnyCone = false;
+                        activeScreens.forEach(sc => {
+                            const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
+                            if (isInCone(seat, sc, radiusPixels)) {
+                                inAnyCone = true; let losBlocked = false;
+                                for (const obs of obstacles) {
+                                    for (let k = 0; k < obs.points.length; k++) { if (getIntersection(sc, seat, obs.points[k], obs.points[(k + 1) % obs.points.length])) { losBlocked = true; break; } }
+                                    if (losBlocked) break;
+                                }
+                                if (!losBlocked) hasLOS = true;
+                            }
+                        });
+                        if (hasLOS) seatFill = st.los; else if (inAnyCone) seatFill = 'rgba(231, 76, 60, 0.9)'; else seatFill = 'rgba(120, 120, 120, 0.4)';
+                    }
+                    seat.fill = seatFill; area.cachedSeats.push(seat); area.count++; 
+                }
             }
         }
         area.cacheDirty = false;
     }
 
-    function render(targetCtx = ctx, v = view, isLive = true) {
-        targetCtx.setTransform(1,0,0,1,0,0); targetCtx.clearRect(0,0,targetCtx.canvas.width,targetCtx.canvas.height);
-        targetCtx.save(); targetCtx.translate(v.x, v.y); targetCtx.scale(v.zoom, v.zoom);
-        if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
-        
-        const page = getActivePage(); 
-        let pageTotal = 0; let typeTotals = new Array(project.seatTypes.length).fill(0);
-        const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
-        const hasScreens = activeScreens.length > 0;
+    function updateCache() {
+        const page = getActivePage(); const bgW = bgImage.src ? (bgImage.width || 2000) : 2000; const bgH = bgImage.src ? (bgImage.height || 2000) : 2000;
+        layerCache.width = bgW; layerCache.height = bgH; const cCtx = layerCache.getContext('2d');
+        cCtx.clearRect(0, 0, bgW, bgH); 
 
-        if (hasScreens) {
-            activeScreens.forEach(sc => {
-                const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
-                const rotRad = sc.rot * Math.PI / 180;
-                targetCtx.save(); targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y);
-                targetCtx.arc(sc.x, sc.y, radiusPixels, rotRad - Math.PI/3, rotRad + Math.PI/3); targetCtx.closePath();
-                targetCtx.fillStyle = 'rgba(241, 196, 15, 0.15)'; targetCtx.fill(); targetCtx.clip();
-                page.shapes.filter(s => s.type === 'obs').forEach(obs => {
-                    targetCtx.fillStyle = 'rgba(0, 0, 0, 0.5)'; 
-                    for (let j = 0; j < obs.points.length; j++) {
-                        let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length];
-                        let extDist = radiusPixels + 100; 
-                        let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
-                        let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist };
-                        let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
-                        targetCtx.beginPath(); targetCtx.moveTo(p1.x, p1.y); targetCtx.lineTo(p2.x, p2.y);
-                        targetCtx.lineTo(p2_ext.x, p2_ext.y); targetCtx.lineTo(p1_ext.x, p1_ext.y); targetCtx.closePath(); targetCtx.fill();
-                    }
-                });
-                targetCtx.restore();
-                targetCtx.beginPath(); targetCtx.arc(sc.x, sc.y, 10/v.zoom, 0, Math.PI*2);
-                targetCtx.fillStyle = COLORS.screen; targetCtx.fill(); targetCtx.lineWidth = 2/v.zoom; targetCtx.strokeStyle = 'white'; targetCtx.stroke();
-                targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y); targetCtx.lineTo(sc.x + Math.cos(rotRad)*30/v.zoom, sc.y + Math.sin(rotRad)*30/v.zoom); targetCtx.stroke();
-                targetCtx.save(); targetCtx.translate(sc.x, sc.y - (20/v.zoom)); targetCtx.scale(1/v.zoom, 1/v.zoom);
-                targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
-                targetCtx.strokeText(sc.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(sc.name, 0, 0); targetCtx.restore();
-            });
-        }
+        globalPageTotal = 0; globalTypeTotals = new Array(project.seatTypes.length).fill(0);
 
         page.shapes.forEach(s => {
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
-            targetCtx.beginPath(); s.points.forEach((p,i) => i===0?targetCtx.moveTo(p.x,p.y):targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
-            targetCtx.strokeStyle = s.type === 'area' ? st.stroke : '#e74c3c'; targetCtx.lineWidth = 2/v.zoom; targetCtx.stroke();
-            
             if (s.type === 'area' && page.pixelsPerFoot) {
                 if (s.cacheDirty === undefined || s.cacheDirty) rebuildSeatCache(s, page);
                 const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
                 
                 s.cachedSeats.forEach(seat => {
-                    let seatFill = st.color;
-                    if (hasScreens && !uiState.draftMode) {
-                        let hasLOS = false; let inAnyCone = false;
-                        activeScreens.forEach(sc => {
-                            const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
-                            if (isInCone(seat, sc, radiusPixels)) {
-                                inAnyCone = true; let blocked = false;
-                                for (const obs of page.shapes.filter(o => o.type === 'obs')) {
-                                    for (let j = 0; j < obs.points.length; j++) {
-                                        if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) { blocked = true; break; }
-                                    }
-                                    if (blocked) break;
-                                }
-                                if (!blocked) hasLOS = true;
-                            }
-                        });
-                        if (hasLOS) seatFill = st.los;
-                        else if (inAnyCone) seatFill = 'rgba(231, 76, 60, 0.9)';
-                        else seatFill = 'rgba(120, 120, 120, 0.4)';
-                    }
-                    if (isLive ? (pageTotal + s.count < 50000) : true) {
-                        targetCtx.save(); targetCtx.translate(seat.x, seat.y); targetCtx.rotate(seat.rot);
-                        targetCtx.fillStyle = seatFill; targetCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); targetCtx.restore();
+                    cCtx.save(); cCtx.translate(seat.x, seat.y); cCtx.rotate(seat.rot);
+                    cCtx.fillStyle = seat.fill || st.color; cCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); 
+                    cCtx.strokeStyle = "rgba(0,0,0,0.8)"; cCtx.lineWidth = 0.5; cCtx.strokeRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); cCtx.restore();
+                });
+                
+                globalPageTotal += s.count; 
+                if (globalTypeTotals[s.seatTypeIndex ?? 0] !== undefined) globalTypeTotals[s.seatTypeIndex ?? 0] += s.count;
+            }
+        });
+        needsCacheUpdate = false;
+    }
+
+    function updateTotalsUI() {
+        let totalsHTML = '';
+        project.seatTypes.forEach((st, i) => {
+            if (globalTypeTotals[i] > 0 || i === project.activeSeatType) { 
+                totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:0.9em; color:#ccc;">${st.name}:</span>
+                        <span style="font-weight:bold; color:${st.stroke};">${globalTypeTotals[i].toLocaleString()}</span>
+                    </div>`;
+            }
+        });
+        
+        totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid #444;">
+                <span style="font-size:0.9em; color:white; font-weight:bold;">Total Seats:</span>
+                <span style="font-size:1.1em; font-weight:bold; color:var(--success);">${globalPageTotal.toLocaleString()}</span>
+            </div>`;
+            
+        document.getElementById('page-totals-container').innerHTML = totalsHTML;
+    }
+
+    let renderPending = false;
+    function render(targetCtx = ctx, v = view, isLive = true) {
+        if (!isLive) return; 
+        if (!renderPending) { renderPending = true; requestAnimationFrame(() => { drawScene(targetCtx, v, isLive); renderPending = false; }); }
+    }
+
+    function drawScene(targetCtx, v, isLive) {
+        targetCtx.setTransform(1,0,0,1,0,0); targetCtx.clearRect(0,0,targetCtx.canvas.width,targetCtx.canvas.height);
+        targetCtx.save(); targetCtx.translate(v.x, v.y); targetCtx.scale(v.zoom, v.zoom);
+        
+        const page = getActivePage();
+        
+        if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
+
+        const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+        if (hasScreens) {
+            activeScreens.forEach((sc, i) => {
+                const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
+                const rotRad = sc.rot * Math.PI / 180; const beamDeg = sc.beamAngle !== undefined ? sc.beamAngle : 120; const halfBeamRad = (beamDeg / 2) * Math.PI / 180;
+
+                targetCtx.save(); targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y);
+                targetCtx.arc(sc.x, sc.y, radiusPixels, rotRad - halfBeamRad, rotRad + halfBeamRad); targetCtx.closePath();
+                targetCtx.fillStyle = 'rgba(241, 196, 15, 0.15)'; targetCtx.fill(); targetCtx.clip();
+                
+                page.shapes.filter(s => s.type === 'obs').forEach(obs => {
+                    targetCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                    for (let j = 0; j < obs.points.length; j++) {
+                        let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length]; let extDist = radiusPixels + 100; 
+                        let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
+                        let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist }; let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
+                        targetCtx.beginPath(); targetCtx.moveTo(p1.x, p1.y); targetCtx.lineTo(p2.x, p2.y); targetCtx.lineTo(p2_ext.x, p2_ext.y); targetCtx.lineTo(p1_ext.x, p1_ext.y); targetCtx.closePath(); targetCtx.fill();
                     }
                 });
-                pageTotal += s.count; 
-                if (typeTotals[s.seatTypeIndex ?? 0] !== undefined) typeTotals[s.seatTypeIndex ?? 0] += s.count;
-            }
-            
-            let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; });
-            const cen = { x: sX / s.points.length, y: sY / s.points.length };
-            targetCtx.save(); targetCtx.translate(cen.x, cen.y); targetCtx.scale(1/v.zoom, 1/v.zoom);
-            targetCtx.font = "bold 18px Arial"; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
-            targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); targetCtx.restore();
-        });
-
-        // RENDER SIGNS
-        if (page.signs) {
-            page.signs.forEach((s, i) => {
-                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
-                targetCtx.beginPath();
-                targetCtx.arc(s.x, s.y, st.size, 0, Math.PI * 2);
-                targetCtx.fillStyle = st.color;
-                targetCtx.fill();
-                
-                // Active/Hover Highlighting
-                if (isLive && i === selectedSignIndex) {
-                    targetCtx.lineWidth = 3 / v.zoom;
-                    targetCtx.strokeStyle = 'white';
-                    targetCtx.stroke();
-                    targetCtx.beginPath();
-                    targetCtx.arc(s.x, s.y, st.size + (6/v.zoom), 0, Math.PI * 2);
-                    targetCtx.strokeStyle = '#2ecc71'; 
-                    targetCtx.lineWidth = 3 / v.zoom;
-                    targetCtx.stroke();
-                } else if (isLive && i === hoveredSignIndex) {
-                    targetCtx.lineWidth = 4 / v.zoom;
-                    targetCtx.strokeStyle = '#f1c40f'; 
-                    targetCtx.stroke();
-                } else {
-                    targetCtx.lineWidth = 2 / v.zoom; 
-                    targetCtx.strokeStyle = 'white';
-                    targetCtx.stroke();
-                }
-
-                if (st.label) {
-                    targetCtx.font = `bold ${st.size}px Arial`;
-                    targetCtx.textAlign = "center";
-                    targetCtx.textBaseline = "middle";
-                    targetCtx.lineWidth = 2 / v.zoom;
-                    targetCtx.strokeStyle = "rgba(0,0,0,0.6)";
-                    targetCtx.strokeText(st.label, s.x, s.y);
-                    targetCtx.fillStyle = "white";
-                    targetCtx.fillText(st.label, s.x, s.y);
-                }
+                targetCtx.restore();
             });
         }
 
-        // RENDER LIVE LEGEND
+        if (needsCacheUpdate) { updateCache(); updateTotalsUI(); }
+        targetCtx.drawImage(layerCache, 0, 0);
+
+        if (hasScreens) {
+            activeScreens.forEach((sc, i) => {
+                const rotRad = sc.rot * Math.PI / 180;
+                targetCtx.beginPath(); targetCtx.arc(sc.x, sc.y, 10/(isLive ? v.zoom : 1), 0, Math.PI*2); targetCtx.fillStyle = COLORS.screen; targetCtx.fill(); 
+                if (isLive && i === selectedScreenIndex) { targetCtx.lineWidth = 3 / v.zoom; targetCtx.strokeStyle = 'white'; targetCtx.stroke(); targetCtx.beginPath(); targetCtx.arc(sc.x, sc.y, 16/v.zoom, 0, Math.PI * 2); targetCtx.strokeStyle = '#2ecc71'; targetCtx.lineWidth = 3 / v.zoom; targetCtx.stroke(); } 
+                else if (isLive && i === hoveredScreenIndex) { targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeStyle = '#f1c40f'; targetCtx.stroke(); } 
+                else { targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = 'white'; targetCtx.stroke(); }
+
+                targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y); targetCtx.lineTo(sc.x + Math.cos(rotRad)*30/(isLive ? v.zoom : 1), sc.y + Math.sin(rotRad)*30/(isLive ? v.zoom : 1)); targetCtx.stroke();
+                targetCtx.save(); targetCtx.translate(sc.x, sc.y - (20/(isLive ? v.zoom : 1))); targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
+                targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4; targetCtx.strokeText(sc.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(sc.name, 0, 0); targetCtx.restore();
+            });
+        }
+
+        page.shapes.forEach(s => {
+            const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+            targetCtx.beginPath(); s.points.forEach((p,i) => i===0 ? targetCtx.moveTo(p.x,p.y) : targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
+            targetCtx.strokeStyle = s.type === 'area' ? st.stroke : '#e74c3c'; targetCtx.lineWidth = 2 / v.zoom; targetCtx.stroke();
+
+            let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
+            targetCtx.save(); targetCtx.translate(cen.x, cen.y); targetCtx.scale(1/v.zoom, 1/v.zoom);
+            targetCtx.font = "bold 18px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
+            targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); targetCtx.restore();
+        });
+
+        if (uiState.showLines !== false) {
+            if (page.lines) {
+                page.lines.forEach((l, i) => {
+                    const isSelected = (isLive && i === selectedLineIndex); const isHovered = (isLive && i === hoveredLineIndex);
+                    let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
+                    
+                    if (isSelected) activeColor = '#2ecc71'; else if (isHovered && !isSelected) activeColor = '#f1c40f';
+                    targetCtx.strokeStyle = activeColor; targetCtx.lineWidth = ((isSelected || isHovered ? 2 : 0) + activeThick) / (isLive ? v.zoom : 1);
+                    targetCtx.beginPath(); l.points.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x, p.y) : targetCtx.lineTo(p.x, p.y)); targetCtx.stroke();
+
+                    if (l.type === 'dimension' && l.points.length === 2) {
+                        const p1 = l.points[0], p2 = l.points[1]; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x); const tickLen = (10 + activeThick) / (isLive ? v.zoom : 1);
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(p1.x - Math.sin(ang)*tickLen, p1.y + Math.cos(ang)*tickLen); targetCtx.lineTo(p1.x + Math.sin(ang)*tickLen, p1.y - Math.cos(ang)*tickLen);
+                        targetCtx.moveTo(p2.x - Math.sin(ang)*tickLen, p2.y + Math.cos(ang)*tickLen); targetCtx.lineTo(p2.x + Math.sin(ang)*tickLen, p2.y - Math.cos(ang)*tickLen); targetCtx.stroke();
+
+                        const distFt = page.pixelsPerFoot ? (Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot).toFixed(1) + " ft" : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
+                        const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+                        targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
+                        targetCtx.rotate(textAng); targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom"; targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
+                        targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4;
+                        targetCtx.strokeText(distFt, 0, -5); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
+                    }
+                });
+            }
+
+            if (page.texts) {
+                page.texts.forEach((t, i) => {
+                    const isSelected = (isLive && i === selectedTextIndex);
+                    const isHovered = (isLive && i === hoveredTextIndex);
+                    const size = t.size || 24;
+                    
+                    targetCtx.font = `bold ${size}px Arial`;
+                    targetCtx.textAlign = "center";
+                    targetCtx.textBaseline = "middle";
+                    
+                    if (isSelected || isHovered) {
+                        const metrics = targetCtx.measureText(t.text);
+                        const pad = 5 / (isLive ? v.zoom : 1);
+                        targetCtx.fillStyle = isSelected ? "rgba(46, 204, 113, 0.2)" : "rgba(241, 196, 15, 0.2)";
+                        targetCtx.fillRect(t.x - (metrics.width/2) - pad, t.y - (size/2) - pad, metrics.width + (pad*2), size + (pad*2));
+                        targetCtx.strokeStyle = isSelected ? "#2ecc71" : "#f1c40f";
+                        targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1);
+                        targetCtx.strokeRect(t.x - (metrics.width/2) - pad, t.y - (size/2) - pad, metrics.width + (pad*2), size + (pad*2));
+                    }
+                    
+                    targetCtx.fillStyle = t.color || '#000000';
+                    targetCtx.fillText(t.text, t.x, t.y);
+                });
+            }
+        }
+
+        if (page.signs) {
+            page.signs.forEach((s, i) => {
+                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                targetCtx.beginPath(); targetCtx.arc(s.x, s.y, st.size, 0, Math.PI * 2); targetCtx.fillStyle = st.color; targetCtx.fill();
+                if (isLive && i === selectedSignIndex) { targetCtx.lineWidth = 3 / v.zoom; targetCtx.strokeStyle = 'white'; targetCtx.stroke(); targetCtx.beginPath(); targetCtx.arc(s.x, s.y, st.size + (6/v.zoom), 0, Math.PI * 2); targetCtx.strokeStyle = '#2ecc71'; targetCtx.lineWidth = 3 / v.zoom; targetCtx.stroke(); } 
+                else if (isLive && i === hoveredSignIndex) { targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeStyle = '#f1c40f'; targetCtx.stroke(); } 
+                else { targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = 'white'; targetCtx.stroke(); }
+
+                if (st.label) { targetCtx.font = `bold ${st.size}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = "rgba(0,0,0,0.6)"; targetCtx.strokeText(st.label, s.x, s.y); targetCtx.fillStyle = "white"; targetCtx.fillText(st.label, s.x, s.y); }
+            });
+        }
+
         if (page.legend && page.legend.show) {
-            let activeSignIndices = new Set();
-            if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
+            let activeSignIndices = new Set(); if (page.signs) page.signs.forEach(s => activeSignIndices.add(s.typeIndex ?? 0));
             let items = Array.from(activeSignIndices);
-            
             if (items.length > 0) {
-                let legW = 250; 
-                let legH = 50 + (items.length * 35);
-                let s = page.legend.scale || 1;
+                let legW = 250; let legH = 50 + (items.length * 35); let s = page.legend.scale || 1;
+                targetCtx.save(); targetCtx.translate(page.legend.x, page.legend.y); targetCtx.scale(s, s);
+                targetCtx.fillStyle = "rgba(255, 255, 255, 0.9)"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 2;
+                if(targetCtx.roundRect) { targetCtx.beginPath(); targetCtx.roundRect(0, 0, legW, legH, 8); targetCtx.fill(); targetCtx.stroke(); } 
+                else { targetCtx.fillRect(0, 0, legW, legH); targetCtx.strokeRect(0, 0, legW, legH); }
                 
-                targetCtx.save();
-                targetCtx.translate(page.legend.x, page.legend.y);
-                targetCtx.scale(s, s);
-                
-                targetCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                targetCtx.strokeStyle = "black";
-                targetCtx.lineWidth = 2;
-                
-                if(targetCtx.roundRect) {
-                    targetCtx.beginPath(); targetCtx.roundRect(0, 0, legW, legH, 8);
-                    targetCtx.fill(); targetCtx.stroke();
-                } else {
-                    targetCtx.fillRect(0, 0, legW, legH);
-                    targetCtx.strokeRect(0, 0, legW, legH);
-                }
-                
-                targetCtx.fillStyle = "black";
-                targetCtx.font = "bold 18px Arial";
-                targetCtx.textAlign = "left";
-                targetCtx.textBaseline = "alphabetic";
-                targetCtx.fillText("SIGNAGE LEGEND", 15, 30);
-                
-                targetCtx.beginPath();
-                targetCtx.moveTo(15, 40);
-                targetCtx.lineTo(legW - 15, 40);
-                targetCtx.lineWidth = 1;
-                targetCtx.stroke();
+                targetCtx.fillStyle = "black"; targetCtx.font = "bold 18px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "alphabetic"; targetCtx.fillText("SIGNAGE LEGEND", 15, 30);
+                targetCtx.beginPath(); targetCtx.moveTo(15, 40); targetCtx.lineTo(legW - 15, 40); targetCtx.lineWidth = 1; targetCtx.stroke();
                 
                 let yOffset = 65;
                 items.forEach(idx => {
                     const st = project.signTypes[idx] || project.signTypes[0];
-                    targetCtx.beginPath();
-                    targetCtx.arc(30, yOffset - 5, 12, 0, Math.PI * 2);
-                    targetCtx.fillStyle = st.color;
-                    targetCtx.fill();
-                    targetCtx.lineWidth = 1;
-                    targetCtx.stroke();
-                    
-                    if (st.label) {
-                        targetCtx.fillStyle = "white";
-                        targetCtx.font = "bold 12px Arial";
-                        targetCtx.textAlign = "center";
-                        targetCtx.textBaseline = "middle";
-                        targetCtx.fillText(st.label, 30, yOffset - 5);
-                    }
-                    
-                    targetCtx.fillStyle = "black";
-                    targetCtx.font = "16px Arial";
-                    targetCtx.textAlign = "left";
-                    targetCtx.fillText(st.name, 55, yOffset);
-                    yOffset += 35;
+                    targetCtx.beginPath(); targetCtx.arc(30, yOffset - 5, 12, 0, Math.PI * 2); targetCtx.fillStyle = st.color; targetCtx.fill(); targetCtx.lineWidth = 1; targetCtx.stroke();
+                    if (st.label) { targetCtx.fillStyle = "white"; targetCtx.font = "bold 12px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(st.label, 30, yOffset - 5); }
+                    targetCtx.fillStyle = "black"; targetCtx.font = "16px Arial"; targetCtx.textAlign = "left"; targetCtx.fillText(st.name, 55, yOffset); yOffset += 35;
                 });
-                
-                if (isLive) {
-                    targetCtx.fillStyle = "rgba(0,0,0,0.3)";
-                    targetCtx.beginPath();
-                    targetCtx.moveTo(legW - 20, legH);
-                    targetCtx.lineTo(legW, legH - 20);
-                    targetCtx.lineTo(legW, legH);
-                    targetCtx.fill();
-                }
-                
+                if (isLive) { targetCtx.fillStyle = "rgba(0,0,0,0.3)"; targetCtx.beginPath(); targetCtx.moveTo(legW - 20, legH); targetCtx.lineTo(legW, legH - 20); targetCtx.lineTo(legW, legH); targetCtx.fill(); }
                 targetCtx.restore();
             }
         }
@@ -1199,368 +1198,233 @@
             if (calPoint) { targetCtx.fillStyle = "yellow"; targetCtx.beginPath(); targetCtx.arc(calPoint.x, calPoint.y, 5/v.zoom, 0, Math.PI*2); targetCtx.fill(); }
             if (currentPoints.length > 0) { 
                 targetCtx.beginPath(); targetCtx.strokeStyle = "red"; targetCtx.moveTo(currentPoints[0].x, currentPoints[0].y); 
-                currentPoints.forEach(p => targetCtx.lineTo(p.x, p.y)); 
-                let previewWorld = toWorld(mousePos);
-                if (isShiftDown && mode.startsWith('draw-')) {
-                    const last = currentPoints[currentPoints.length - 1];
-                    if (Math.abs(previewWorld.x - last.x) > Math.abs(previewWorld.y - last.y)) previewWorld.y = last.y;
-                    else previewWorld.x = last.x;
-                }
+                currentPoints.forEach(p => targetCtx.lineTo(p.x, p.y)); let previewWorld = toWorld(mousePos);
+                if (isShiftDown && mode.startsWith('draw-')) { const last = currentPoints[currentPoints.length - 1]; if (Math.abs(previewWorld.x - last.x) > Math.abs(previewWorld.y - last.y)) previewWorld.y = last.y; else previewWorld.x = last.x; }
                 targetCtx.lineTo(previewWorld.x, previewWorld.y); targetCtx.stroke(); 
+                
+                if (mode === 'draw-dim' && currentPoints.length === 1) {
+                    const p1 = currentPoints[0]; const p2 = previewWorld; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    const distFt = page.pixelsPerFoot ? (Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot).toFixed(1) + " ft" : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
+                    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2; targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI; targetCtx.rotate(textAng);
+                    targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom"; targetCtx.scale(1/v.zoom, 1/v.zoom);
+                    targetCtx.fillStyle = "#f39c12"; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4; targetCtx.strokeText(distFt, 0, -5); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
+                }
             }
             targetCtx.restore();
             
-            // Custom Dynamic Crosshair
             ctx.strokeStyle = "rgba(0,0,0,0.8)"; ctx.lineWidth = 2.5; ctx.beginPath();
             ctx.moveTo(mousePos.x, 0); ctx.lineTo(mousePos.x, canvas.height);
             ctx.moveTo(0, mousePos.y); ctx.lineTo(canvas.width, mousePos.y); ctx.stroke();
             
-            if (hoveredSignIndex !== -1 || isDraggingSign) {
-                ctx.strokeStyle = "#f1c40f"; // Yellow when interactive
-                ctx.lineWidth = 1.5;
-            } else {
-                ctx.strokeStyle = "#e74c3c"; // Red normally
-                ctx.lineWidth = 0.5;
+            if (hoveredSignIndex !== -1 || isDraggingSign || hoveredLineIndex !== -1 || isDraggingLine || hoveredScreenIndex !== -1 || isDraggingScreen || hoveredTextIndex !== -1 || isDraggingText) { 
+                ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 1.5; 
+            } else { 
+                ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 0.5; 
             }
-            ctx.stroke();
-            
-            const t = translations[currentLang];
-            let totalsHTML = '';
-            project.seatTypes.forEach((st, i) => {
-                if (typeTotals[i] > 0 || i === project.activeSeatType) { 
-                    totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <span style="font-size:0.8em; color:#ccc;">${st.name}:</span>
-                            <span style="font-weight:bold; color:${st.stroke};">${typeTotals[i].toLocaleString()}</span>
-                        </div>`;
-                }
-            });
-            totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #444;">
-                    <span style="font-size:0.8em; color:white; font-weight:bold;">${t.labelTotal}</span>
-                    <span style="font-size:1.2em; font-weight:bold; color:var(--success);">${pageTotal.toLocaleString()}</span>
-                </div>`;
-            document.getElementById('page-totals-container').innerHTML = totalsHTML;
-        } else { 
-            targetCtx.restore(); 
-        }
+            ctx.beginPath(); ctx.moveTo(mousePos.x - 10, mousePos.y); ctx.lineTo(mousePos.x + 10, mousePos.y); ctx.moveTo(mousePos.x, mousePos.y - 10); ctx.lineTo(mousePos.x, mousePos.y + 10); ctx.stroke();
+        } else { targetCtx.restore(); }
     }
 
-    function setMode(m) { 
-        mode = m; currentPoints = []; calPoint = null; 
-        selectedSignIndex = -1; // Deselect signs on mode change
-        document.querySelectorAll('.fixed-tools .tool-btn').forEach(btn => btn.classList.remove('active'));
-        const buttonMap = { 'calibrate':'btn-calibrate', 'draw-area':'btn-draw-area', 'draw-obs':'btn-draw-obs', 'draw-screen':'btn-draw-screen', 'draw-sign':'btn-draw-sign' };
-        if (buttonMap[m]) { const btn = document.getElementById(buttonMap[m]); if(btn) btn.classList.add('active'); }
-        updateUI(); render(); 
-    }
-    
-    document.getElementById('btn-calibrate').onclick = () => setMode('calibrate');
-    document.getElementById('btn-draw-area').onclick = () => setMode('draw-area');
-    document.getElementById('btn-draw-obs').onclick = () => setMode('draw-obs');
-    document.getElementById('btn-draw-screen').onclick = () => setMode('draw-screen');
-    document.getElementById('btn-draw-sign').onclick = () => setMode('draw-sign');
-
-    function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
-    function deleteScreen(i) { saveState(); getActivePage().screens.splice(i,1); markSeatCachesDirty(); updateUI(); render(); }
-    function deleteSign(i) { saveState(); getActivePage().signs.splice(i,1); selectedSignIndex = -1; updateUI(); render(); }
-
-    function addNewPage() { 
-        const n = prompt(translations[currentLang].pageNamePrompt); 
-        if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], legend:{show:true, x:40, y:40, scale:1}}); switchPage(project.pages.length-1); }
-    }
-    
-    function deleteCurrentPage() { 
-        const t = translations[currentLang];
-        if(project.pages.length > 1) { 
-            if(confirm(t.delPageConfirm)) { project.pages.splice(project.activePageIndex, 1); switchPage(0); }
-        } else { alert(t.delPageError); }
-    }
-
-    function saveProject() { 
-        const blob = new Blob([JSON.stringify(project)], {type:"application/json"});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = project.title+".json"; a.click();
-        hasUnsavedChanges = false;
-    }
-    
+    function saveProject() { const blob = new Blob([JSON.stringify(project)], {type:"application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = project.title+".json"; a.click(); hasUnsavedChanges = false; }
     function loadProject(input) {
         const reader = new FileReader();
         reader.onload = (e) => { 
             project = JSON.parse(e.target.result);
-            if (!project.seatTypes) {
-                project.seatTypes = [{ name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }];
-                project.activeSeatType = 0; project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; }));
-            }
-            if (!project.signTypes) {
-                project.signTypes = [{ name: "Default Sign", color: '#e74c3c', size: 20, label: "1" }];
-                project.activeSignType = 0; project.pages.forEach(p => { if(!p.signs) p.signs = []; });
-            } else {
-                project.signTypes.forEach((st, i) => { if (st.label === undefined) st.label = (i + 1).toString(); });
-            }
-            
-            project.pages.forEach(p => {
-                if(!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 };
-            });
-
+            if (!project.seatTypes) { project.seatTypes = [{ name: "Type 1", w: project.chairW || 2.0, d: project.rowD || 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }]; project.activeSeatType = 0; project.pages.forEach(p => p.shapes.forEach(s => { if(s.type === 'area') s.seatTypeIndex = 0; })); }
+            if (!project.signTypes) { project.signTypes = [{ name: "Default Sign", color: '#e74c3c', size: 20, label: "1" }]; project.activeSignType = 0; project.pages.forEach(p => { if(!p.signs) p.signs = []; }); } else { project.signTypes.forEach((st, i) => { if (st.label === undefined) st.label = (i + 1).toString(); }); }
+            project.pages.forEach(p => { if(!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 }; if(!p.lines) p.lines = []; if(!p.texts) p.texts = []; });
             markSeatCachesDirty(); switchPage(0); hasUnsavedChanges = false;
         };
-        reader.readAsText(input.files[0]);
+        reader.readAsText(input.files[0]); input.value = ''; 
     }
 
+    // --- PRINTING ENGINE ---
     function printReport(type) {
-        const t = translations[currentLang];
-        document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
-        const dateStr = new Date().toLocaleDateString();
-        document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
+        try {
+            document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
+            const dateStr = new Date().toLocaleDateString();
+            document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
 
-        if (type === 'summary') {
-            document.getElementById('rpt-title-print').innerText = project.title + t.printTitleSuffix;
-            document.getElementById('rpt-table-header').innerHTML = `<th>${t.sectionNameCol}</th><th>${t.countCol}</th>`;
-            
-            const body = document.getElementById('rpt-body'); body.innerHTML = '';
-            let typeGrandTotals = new Array(project.seatTypes.length).fill(0);
-            let signGrandTotals = new Array(project.signTypes.length).fill(0);
-            const origIndex = project.activePageIndex;
-            
-            project.pages.forEach((p, idx) => {
-                project.activePageIndex = idx;
-                const dummyCtx = document.createElement('canvas').getContext('2d'); render(dummyCtx, {x:0, y:0, zoom:1}, false);
-                let pageRows = ''; let hasAreas = false;
+            if (type === 'summary') {
+                document.getElementById('rpt-title-print').innerText = project.title + " - Project Summary";
+                document.getElementById('rpt-table-header').innerHTML = `<th>Section Name</th><th>Count</th>`;
                 
-                // SEATS
-                project.seatTypes.forEach((st, typeIdx) => {
-                    let typeSubtotal = 0; let typeRows = '';
-                    p.shapes.forEach(s => { 
-                        if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) {
-                            typeRows += `<tr><td style="padding-left: 20px;">${s.name}</td><td>${s.count.toLocaleString()}</td></tr>`; 
-                            typeSubtotal += s.count;
-                        }
-                    });
-                    if (typeRows !== '') {
-                        hasAreas = true;
-                        pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${st.name}${t.printTotalGroup}</td></tr>`;
-                        pageRows += typeRows;
-                        pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${st.name}${t.printSubtotal}</td><td style="border-bottom: 1px solid #ccc;">${typeSubtotal.toLocaleString()}</td></tr>`;
-                        typeGrandTotals[typeIdx] += typeSubtotal;
-                    }
-                });
-
-                // SIGNS
-                if (p.signs && p.signs.length > 0) {
-                    hasAreas = true;
-                    pageRows += `<tr style="background: #fff3e0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #e67e22;">SIGNAGE PLACEMENTS</td></tr>`;
-                    project.signTypes.forEach((st, typeIdx) => {
-                        let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length;
-                        if (signCount > 0) {
-                            pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${st.color}">●</span> ${st.name}</td><td>${signCount}</td></tr>`;
-                            signGrandTotals[typeIdx] += signCount;
-                        }
-                    });
-                }
-
-                if (hasAreas) {
-                    body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`;
-                    body.innerHTML += pageRows;
-                }
-            });
-            project.activePageIndex = origIndex; render();
-            
-            let footHTML = ''; let absoluteTotal = 0;
-            project.seatTypes.forEach((st, i) => {
-                if(typeGrandTotals[i] > 0) {
-                    footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${t.printTotalType}${st.name.toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`;
-                    absoluteTotal += typeGrandTotals[i];
-                }
-            });
-            footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${t.printGrandTotal}</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
-            
-            let hasSigns = signGrandTotals.some(x => x > 0);
-            if (hasSigns) {
-                footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
-                project.signTypes.forEach((st, i) => {
-                    if (signGrandTotals[i] > 0) {
-                        footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()} SIGNS</td><td>${signGrandTotals[i]}</td></tr>`;
-                    }
-                });
-            }
-
-            document.querySelector('#print-report-container tfoot').innerHTML = footHTML;
-            document.body.className = 'summary-only'; window.print();
-
-        } else if (type === 'signs') {
-            
-            document.getElementById('rpt-title-print').innerText = project.title + " - Signage Report";
-            document.getElementById('rpt-table-header').innerHTML = `<th>Sign Type</th><th>Total Count (All Pages)</th>`;
-            
-            let signGrandTotals = new Array(project.signTypes.length).fill(0);
-            project.pages.forEach(p => {
-                if (p.signs) {
-                    p.signs.forEach(s => { signGrandTotals[s.typeIndex ?? 0]++; });
-                }
-            });
-
-            let bodyHTML = '';
-            let absoluteTotal = 0;
-            project.signTypes.forEach((st, i) => {
-                if (signGrandTotals[i] > 0) {
-                    bodyHTML += `<tr>
-                        <td style="padding-left: 20px;">
-                            <span style="display:inline-block; width:24px; height:24px; background-color:${st.color}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${st.label || ''}</span>
-                            ${st.name}
-                        </td>
-                        <td>${signGrandTotals[i]}</td>
-                    </tr>`;
-                    absoluteTotal += signGrandTotals[i];
-                }
-            });
-
-            if (absoluteTotal === 0) {
-                bodyHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">No signs placed in this project.</td></tr>`;
-            }
-
-            document.getElementById('rpt-body').innerHTML = bodyHTML;
-            document.querySelector('#print-report-container tfoot').innerHTML = `
-                <tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                    <td style="text-align: right;">GRAND TOTAL ALL SIGNS</td>
-                    <td>${absoluteTotal}</td>
-                </tr>
-            `;
-
-            document.body.className = 'summary-only'; 
-            window.print();
-            
-        } else {
-            const page = getActivePage();
-            const bgW = bgImage.width || 2000; const bgH = bgImage.height || 2000;
-            const activeScreens = page.screens ? page.screens.filter(s => s.active) : [];
-            const hasScreens = activeScreens.length > 0;
-
-            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
-            if (bgImage.src) svg += `<image href="${bgImage.src}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
-
-            svg += `<defs>`;
-            if (hasScreens) {
-                activeScreens.forEach((sc, i) => {
-                    const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
-                    const rotRad = sc.rot * Math.PI / 180;
-                    const startA = rotRad - Math.PI/3; const endA = rotRad + Math.PI/3;
-                    const x1 = sc.x + radiusPixels * Math.cos(startA); const y1 = sc.y + radiusPixels * Math.sin(startA);
-                    const x2 = sc.x + radiusPixels * Math.cos(endA); const y2 = sc.y + radiusPixels * Math.sin(endA);
-                    const d = `M ${sc.x} ${sc.y} L ${x1} ${y1} A ${radiusPixels} ${radiusPixels} 0 0 1 ${x2} ${y2} Z`;
-                    svg += `<clipPath id="cone-clip-${i}"><path d="${d}" /></clipPath>`;
-                });
-            }
-            svg += `</defs>`;
-
-            if (hasScreens) {
-                activeScreens.forEach((sc, i) => {
-                    const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
-                    const rotRad = sc.rot * Math.PI / 180;
-                    const startA = rotRad - Math.PI/3; const endA = rotRad + Math.PI/3;
-                    const x1 = sc.x + radiusPixels * Math.cos(startA); const y1 = sc.y + radiusPixels * Math.sin(startA);
-                    const x2 = sc.x + radiusPixels * Math.cos(endA); const y2 = sc.y + radiusPixels * Math.sin(endA);
-                    const d = `M ${sc.x} ${sc.y} L ${x1} ${y1} A ${radiusPixels} ${radiusPixels} 0 0 1 ${x2} ${y2} Z`;
+                const body = document.getElementById('rpt-body'); body.innerHTML = '';
+                let typeGrandTotals = new Array(project.seatTypes.length).fill(0);
+                let signGrandTotals = new Array(project.signTypes.length).fill(0);
+                const origIndex = project.activePageIndex;
+                
+                project.pages.forEach((p, idx) => {
+                    project.activePageIndex = idx; needsCacheUpdate = true; updateCache();
+                    let pageRows = ''; let hasAreas = false;
                     
-                    svg += `<path d="${d}" fill="rgba(241, 196, 15, 0.15)" />`;
-                    svg += `<g clip-path="url(#cone-clip-${i})">`;
-                    page.shapes.filter(s => s.type === 'obs').forEach(obs => {
-                        for (let j = 0; j < obs.points.length; j++) {
-                            let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length];
-                            let extDist = radiusPixels + 100; 
-                            let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
-                            let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist };
-                            let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
-                            svg += `<polygon points="${p1.x},${p1.y} ${p2.x},${p2.y} ${p2_ext.x},${p2_ext.y} ${p1_ext.x},${p1_ext.y}" fill="rgba(0, 0, 0, 0.5)" />`;
-                        }
+                    project.seatTypes.forEach((st, typeIdx) => {
+                        let typeSubtotal = 0; let typeRows = '';
+                        p.shapes.forEach(s => { 
+                            if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) { 
+                                typeRows += `<tr><td style="padding-left: 20px;">${s.name}</td><td>${s.count.toLocaleString()}</td></tr>`; 
+                                typeSubtotal += s.count; 
+                            } 
+                        });
+                        if (typeRows !== '') { hasAreas = true; pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${st.name} Group</td></tr>`; pageRows += typeRows; pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${st.name} Subtotal:</td><td style="border-bottom: 1px solid #ccc;">${typeSubtotal.toLocaleString()}</td></tr>`; typeGrandTotals[typeIdx] += typeSubtotal; }
                     });
-                    svg += `</g>`;
 
-                    svg += `<circle cx="${sc.x}" cy="${sc.y}" r="10" fill="${COLORS.screen}" stroke="white" stroke-width="2" />`;
-                    svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*30}" y2="${sc.y + Math.sin(rotRad)*30}" stroke="white" stroke-width="2" />`;
-                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-size="16px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${sc.name}</text>`;
-                    svg += `<text x="${sc.x}" y="${sc.y - 20}" font-size="16px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
+                    if (p.signs && p.signs.length > 0) {
+                        hasAreas = true; pageRows += `<tr style="background: #fff3e0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #e67e22;">SIGNAGE PLACEMENTS</td></tr>`;
+                        project.signTypes.forEach((st, typeIdx) => { let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length; if (signCount > 0) { pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${st.color}">●</span> ${st.name}</td><td>${signCount}</td></tr>`; signGrandTotals[typeIdx] += signCount; } });
+                    }
+                    if (hasAreas) { body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`; body.innerHTML += pageRows; }
                 });
-            }
+                project.activePageIndex = origIndex; needsCacheUpdate = true; render();
+                
+                let footHTML = ''; let absoluteTotal = 0;
+                project.seatTypes.forEach((st, i) => { if(typeGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`; absoluteTotal += typeGrandTotals[i]; } });
+                
+                footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
+                footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">GRAND TOTAL ALL CHAIRS</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
+                
+                let hasSigns = signGrandTotals.some(x => x > 0);
+                if (hasSigns) {
+                    footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
+                    project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()} SIGNS</td><td>${signGrandTotals[i]}</td></tr>`; } });
+                }
+                document.querySelector('#print-report-container tfoot').innerHTML = footHTML; document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
-            page.shapes.forEach(s => {
-                const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
-                const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
-                svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?st.stroke:'#e74c3c'}" stroke-width="2" />`;
-                if (s.type === 'area' && s.cachedSeats) {
-                    const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
-                    s.cachedSeats.forEach(seat => {
-                        let seatFill = st.color;
-                        if (hasScreens && !uiState.draftMode) {
-                            let hasLOS = false; let inAnyCone = false;
-                            activeScreens.forEach(sc => {
-                                const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : 200;
-                                if (isInCone(seat, sc, radiusPixels)) {
-                                    inAnyCone = true; let blocked = false;
-                                    for (const obs of page.shapes.filter(o => o.type === 'obs')) {
-                                        for (let j = 0; j < obs.points.length; j++) {
-                                            if (getIntersection(sc, seat, obs.points[j], obs.points[(j + 1) % obs.points.length])) { blocked = true; break; }
-                                        }
-                                        if (blocked) break;
-                                    }
-                                    if (!blocked) hasLOS = true;
+            } else if (type === 'signs') {
+                document.getElementById('rpt-title-print').innerText = project.title + " - Signage Report"; document.getElementById('rpt-table-header').innerHTML = `<th>Sign Type</th><th>Total Count (All Pages)</th>`;
+                let signGrandTotals = new Array(project.signTypes.length).fill(0); project.pages.forEach(p => { if (p.signs) p.signs.forEach(s => { signGrandTotals[s.typeIndex ?? 0]++; }); });
+                let bodyHTML = ''; let absoluteTotal = 0;
+                project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { bodyHTML += `<tr><td style="padding-left: 20px;"><span style="display:inline-block; width:24px; height:24px; background-color:${st.color}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${st.label || ''}</span>${st.name}</td><td>${signGrandTotals[i]}</td></tr>`; absoluteTotal += signGrandTotals[i]; } });
+                if (absoluteTotal === 0) bodyHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">No signs placed in this project.</td></tr>`;
+                document.getElementById('rpt-body').innerHTML = bodyHTML; document.querySelector('#print-report-container tfoot').innerHTML = `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">GRAND TOTAL ALL SIGNS</td><td>${absoluteTotal}</td></tr>`;
+                document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
+            } else {
+                document.getElementById('svg-print-wrapper').innerHTML = '<div style="padding: 40px; text-align: center; color: black; font-family: Arial; font-size: 1.5em; font-weight: bold;">Processing Hybrid Print... Please wait.</div>';
+                document.body.className = 'layout-only'; 
+                setTimeout(() => {
+                    const page = getActivePage(); const bgW = bgImage.src ? bgImage.width : 2000; const bgH = bgImage.src ? bgImage.height : 2000;
+                    const scaleFac = Math.max(1, bgW / 2500);
+                    const rasterCanvas = document.createElement('canvas'); rasterCanvas.width = bgW; rasterCanvas.height = bgH; const rCtx = rasterCanvas.getContext('2d');
+                    
+                    rCtx.fillStyle = '#ffffff'; rCtx.fillRect(0, 0, bgW, bgH); if (bgImage.src) rCtx.drawImage(bgImage, 0, 0);
+                    
+                    const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+                    if (hasScreens) {
+                        activeScreens.forEach((sc, i) => {
+                            const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
+                            const rotRad = sc.rot * Math.PI / 180; const beamDeg = sc.beamAngle !== undefined ? sc.beamAngle : 120; const halfBeamRad = (beamDeg / 2) * Math.PI / 180;
+                            rCtx.save(); rCtx.beginPath(); rCtx.moveTo(sc.x, sc.y); rCtx.arc(sc.x, sc.y, radiusPixels, rotRad - halfBeamRad, rotRad + halfBeamRad); rCtx.closePath();
+                            rCtx.fillStyle = 'rgba(241, 196, 15, 0.15)'; rCtx.fill(); rCtx.clip();
+                            page.shapes.filter(s => s.type === 'obs').forEach(obs => {
+                                rCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                                for (let j = 0; j < obs.points.length; j++) {
+                                    let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length]; let extDist = radiusPixels + 100; 
+                                    let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x);
+                                    let p1_ext = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist }; let p2_ext = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist };
+                                    rCtx.beginPath(); rCtx.moveTo(p1.x, p1.y); rCtx.lineTo(p2.x, p2.y); rCtx.lineTo(p2_ext.x, p2_ext.y); rCtx.lineTo(p1_ext.x, p1_ext.y); rCtx.closePath(); rCtx.fill();
                                 }
                             });
-                            if (hasLOS) seatFill = st.los;
-                            else if (inAnyCone) seatFill = 'rgba(231, 76, 60, 0.9)';
-                            else seatFill = 'rgba(120, 120, 120, 0.4)';
-                        }
-                        const deg = seat.rot * 180 / Math.PI;
-                        svg += `<rect x="${-cw/2 + 0.5}" y="${-rd/2 + 0.5}" width="${cw-1}" height="${rd-1}" fill="${seatFill}" stroke="#000000" stroke-width="0.5" transform="translate(${seat.x},${seat.y}) rotate(${deg})" />`;
-                    });
-                }
-                
-                let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; });
-                const cen = { x: sX / s.points.length, y: sY / s.points.length };
-                svg += `<text x="${cen.x}" y="${cen.y}" font-size="18px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="4">${s.name}</text>`;
-                svg += `<text x="${cen.x}" y="${cen.y}" font-size="18px" font-weight="bold" text-anchor="middle" fill="white">${s.name}</text>`;
-            });
-
-            // RENDER SIGNS TO SVG
-            if (page.signs && page.signs.length > 0) {
-                let activeSignIndices = new Set();
-                page.signs.forEach(s => {
-                    activeSignIndices.add(s.typeIndex ?? 0);
-                    const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
-                    svg += `<circle cx="${s.x}" cy="${s.y}" r="${st.size}" fill="${st.color}" stroke="white" stroke-width="2" />`;
-                    if (st.label) {
-                        svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" stroke="rgba(0,0,0,0.6)" stroke-width="1" fill="white">${st.label}</text>`;
+                            rCtx.restore();
+                        });
                     }
-                });
 
-                // --- INJECT LEGEND OVERLAY ---
-                if (page.legend && page.legend.show) {
-                    let legendX = page.legend.x; 
-                    let legendY = page.legend.y;
-                    let s = page.legend.scale || 1;
-                    let legendWidth = 250; 
-                    let legendHeight = 50 + (activeSignIndices.size * 35);
-                    
-                    svg += `<g transform="translate(${legendX}, ${legendY}) scale(${s})">`;
-                    svg += `<rect x="0" y="0" width="${legendWidth}" height="${legendHeight}" fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="2" rx="8" ry="8" />`;
-                    svg += `<text x="15" y="30" font-family="Arial" font-size="18px" font-weight="bold" fill="black">SIGNAGE LEGEND</text>`;
-                    svg += `<line x1="15" y1="40" x2="${legendWidth - 15}" y2="40" stroke="black" stroke-width="1" />`;
-                    
-                    let yOffset = 65;
-                    Array.from(activeSignIndices).forEach(idx => {
-                        const st = project.signTypes[idx];
-                        svg += `<circle cx="30" cy="${yOffset - 5}" r="12" fill="${st.color}" stroke="black" stroke-width="1" />`;
-                        if (st.label) {
-                            svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                    page.shapes.forEach(s => {
+                        const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+                        if (s.type === 'area' && page.pixelsPerFoot && s.cachedSeats) {
+                            const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
+                            s.cachedSeats.forEach(seat => { rCtx.save(); rCtx.translate(seat.x, seat.y); rCtx.rotate(seat.rot); rCtx.fillStyle = seat.fill || st.color; rCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); rCtx.strokeStyle = "rgba(0,0,0,0.8)"; rCtx.lineWidth = 0.5; rCtx.strokeRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); rCtx.restore(); });
                         }
-                        svg += `<text x="55" y="${yOffset}" font-family="Arial" font-size="16px" fill="black">${st.name}</text>`;
-                        yOffset += 35;
                     });
-                    svg += `</g>`;
-                }
-            }
+                    
+                    const rasterBgDataUrl = rasterCanvas.toDataURL('image/jpeg', 0.85);
 
-            svg += `</svg>`;
-            document.getElementById('svg-print-wrapper').innerHTML = svg;
-            document.body.className = 'layout-only'; setTimeout(() => window.print(), 300);
-        }
+                    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
+                    svg += `<image href="${rasterBgDataUrl}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
+
+                    if (hasScreens) {
+                        activeScreens.forEach((sc, i) => {
+                            const rotRad = sc.rot * Math.PI / 180;
+                            svg += `<circle cx="${sc.x}" cy="${sc.y}" r="${12 * scaleFac}" fill="${COLORS.screen}" stroke="white" stroke-width="${2 * scaleFac}" />`;
+                            svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*20*scaleFac}" y2="${sc.y + Math.sin(rotRad)*20*scaleFac}" stroke="white" stroke-width="${2 * scaleFac}" />`;
+                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${sc.name}</text>`;
+                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
+                        });
+                    }
+
+                    page.shapes.forEach(s => {
+                        const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0]; const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
+                        svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?st.stroke:'#e74c3c'}" stroke-width="${2 * scaleFac}" />`;
+                        let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
+                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${s.name}</text>`;
+                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${s.name}</text>`;
+                    });
+
+                    if (uiState.showLines !== false) {
+                        if (page.lines) {
+                            page.lines.forEach(l => {
+                                const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db'); const thick = (l.thickness || 2) * scaleFac; const pts = l.points.map(p => `${p.x},${p.y}`).join(' ');
+                                svg += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" stroke-linejoin="round" />`;
+                                if (l.type === 'dimension' && l.points.length === 2) {
+                                    const p1 = l.points[0], p2 = l.points[1]; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x); const tickLen = (12 + (thick / 2)) * scaleFac;
+                                    svg += `<line x1="${p1.x - Math.sin(ang)*tickLen}" y1="${p1.y + Math.cos(ang)*tickLen}" x2="${p1.x + Math.sin(ang)*tickLen}" y2="${p1.y - Math.cos(ang)*tickLen}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" />`;
+                                    svg += `<line x1="${p2.x - Math.sin(ang)*tickLen}" y1="${p2.y + Math.cos(ang)*tickLen}" x2="${p2.x + Math.sin(ang)*tickLen}" y2="${p2.y - Math.cos(ang)*tickLen}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" />`;
+                                    const distFt = page.pixelsPerFoot ? (Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot).toFixed(1) + " ft" : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
+                                    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2; let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
+                                    const fontSize = 16 * scaleFac; const strokeW = 4 * scaleFac;
+                                    svg += `<g transform="rotate(${textAng}, ${mx}, ${my})">`;
+                                    svg += `<text x="${mx}" y="${my - (5 * scaleFac)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${strokeW}" stroke-linejoin="round">${distFt}</text>`;
+                                    svg += `<text x="${mx}" y="${my - (5 * scaleFac)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="${color}">${distFt}</text>`;
+                                    svg += `</g>`;
+                                }
+                            });
+                        }
+                        
+                        if (page.texts) {
+                            page.texts.forEach(t => {
+                                const color = t.color || '#000000';
+                                const size = (t.size || 24) * scaleFac;
+                                svg += `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${color}">${t.text}</text>`;
+                            });
+                        }
+                    }
+
+                    if (page.signs && page.signs.length > 0) {
+                        let activeSignIndices = new Set();
+                        page.signs.forEach(s => {
+                            activeSignIndices.add(s.typeIndex ?? 0); const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
+                            svg += `<circle cx="${s.x}" cy="${s.y}" r="${st.size}" fill="${st.color}" stroke="white" stroke-width="2" />`;
+                            if (st.label) {
+                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round">${st.label}</text>`;
+                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                            }
+                        });
+
+                        if (page.legend && page.legend.show) {
+                            let legendX = page.legend.x; let legendY = page.legend.y; let s = (page.legend.scale || 1); 
+                            let legendWidth = 250; let legendHeight = 50 + (activeSignIndices.size * 35);
+                            svg += `<g transform="translate(${legendX}, ${legendY}) scale(${s})">`;
+                            svg += `<rect x="0" y="0" width="${legendWidth}" height="${legendHeight}" fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="2" rx="8" ry="8" />`;
+                            svg += `<text x="15" y="30" font-family="Arial" font-size="18px" font-weight="bold" fill="black">SIGNAGE LEGEND</text>`;
+                            svg += `<line x1="15" y1="40" x2="${legendWidth - 15}" y2="40" stroke="black" stroke-width="1" />`;
+                            
+                            let yOffset = 65;
+                            Array.from(activeSignIndices).forEach(idx => {
+                                const st = project.signTypes[idx] || project.signTypes[0];
+                                svg += `<circle cx="30" cy="${yOffset - 5}" r="12" fill="${st.color}" stroke="black" stroke-width="1" />`;
+                                if (st.label) {
+                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round">${st.label}</text>`;
+                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                                }
+                                svg += `<text x="55" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${st.name}</text>`; yOffset += 35;
+                            });
+                            svg += `</g>`;
+                        }
+                    }
+
+                    svg += `</svg>`; document.getElementById('svg-print-wrapper').innerHTML = svg; setTimeout(() => window.print(), 300);
+                }, 50);
+            }
+        } catch (err) { console.error("Print Generator Error:", err); alert("Oops! There was an issue preparing the print: " + err.message); document.body.className = ''; }
     }
 
     init();
