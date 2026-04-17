@@ -11,15 +11,15 @@ Convention Planner allows event coordinators to import architectural floor plans
 *Manage multiple floor plans and calibrate your digital scale (pixels per foot) for precise dimensioning.*
 
 ### 2. Seating & Capacity Planning
-![Seating Areas](seat_areas.jpg)
+![Seating Areas](seat_areas.png)
 *Draw polygonal sections to automatically generate chair counts based on custom seat profiles.*
 
 ### 3. A/V Sightline Analysis (Raycasting)
-![A/V Screens and Sightlines](sightlines.jpg)
+![A/V Screens and Sightlines](sightlines.png)
 *Place screens with adjustable beam angles to visualize line-of-sight and identify obstructed seats.*
 
 ### 4. Physical Obstacles
-![Obstacle Mapping](obstacles.jpg)
+![Obstacle Mapping](obstacles.png)
 *Map out structural pillars or staging that automatically blocks sightlines and adjusts seat counts.*
 
 ### 5. Signage & Wayfinding
