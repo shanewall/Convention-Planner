@@ -279,6 +279,11 @@
 <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     // --- CORE SETUP ---
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     const canvas = document.getElementById('mainCanvas');
@@ -402,14 +407,14 @@
     // --- LIST BUILDERS ---
     function buildPagesList() {
         const el = document.getElementById('page-list'); el.innerHTML = '';
-        project.pages.forEach((p, i) => { el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})"><span style="pointer-events: none;">${p.name}</span>${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}</li>`; });
+        project.pages.forEach((p, i) => { el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})"><span style="pointer-events: none;">${escapeHTML(p.name)}</span>${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}</li>`; });
     }
 
     function buildSeatProfiles() {
         const el = document.getElementById('seat-type-list'); el.innerHTML = '';
         project.seatTypes.forEach((st, i) => {
             const isAct = (i === project.activeSeatType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-area');
-            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>${isAct ? `<div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Width (ft)</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div><div><label>Depth (ft)</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>` : ''}</li>`;
+            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.stroke};">■ ${escapeHTML(st.name)}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>${isAct ? `<div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Width (ft)</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div><div><label>Depth (ft)</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>` : ''}</li>`;
         });
     }
 
@@ -417,7 +422,7 @@
         const el = document.getElementById('sign-type-list'); el.innerHTML = '';
         project.signTypes.forEach((st, i) => {
             const isAct = (i === project.activeSignType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-sign');
-            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.color};">● ${st.name}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div><div><label>Text</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Sign</button>` : ''}</li>`;
+            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.color};">● ${escapeHTML(st.name)}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div><div><label>Text</label><input type="text" maxlength="3" value="${escapeHTML(st.label || '')}" oninput="updateSignProp(${i}, 'label', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Sign</button>` : ''}</li>`;
         });
     }
 
@@ -426,8 +431,8 @@
         getActivePage().shapes.forEach((s, i) => {
             if (s.type === 'area') {
                 const sTypeIdx = s.seatTypeIndex ?? 0; const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
-                let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
-                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${strokeColor}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
+                let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${escapeHTML(st.name)}</option>`).join('');
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${strokeColor}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
             }
         });
     }
@@ -438,14 +443,14 @@
             if (s.type === 'obs' || s.type === 'aisle') { 
                 let color = s.type === 'obs' ? 'var(--danger)' : '#f1c40f';
                 let icon = s.type === 'obs' ? '🧱' : '✂️';
-                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px;">${icon}</span><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></li>`; 
+                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px;">${icon}</span><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></li>`; 
             } 
         });
     }
     
     function buildPlacedSignsList() {
         const el = document.getElementById('placed-sign-list'); el.innerHTML = '';
-        if (getActivePage().signs) { getActivePage().signs.forEach((s, i) => { const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${st.color}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}"><span style="font-size: 0.9em;">${st.name} Sign</span><button class="icon-btn" onclick="deleteSign(${i})">✕</button></li>`; }); }
+        if (getActivePage().signs) { getActivePage().signs.forEach((s, i) => { const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${st.color}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}"><span style="font-size: 0.9em;">${escapeHTML(st.name)} Sign</span><button class="icon-btn" onclick="deleteSign(${i})">✕</button></li>`; }); }
     }
 
     function buildScreenList() {
@@ -453,7 +458,7 @@
         document.getElementById('no-screens-msg').style.display = currentScreens.length === 0 ? 'block' : 'none';
         currentScreens.forEach((s, i) => {
             let beamVal = s.beamAngle !== undefined ? s.beamAngle : 120;
-            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;"><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
+            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
         });
     }
 
@@ -462,7 +467,7 @@
         if (getActivePage().lines) {
             getActivePage().lines.forEach((l, i) => {
                 let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
-                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${l.name || l.type}" oninput="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteLine(${i})">✕</button></div>${i === selectedLineIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateLineProp(${i}, 'color', this.value)"></div><div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" oninput="updateLineProp(${i}, 'thickness', this.value)"></div></div>` : ''}</li>`;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${escapeHTML(l.name || l.type)}" oninput="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteLine(${i})">✕</button></div>${i === selectedLineIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateLineProp(${i}, 'color', this.value)"></div><div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" oninput="updateLineProp(${i}, 'thickness', this.value)"></div></div>` : ''}</li>`;
             });
         }
     }
@@ -472,7 +477,7 @@
         if (getActivePage().texts) {
             getActivePage().texts.forEach((t, i) => {
                 let activeColor = t.color || '#000000'; let activeSize = t.size || 24;
-                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${t.text}" oninput="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteText(${i})">✕</button></div>${i === selectedTextIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateTextProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" oninput="updateTextProp(${i}, 'size', this.value)"></div></div>` : ''}</li>`;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${escapeHTML(t.text)}" oninput="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteText(${i})">✕</button></div>${i === selectedTextIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateTextProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" oninput="updateTextProp(${i}, 'size', this.value)"></div></div>` : ''}</li>`;
             });
         }
     }
@@ -987,7 +992,7 @@
         project.seatTypes.forEach((st, i) => {
             if (globalTypeTotals[i] > 0 || i === project.activeSeatType) { 
                 totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <span style="font-size:0.9em; color:#ccc;">${st.name}:</span>
+                        <span style="font-size:0.9em; color:#ccc;">${escapeHTML(st.name)}:</span>
                         <span style="font-weight:bold; color:${st.stroke};">${globalTypeTotals[i].toLocaleString()}</span>
                     </div>`;
             }
@@ -1248,23 +1253,23 @@
                         let typeSubtotal = 0; let typeRows = '';
                         p.shapes.forEach(s => { 
                             if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) { 
-                                typeRows += `<tr><td style="padding-left: 20px;">${s.name}</td><td>${s.count.toLocaleString()}</td></tr>`; 
+                                typeRows += `<tr><td style="padding-left: 20px;">${escapeHTML(s.name)}</td><td>${s.count.toLocaleString()}</td></tr>`; 
                                 typeSubtotal += s.count; 
                             } 
                         });
-                        if (typeRows !== '') { hasAreas = true; pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${st.name} Group</td></tr>`; pageRows += typeRows; pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${st.name} Subtotal:</td><td style="border-bottom: 1px solid #ccc;">${typeSubtotal.toLocaleString()}</td></tr>`; typeGrandTotals[typeIdx] += typeSubtotal; }
+                        if (typeRows !== '') { hasAreas = true; pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${escapeHTML(st.name)} Group</td></tr>`; pageRows += typeRows; pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${escapeHTML(st.name)} Subtotal:</td><td style="border-bottom: 1px solid #ccc;">${typeSubtotal.toLocaleString()}</td></tr>`; typeGrandTotals[typeIdx] += typeSubtotal; }
                     });
 
                     if (p.signs && p.signs.length > 0) {
                         hasAreas = true; pageRows += `<tr style="background: #fff3e0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #e67e22;">SIGNAGE PLACEMENTS</td></tr>`;
-                        project.signTypes.forEach((st, typeIdx) => { let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length; if (signCount > 0) { pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${st.color}">●</span> ${st.name}</td><td>${signCount}</td></tr>`; signGrandTotals[typeIdx] += signCount; } });
+                        project.signTypes.forEach((st, typeIdx) => { let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length; if (signCount > 0) { pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${st.color}">●</span> ${escapeHTML(st.name)}</td><td>${signCount}</td></tr>`; signGrandTotals[typeIdx] += signCount; } });
                     }
-                    if (hasAreas) { body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${p.name.toUpperCase()}</td></tr>`; body.innerHTML += pageRows; }
+                    if (hasAreas) { body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${escapeHTML(p.name).toUpperCase()}</td></tr>`; body.innerHTML += pageRows; }
                 });
                 project.activePageIndex = origIndex; needsCacheUpdate = true; render();
                 
                 let footHTML = ''; let absoluteTotal = 0;
-                project.seatTypes.forEach((st, i) => { if(typeGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`; absoluteTotal += typeGrandTotals[i]; } });
+                project.seatTypes.forEach((st, i) => { if(typeGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${escapeHTML(st.name).toUpperCase()}</td><td>${typeGrandTotals[i].toLocaleString()}</td></tr>`; absoluteTotal += typeGrandTotals[i]; } });
                 
                 footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
                 footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">GRAND TOTAL ALL CHAIRS</td><td>${absoluteTotal.toLocaleString()}</td></tr>`;
@@ -1272,7 +1277,7 @@
                 let hasSigns = signGrandTotals.some(x => x > 0);
                 if (hasSigns) {
                     footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
-                    project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${st.name.toUpperCase()} SIGNS</td><td>${signGrandTotals[i]}</td></tr>`; } });
+                    project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">TOTAL ${escapeHTML(st.name).toUpperCase()} SIGNS</td><td>${signGrandTotals[i]}</td></tr>`; } });
                 }
                 document.querySelector('#print-report-container tfoot').innerHTML = footHTML; document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
@@ -1280,7 +1285,7 @@
                 document.getElementById('rpt-title-print').innerText = project.title + " - Signage Report"; document.getElementById('rpt-table-header').innerHTML = `<th>Sign Type</th><th>Total Count (All Pages)</th>`;
                 let signGrandTotals = new Array(project.signTypes.length).fill(0); project.pages.forEach(p => { if (p.signs) p.signs.forEach(s => { signGrandTotals[s.typeIndex ?? 0]++; }); });
                 let bodyHTML = ''; let absoluteTotal = 0;
-                project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { bodyHTML += `<tr><td style="padding-left: 20px;"><span style="display:inline-block; width:24px; height:24px; background-color:${st.color}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${st.label || ''}</span>${st.name}</td><td>${signGrandTotals[i]}</td></tr>`; absoluteTotal += signGrandTotals[i]; } });
+                project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { bodyHTML += `<tr><td style="padding-left: 20px;"><span style="display:inline-block; width:24px; height:24px; background-color:${st.color}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${escapeHTML(st.label || '')}</span>${escapeHTML(st.name)}</td><td>${signGrandTotals[i]}</td></tr>`; absoluteTotal += signGrandTotals[i]; } });
                 if (absoluteTotal === 0) bodyHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">No signs placed in this project.</td></tr>`;
                 document.getElementById('rpt-body').innerHTML = bodyHTML; document.querySelector('#print-report-container tfoot').innerHTML = `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">GRAND TOTAL ALL SIGNS</td><td>${absoluteTotal}</td></tr>`;
                 document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
@@ -1340,8 +1345,8 @@
                             const rotRad = sc.rot * Math.PI / 180;
                             svg += `<circle cx="${sc.x}" cy="${sc.y}" r="${12 * scaleFac}" fill="${COLORS.screen}" stroke="white" stroke-width="${2 * scaleFac}" />`;
                             svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*20*scaleFac}" y2="${sc.y + Math.sin(rotRad)*20*scaleFac}" stroke="white" stroke-width="${2 * scaleFac}" />`;
-                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${sc.name}</text>`;
-                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="white">${sc.name}</text>`;
+                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(sc.name)}</text>`;
+                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="white">${escapeHTML(sc.name)}</text>`;
                         });
                     }
 
@@ -1350,8 +1355,8 @@
                         const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0]; const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
                         svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?st.stroke:'#e74c3c'}" stroke-width="${2 * scaleFac}" />`;
                         let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
-                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${s.name}</text>`;
-                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${s.name}</text>`;
+                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
+                        svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
                     });
 
                     if (uiState.showLines !== false) {
@@ -1377,8 +1382,8 @@
                         if (page.texts) {
                             page.texts.forEach(t => {
                                 const color = t.color || '#000000';
-                                const size = (t.size || 24) * scaleFac;
-                                svg += `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${color}">${t.text}</text>`;
+                                const size = (t.size || 24);
+                                svg += `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${color}">${escapeHTML(t.text)}</text>`;
                             });
                         }
                     }
@@ -1389,8 +1394,8 @@
                             activeSignIndices.add(s.typeIndex ?? 0); const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
                             svg += `<circle cx="${s.x}" cy="${s.y}" r="${st.size}" fill="${st.color}" stroke="white" stroke-width="2" />`;
                             if (st.label) {
-                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round">${st.label}</text>`;
-                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="3" stroke-linejoin="round">${escapeHTML(st.label)}</text>`;
+                                svg += `<text x="${s.x}" y="${s.y}" font-family="Arial" font-size="${st.size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(st.label)}</text>`;
                             }
                         });
 
@@ -1407,10 +1412,10 @@
                                 const st = project.signTypes[idx] || project.signTypes[0];
                                 svg += `<circle cx="30" cy="${yOffset - 5}" r="12" fill="${st.color}" stroke="black" stroke-width="1" />`;
                                 if (st.label) {
-                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round">${st.label}</text>`;
-                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${st.label}</text>`;
+                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round">${escapeHTML(st.label)}</text>`;
+                                    svg += `<text x="30" y="${yOffset - 5}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(st.label)}</text>`;
                                 }
-                                svg += `<text x="55" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${st.name}</text>`; yOffset += 35;
+                                svg += `<text x="55" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(st.name)}</text>`; yOffset += 35;
                             });
                             svg += `</g>`;
                         }
