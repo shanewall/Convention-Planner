@@ -1,23 +1,3 @@
-<!--
-Convention Planner
-Copyright (C) 2026 Abarca Services, LLC
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see https://www.gnu.org/licenses/.
--->
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -92,7 +72,6 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         #goog-gt-tt { display: none !important; top: 0px !important; }
         .goog-te-gadget { color: transparent !important; display: flex; align-items: center; }
         .goog-te-gadget .goog-te-combo { background: #222; color: white; border: 1px solid #555; padding: 6px; border-radius: 4px; outline: none; font-size: 0.85em; cursor: pointer; margin: 0; }
-        .goog-te-gadget .goog-te-combo:focus { border-color: var(--accent); }
 
         /* Print Styles */
         #print-report-container, #print-layout-container { display: none; }
@@ -130,8 +109,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             <button class="ribbon-btn action" onclick="saveProject()">💾 Save</button>
             <button class="ribbon-btn action" onclick="document.getElementById('load-input').click()">📁 Open</button>
             <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadProject(this)">
-            
-            <select id="print-type-select" style="width: 120px; margin-left: 10px; padding: 4px; font-size: 0.8em; background: #222;">
+            <select id="print-type-select" style="width: 120px; margin-left: 10px; padding: 4px; font-size: 0.8em; background: #222; color: white;">
                 <option value="summary">Summary</option>
                 <option value="layout">Layout</option>
                 <option value="signs">Sign Report</option>
@@ -143,8 +121,8 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group">
-            <button class="ribbon-btn action" onclick="undo()" title="Undo">↶</button>
-            <button class="ribbon-btn action" onclick="redo()" title="Redo">↷</button>
+            <button class="ribbon-btn action" onclick="undo()" title="Undo (Ctrl+Z)">↶</button>
+            <button class="ribbon-btn action" onclick="redo()" title="Redo (Ctrl+Y)">↷</button>
         </div>
         <div class="ribbon-title">Edit</div>
     </div>
@@ -153,7 +131,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         <div class="ribbon-group">
             <button class="ribbon-btn tab-btn active" id="tab-project" onclick="setTab('project')">⚙️ Project Settings</button>
             <button class="ribbon-btn tab-btn" id="tab-area" onclick="setTab('area')">🟩 Seating Areas</button>
-            <button class="ribbon-btn tab-btn" id="tab-obs" onclick="setTab('obs')">🟥 Obstacles</button>
+            <button class="ribbon-btn tab-btn" id="tab-obs" onclick="setTab('obs')">✂️ Cutouts</button>
             <button class="ribbon-btn tab-btn" id="tab-screen" onclick="setTab('screen')">🟨 A/V Screens</button>
             <button class="ribbon-btn tab-btn" id="tab-sign" onclick="setTab('sign')">🔴 Signage</button>
             <button class="ribbon-btn tab-btn" id="tab-annotate" onclick="setTab('annotate')">📏 Annotate</button>
@@ -172,27 +150,21 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 </div>
 
 <div id="workspace">
-    
     <div id="properties-sidebar">
-        <div class="sidebar-header">
-            <span id="panel-title">Project Settings</span>
-        </div>
+        <div class="sidebar-header"><span id="panel-title">Project Settings</span></div>
 
         <div id="panel-project" class="panel-content active">
             <div class="input-group">
                 <label>Project Title</label>
                 <input type="text" id="project-title" value="New Project" oninput="project.title=this.value; hasUnsavedChanges=true;">
             </div>
-            
             <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Pages & Backgrounds</div>
             <ul class="item-list" id="page-list"></ul>
             <button class="btn-full btn-primary" onclick="addNewPage()">+ New Page</button>
-            
             <div class="input-group" style="margin-top: 15px;">
                 <label id="upload-label">Upload Blueprint (Img/PDF)</label>
                 <input type="file" id="upload" accept="image/*, .pdf" onchange="handleImageUpload(this)" style="background: #222;">
             </div>
-            
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button id="btn-start-calibrate" class="btn-full" style="background: #555;" onclick="setMode('calibrate')">Set Scale</button>
                 <button class="btn-full btn-danger" onclick="deleteCurrentPage()">Del Page</button>
@@ -203,14 +175,19 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Seat Profiles</div>
             <ul class="item-list" id="seat-type-list"></ul>
             <button class="btn-full btn-primary" onclick="addSeatType()">+ Add Profile</button>
-            
             <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Areas</div>
             <ul class="item-list" id="area-list"></ul>
         </div>
 
         <div id="panel-obs" class="panel-content">
-            <button id="btn-start-obs" class="btn-full btn-primary" onclick="setMode('draw-obs')">➕ Draw New Obstacle</button>
-            <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Obstacles</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom: 15px;">
+                <button id="btn-start-obs" class="btn-full btn-primary" onclick="setMode('draw-obs')">🧱 Obstacle</button>
+                <button id="btn-start-aisle" class="btn-full btn-primary" onclick="setMode('draw-aisle')">✂️ Aisle</button>
+            </div>
+            <div style="font-size: 0.8em; color: #aaa; margin-bottom: 15px; font-style: italic;">
+                <strong>Obstacles</strong> block sightlines and remove seats. <strong>Aisles</strong> remove seats but leave sightlines open.
+            </div>
+            <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Cutouts & Obstacles</div>
             <ul class="item-list" id="obs-list"></ul>
         </div>
 
@@ -225,12 +202,10 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Signage Types</div>
             <ul class="item-list" id="sign-type-list"></ul>
             <button class="btn-full btn-primary" onclick="addSignType()">+ Add Sign Type</button>
-            
             <div style="display:flex; justify-content:space-between; align-items:center; background:#333; padding:10px; border-radius:4px; margin-top:15px; border: 1px solid #444;">
                 <label style="margin:0; font-weight:bold; color: white;">Show Map Legend</label>
                 <input type="checkbox" id="ui-toggle-legend" onchange="toggleLegend(this.checked)">
             </div>
-
             <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Placed Signs</div>
             <ul class="item-list" id="placed-sign-list"></ul>
         </div>
@@ -244,15 +219,12 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                 <button id="btn-start-poly" class="btn-full btn-primary" onclick="setMode('draw-poly')">〰️ Poly</button>
                 <button id="btn-start-text" class="btn-full btn-primary" onclick="setMode('place-text')">📝 Text</button>
             </div>
-            
             <div style="display:flex; justify-content:space-between; align-items:center; background:#333; padding:10px; border-radius:4px; margin-bottom:15px; border: 1px solid #444;">
                 <label style="margin:0; font-weight:bold; color: white;">Show Annotations</label>
                 <input type="checkbox" id="ui-toggle-lines" checked onchange="uiState.showLines=this.checked; render();">
             </div>
-            
             <div style="margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Drawn Lines</div>
             <ul class="item-list" id="line-list"></ul>
-
             <div style="margin-bottom: 10px; margin-top: 20px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">Text Annotations</div>
             <ul class="item-list" id="text-list"></ul>
         </div>
@@ -319,15 +291,9 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 
     let project = {
         title: "New Project", 
-        seatTypes: [
-            { name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }
-        ],
-        signTypes: [
-            { name: "Directional", color: '#e74c3c', size: 20, label: "1" }
-        ],
-        activeSeatType: 0,
-        activeSignType: 0,
-        activePageIndex: 0,
+        seatTypes: [{ name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }],
+        signTypes: [{ name: "Directional", color: '#e74c3c', size: 20, label: "1" }],
+        activeSeatType: 0, activeSignType: 0, activePageIndex: 0,
         pages: [{ name: "Main Floor", imgData: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], lines: [], texts: [], legend: { show: true, x: 40, y: 40, scale: 1 } }]
     };
 
@@ -339,11 +305,18 @@ along with this program. If not, see https://www.gnu.org/licenses/.
     let bgImage = new Image();
     
     let undoStack = [], redoStack = [];
+    
+    // --- NEW SELECTION STATE VARIABLES ---
+    let selectedShapeIndex = -1, hoveredShapeIndex = -1, isDraggingShape = false, hasDraggedShape = false;
+    let isDraggingShapePoint = false, draggingShapePointIndex = -1;
+    let clipboardShape = null;
+
     let selectedSignIndex = -1, hoveredSignIndex = -1, isDraggingSign = false, hasDraggedSign = false;
     let selectedLineIndex = -1, hoveredLineIndex = -1, isDraggingLine = false, hasDraggedLine = false;
     let selectedScreenIndex = -1, hoveredScreenIndex = -1, isDraggingScreen = false, hasDraggedScreen = false;
     let selectedTextIndex = -1, hoveredTextIndex = -1, isDraggingText = false, hasDraggedText = false;
     let hasUnsavedChanges = false;
+    
     const COLORS = { screen: '#e67e22', success: '#2ecc71', danger: '#e74c3c' };
 
     // --- STATE MANAGEMENT ---
@@ -352,70 +325,52 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         const state = JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend });
         undoStack.push(state);
         if (undoStack.length > 30) undoStack.shift(); 
-        redoStack = [];
-        hasUnsavedChanges = true;
+        redoStack = []; hasUnsavedChanges = true;
     }
-
     function triggerUpdate() { hasUnsavedChanges = true; needsCacheUpdate = true; render(); }
-
     function undo() {
-        if (undoStack.length === 0) return;
-        const page = getActivePage();
+        if (undoStack.length === 0) return; const page = getActivePage();
         redoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend }));
         const prevState = JSON.parse(undoStack.pop());
         page.shapes = prevState.shapes; page.screens = prevState.screens; page.signs = prevState.signs; page.lines = prevState.lines || []; page.texts = prevState.texts || []; page.legend = prevState.legend || { show: true, x: 40, y: 40, scale: 1 };
-        selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1;
-        markSeatCachesDirty(); updateUI(); triggerUpdate();
+        clearSelections(); markSeatCachesDirty(); updateUI(); triggerUpdate();
     }
-
     function redo() {
-        if (redoStack.length === 0) return;
-        const page = getActivePage();
+        if (redoStack.length === 0) return; const page = getActivePage();
         undoStack.push(JSON.stringify({ shapes: page.shapes, screens: page.screens, signs: page.signs, lines: page.lines, texts: page.texts, legend: page.legend }));
         const nextState = JSON.parse(redoStack.pop());
         page.shapes = nextState.shapes; page.screens = nextState.screens; page.signs = nextState.signs; page.lines = nextState.lines || []; page.texts = nextState.texts || []; page.legend = nextState.legend || { show: true, x: 40, y: 40, scale: 1 };
-        selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1;
-        markSeatCachesDirty(); updateUI(); triggerUpdate();
+        clearSelections(); markSeatCachesDirty(); updateUI(); triggerUpdate();
+    }
+    function clearSelections() {
+        selectedShapeIndex = -1; selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1;
     }
 
-    // --- UI TABS & TWO-STEP WORKFLOW ---
-    function setTab(t) {
-        if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle'); 
-        activeTab = t;
-        updateUI();
-    }
-
-    function setMode(m) { 
-        mode = m; currentPoints = []; calPoint = null; 
-        if (m !== 'idle') { selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; }
-        updateUI(); render(); 
-    }
+    // --- UI LOGIC ---
+    function setTab(t) { if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle'); activeTab = t; updateUI(); }
+    function setMode(m) { mode = m; currentPoints = []; calPoint = null; if (m !== 'idle') { clearSelections(); } updateUI(); render(); }
+    function getActivePage() { return project.pages[project.activePageIndex]; }
 
     function updateUI() {
         document.getElementById('project-title').value = project.title;
         document.getElementById('ui-toggle-draft').checked = !uiState.draftMode; 
         
         const pActive = getActivePage();
-        const legCheck = document.getElementById('ui-toggle-legend');
-        if (legCheck) legCheck.checked = pActive.legend && pActive.legend.show !== false;
-        const linesCheck = document.getElementById('ui-toggle-lines');
-        if (linesCheck) linesCheck.checked = uiState.showLines !== false;
+        const legCheck = document.getElementById('ui-toggle-legend'); if (legCheck) legCheck.checked = pActive.legend && pActive.legend.show !== false;
+        const linesCheck = document.getElementById('ui-toggle-lines'); if (linesCheck) linesCheck.checked = uiState.showLines !== false;
 
         document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.ribbon-btn.tab-btn').forEach(b => b.classList.remove('active'));
         
-        let activePanel = 'panel-project';
-        let panelTitle = 'Project Settings';
-
+        let activePanel = 'panel-project'; let panelTitle = 'Project Settings';
         if (activeTab === 'area') { activePanel = 'panel-area'; panelTitle = 'Seating Area Tools'; }
-        else if (activeTab === 'obs') { activePanel = 'panel-obs'; panelTitle = 'Obstacle Tools'; }
+        else if (activeTab === 'obs') { activePanel = 'panel-obs'; panelTitle = 'Cutouts & Aisles Tools'; }
         else if (activeTab === 'screen') { activePanel = 'panel-screen'; panelTitle = 'A/V Screen Tools'; }
         else if (activeTab === 'sign') { activePanel = 'panel-sign'; panelTitle = 'Signage Tools'; }
         else if (activeTab === 'annotate') { activePanel = 'panel-line'; panelTitle = 'Annotation Tools'; }
         
         document.getElementById(activePanel).classList.add('active');
-        const tabBtn = document.getElementById('tab-' + activeTab);
-        if (tabBtn) tabBtn.classList.add('active');
+        const tabBtn = document.getElementById('tab-' + activeTab); if (tabBtn) tabBtn.classList.add('active');
         document.getElementById('panel-title').innerText = panelTitle;
 
         buildPagesList();
@@ -426,21 +381,16 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         if (activeTab === 'annotate') { buildLinesList(); buildTextList(); }
 
         highlightActiveTool();
-
-        const scale = pActive.pixelsPerFoot;
-        document.getElementById('scale-info').innerText = scale ? `Scale: ${scale.toFixed(2)} px/ft` : "Scale: Not Set";
+        const scale = pActive.pixelsPerFoot; document.getElementById('scale-info').innerText = scale ? `Scale: ${scale.toFixed(2)} px/ft` : "Scale: Not Set";
     }
 
     function highlightActiveTool() {
-        ['btn-start-obs', 'btn-start-screen', 'btn-start-dim', 'btn-start-line', 'btn-start-poly', 'btn-start-text', 'btn-start-calibrate'].forEach(id => {
-            let el = document.getElementById(id);
-            if(el) { el.style.border = '1px solid transparent'; el.style.background = id === 'btn-start-calibrate' ? '#555' : 'var(--accent)'; }
+        ['btn-start-obs', 'btn-start-aisle', 'btn-start-screen', 'btn-start-dim', 'btn-start-line', 'btn-start-poly', 'btn-start-text', 'btn-start-calibrate'].forEach(id => {
+            let el = document.getElementById(id); if(el) { el.style.border = '1px solid transparent'; el.style.background = id === 'btn-start-calibrate' ? '#555' : 'var(--accent)'; }
         });
-        
-        const highlightCSS = '2px solid white';
-        const bgCSS = '#0098ff';
-
+        const highlightCSS = '2px solid white'; const bgCSS = '#0098ff';
         if (mode === 'draw-obs' && document.getElementById('btn-start-obs')) { document.getElementById('btn-start-obs').style.border = highlightCSS; document.getElementById('btn-start-obs').style.background = bgCSS; }
+        if (mode === 'draw-aisle' && document.getElementById('btn-start-aisle')) { document.getElementById('btn-start-aisle').style.border = highlightCSS; document.getElementById('btn-start-aisle').style.background = bgCSS; }
         if (mode === 'draw-screen' && document.getElementById('btn-start-screen')) { document.getElementById('btn-start-screen').style.border = highlightCSS; document.getElementById('btn-start-screen').style.background = bgCSS; }
         if (mode === 'draw-dim' && document.getElementById('btn-start-dim')) { document.getElementById('btn-start-dim').style.border = highlightCSS; document.getElementById('btn-start-dim').style.background = bgCSS; }
         if (mode === 'draw-line' && document.getElementById('btn-start-line')) { document.getElementById('btn-start-line').style.border = highlightCSS; document.getElementById('btn-start-line').style.background = bgCSS; }
@@ -449,56 +399,25 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         if (mode === 'calibrate' && document.getElementById('btn-start-calibrate')) { document.getElementById('btn-start-calibrate').style.border = highlightCSS; }
     }
 
+    // --- LIST BUILDERS ---
     function buildPagesList() {
         const el = document.getElementById('page-list'); el.innerHTML = '';
-        project.pages.forEach((p, i) => {
-            el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})">
-                <span style="pointer-events: none;">${p.name}</span>
-                ${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}
-            </li>`;
-        });
+        project.pages.forEach((p, i) => { el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})"><span style="pointer-events: none;">${p.name}</span>${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}</li>`; });
     }
 
     function buildSeatProfiles() {
         const el = document.getElementById('seat-type-list'); el.innerHTML = '';
         project.seatTypes.forEach((st, i) => {
-            const isAct = (i === project.activeSeatType) ? 'active' : '';
-            const isDrawing = (isAct && mode === 'draw-area');
-            el.innerHTML += `
-                <li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();">
-                    <div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span>
-                        <div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div>
-                    </div>
-                    ${isAct ? `
-                    <div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
-                        <div><label>Width (ft)</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div>
-                        <div><label>Depth (ft)</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div>
-                    </div>
-                    <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>
-                    ` : ''}
-                </li>`;
+            const isAct = (i === project.activeSeatType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-area');
+            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.stroke};">■ ${st.name}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>${isAct ? `<div style="display:flex; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Width (ft)</label><input type="number" step="0.1" value="${st.w}" oninput="updateSeatProp(${i}, 'w', this.value)"></div><div><label>Depth (ft)</label><input type="number" step="0.1" value="${st.d}" oninput="updateSeatProp(${i}, 'd', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>` : ''}</li>`;
         });
     }
 
     function buildSignProfiles() {
         const el = document.getElementById('sign-type-list'); el.innerHTML = '';
         project.signTypes.forEach((st, i) => {
-            const isAct = (i === project.activeSignType) ? 'active' : '';
-            const isDrawing = (isAct && mode === 'draw-sign');
-            el.innerHTML += `
-                <li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();">
-                    <div class="profile-header"><span style="color:${st.color};">● ${st.name}</span>
-                        <div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div>
-                    </div>
-                    ${isAct ? `
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
-                        <div><label>Color</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div>
-                        <div><label>Size</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div>
-                        <div><label>Text</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div>
-                    </div>
-                    <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Sign</button>
-                    ` : ''}
-                </li>`;
+            const isAct = (i === project.activeSignType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-sign');
+            el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();"><div class="profile-header"><span style="color:${st.color};">● ${st.name}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${st.color}" oninput="updateSignProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" step="1" value="${st.size}" oninput="updateSignProp(${i}, 'size', this.value)"></div><div><label>Text</label><input type="text" maxlength="3" value="${st.label || ''}" oninput="updateSignProp(${i}, 'label', this.value)"></div></div><button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Sign</button>` : ''}</li>`;
         });
     }
 
@@ -506,71 +425,35 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         const el = document.getElementById('area-list'); el.innerHTML = '';
         getActivePage().shapes.forEach((s, i) => {
             if (s.type === 'area') {
-                const sTypeIdx = s.seatTypeIndex ?? 0;
-                const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
+                const sTypeIdx = s.seatTypeIndex ?? 0; const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
                 let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${st.name}</option>`).join('');
-                el.innerHTML += `
-                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${strokeColor};">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();">
-                            <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                        </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                            <div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div>
-                            <div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div>
-                        </div>
-                    </li>`;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${strokeColor}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
             }
         });
     }
 
     function buildObsList() {
         const el = document.getElementById('obs-list'); el.innerHTML = '';
-        getActivePage().shapes.forEach((s, i) => {
-            if (s.type === 'obs') {
-                el.innerHTML += `
-                    <li class="list-item" style="border-left: 4px solid var(--danger);">
-                        <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();">
-                        <button class="icon-btn" onclick="deleteShape(${i})">✕</button>
-                    </li>`;
-            }
+        getActivePage().shapes.forEach((s, i) => { 
+            if (s.type === 'obs' || s.type === 'aisle') { 
+                let color = s.type === 'obs' ? 'var(--danger)' : '#f1c40f';
+                let icon = s.type === 'obs' ? '🧱' : '✂️';
+                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px;">${icon}</span><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></li>`; 
+            } 
         });
     }
     
     function buildPlacedSignsList() {
         const el = document.getElementById('placed-sign-list'); el.innerHTML = '';
-        if (getActivePage().signs) {
-            getActivePage().signs.forEach((s, i) => {
-                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
-                el.innerHTML += `
-                    <li class="list-item" style="border-left: 4px solid ${st.color}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}">
-                        <span style="font-size: 0.9em;">${st.name} Sign</span>
-                        <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
-                    </li>`;
-            });
-        }
+        if (getActivePage().signs) { getActivePage().signs.forEach((s, i) => { const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${st.color}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}"><span style="font-size: 0.9em;">${st.name} Sign</span><button class="icon-btn" onclick="deleteSign(${i})">✕</button></li>`; }); }
     }
 
     function buildScreenList() {
-        const el = document.getElementById('screen-list'); el.innerHTML = '';
-        const currentScreens = getActivePage().screens;
+        const el = document.getElementById('screen-list'); el.innerHTML = ''; const currentScreens = getActivePage().screens;
         document.getElementById('no-screens-msg').style.display = currentScreens.length === 0 ? 'block' : 'none';
-        
         currentScreens.forEach((s, i) => {
             let beamVal = s.beamAngle !== undefined ? s.beamAngle : 120;
-            el.innerHTML += `
-                <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;">
-                        <input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();">
-                        <button class="icon-btn" onclick="deleteScreen(${i})">✕</button>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                        <div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div>
-                        <div><label>Beam (°)</label><input type="number" value="${beamVal}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div>
-                        <div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); triggerUpdate();"></div>
-                    </div>
-                </li>`;
+            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;"><input type="text" class="text-input-dark" value="${s.name}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Dist (ft)</label><input type="number" value="${s.radius}" oninput="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseFloat(this.value)??10; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
         });
     }
 
@@ -578,23 +461,8 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         const el = document.getElementById('line-list'); el.innerHTML = '';
         if (getActivePage().lines) {
             getActivePage().lines.forEach((l, i) => {
-                let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db';
-                let activeColor = l.color || defaultColor;
-                let activeThick = l.thickness || 2;
-                
-                el.innerHTML += `
-                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <input type="text" class="text-input-dark" value="${l.name || l.type}" oninput="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();">
-                            <button class="icon-btn" onclick="deleteLine(${i})">✕</button>
-                        </div>
-                        ${i === selectedLineIndex ? `
-                        <div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                            <div><label>Color</label><input type="color" value="${activeColor}" oninput="updateLineProp(${i}, 'color', this.value)"></div>
-                            <div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" oninput="updateLineProp(${i}, 'thickness', this.value)"></div>
-                        </div>
-                        ` : ''}
-                    </li>`;
+                let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${l.name || l.type}" oninput="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteLine(${i})">✕</button></div>${i === selectedLineIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateLineProp(${i}, 'color', this.value)"></div><div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" oninput="updateLineProp(${i}, 'thickness', this.value)"></div></div>` : ''}</li>`;
             });
         }
     }
@@ -603,31 +471,16 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         const el = document.getElementById('text-list'); el.innerHTML = '';
         if (getActivePage().texts) {
             getActivePage().texts.forEach((t, i) => {
-                let activeColor = t.color || '#000000';
-                let activeSize = t.size || 24;
-                el.innerHTML += `
-                    <li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <input type="text" class="text-input-dark" value="${t.text}" oninput="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();">
-                            <button class="icon-btn" onclick="deleteText(${i})">✕</button>
-                        </div>
-                        ${i === selectedTextIndex ? `
-                        <div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                            <div><label>Color</label><input type="color" value="${activeColor}" oninput="updateTextProp(${i}, 'color', this.value)"></div>
-                            <div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" oninput="updateTextProp(${i}, 'size', this.value)"></div>
-                        </div>
-                        ` : ''}
-                    </li>`;
+                let activeColor = t.color || '#000000'; let activeSize = t.size || 24;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${activeColor}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center;"><input type="text" class="text-input-dark" value="${t.text}" oninput="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteText(${i})">✕</button></div>${i === selectedTextIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();"><div><label>Color</label><input type="color" value="${activeColor}" oninput="updateTextProp(${i}, 'color', this.value)"></div><div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" oninput="updateTextProp(${i}, 'size', this.value)"></div></div>` : ''}</li>`;
             });
         }
     }
 
+    // --- PROPERTY UPDATES ---
     function toggleLegend(show) { saveState(); let p = getActivePage(); if (!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 }; p.legend.show = show; triggerUpdate(); }
-    function getActivePage() { return project.pages[project.activePageIndex]; }
-    
     function addSeatType() { const n = prompt("New Seat Profile Name:", "New Seat"); if(n) { const c = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f'][project.seatTypes.length % 4]; project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' }); project.activeSeatType = project.seatTypes.length - 1; updateUI(); triggerUpdate(); } }
     function addSignType() { const n = prompt("New Signage Profile Name:", "New Sign"); if(n) { const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4]; project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString() }); project.activeSignType = project.signTypes.length - 1; updateUI(); triggerUpdate(); } }
-    
     function editProfile(type, index) { const arr = type === 'seat' ? project.seatTypes : project.signTypes; const newName = prompt("Rename profile:", arr[index].name); if (newName && newName.trim() !== "") { arr[index].name = newName.trim(); updateUI(); triggerUpdate(); } }
     function deleteProfile(type, index) {
         const arr = type === 'seat' ? project.seatTypes : project.signTypes;
@@ -657,7 +510,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
     function addNewPage() { const n = prompt("Page Name?"); if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], lines:[], texts:[], legend:{show:true, x:40, y:40, scale:1}}); switchPage(project.pages.length-1); } }
     function deleteCurrentPage() { if(project.pages.length > 1) { if(confirm("Delete this page?")) { project.pages.splice(project.activePageIndex, 1); switchPage(0); } } else { alert("Cannot delete the last page."); } }
     
-    function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); markSeatCachesDirty(); updateUI(); triggerUpdate(); }
+    function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); if(selectedShapeIndex === i) selectedShapeIndex = -1; markSeatCachesDirty(); updateUI(); triggerUpdate(); }
     function deleteScreen(i) { saveState(); getActivePage().screens.splice(i,1); selectedScreenIndex = -1; markSeatCachesDirty(); updateUI(); triggerUpdate(); }
     function deleteSign(i) { saveState(); getActivePage().signs.splice(i,1); selectedSignIndex = -1; updateUI(); triggerUpdate(); }
     function deleteLine(i) { saveState(); getActivePage().lines.splice(i,1); selectedLineIndex = -1; updateUI(); triggerUpdate(); }
@@ -665,7 +518,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 
     function switchPage(index) {
         project.activePageIndex = index; undoStack = []; redoStack = [];
-        selectedSignIndex = -1; hoveredSignIndex = -1; selectedLineIndex = -1; hoveredLineIndex = -1; selectedScreenIndex = -1; hoveredScreenIndex = -1; selectedTextIndex = -1; hoveredTextIndex = -1;
+        clearSelections(); hoveredShapeIndex = -1; hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredScreenIndex = -1; hoveredTextIndex = -1;
         const page = getActivePage(); needsCacheUpdate = true;
         if (page.imgData) {
             bgImage = new Image();
@@ -705,10 +558,33 @@ along with this program. If not, see https://www.gnu.org/licenses/.
     window.addEventListener('keydown', e => { 
         if (e.key === 'Escape') setMode('idle'); 
         if (e.key === 'Shift') isShiftDown = true; 
-        if (e.ctrlKey && e.key === 'z') undo();
-        if (e.ctrlKey && e.key === 'y') redo();
+        if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) undo();
+        if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) redo();
+        
+        // COPY & PASTE FOR SHAPES
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+            if (selectedShapeIndex !== -1 && mode === 'idle') {
+                clipboardShape = JSON.parse(JSON.stringify(getActivePage().shapes[selectedShapeIndex]));
+            }
+        }
+        if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) {
+            if (clipboardShape && mode === 'idle') {
+                saveState();
+                let clone = JSON.parse(JSON.stringify(clipboardShape));
+                clone.points.forEach(p => { p.x += 50; p.y += 50; }); // Offset slightly
+                clone.name += " Copy";
+                clone.cacheDirty = true;
+                getActivePage().shapes.push(clone);
+                clearSelections();
+                selectedShapeIndex = getActivePage().shapes.length - 1;
+                markSeatCachesDirty();
+                triggerUpdate(); updateUI();
+            }
+        }
+
         if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'idle' && document.activeElement.tagName !== 'INPUT') {
-            if (selectedSignIndex !== -1) deleteSign(selectedSignIndex);
+            if (selectedShapeIndex !== -1) deleteShape(selectedShapeIndex);
+            else if (selectedSignIndex !== -1) deleteSign(selectedSignIndex);
             else if (selectedLineIndex !== -1) deleteLine(selectedLineIndex);
             else if (selectedScreenIndex !== -1) deleteScreen(selectedScreenIndex);
             else if (selectedTextIndex !== -1) deleteText(selectedTextIndex);
@@ -717,6 +593,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
     window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
     window.addEventListener('beforeunload', function (e) { if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; } });
 
+    // --- GEOMETRY & HIT TESTING ---
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
     function getMousePos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
 
@@ -728,6 +605,32 @@ along with this program. If not, see https://www.gnu.org/licenses/.
       return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
     }
     
+    function isInside(poly, pt) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { if (((poly[i].y > pt.y) !== (poly[j].y > pt.y)) && (pt.x < (poly[j].x - poly[i].x) * (pt.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) inside = !inside; }
+        return inside;
+    }
+
+    function getHitShapePoint(worldPt) {
+        if (selectedShapeIndex === -1) return -1;
+        const page = getActivePage();
+        const s = page.shapes[selectedShapeIndex];
+        const thresholdSq = sqr(12 / view.zoom);
+        for (let i = 0; i < s.points.length; i++) {
+            if (dist2(worldPt, s.points[i]) < thresholdSq) return i;
+        }
+        return -1;
+    }
+
+    function getHitShape(worldPt) {
+        const page = getActivePage();
+        // Go backwards to select top-most drawn item
+        for (let i = page.shapes.length - 1; i >= 0; i--) {
+            if (isInside(page.shapes[i].points, worldPt)) return i;
+        }
+        return -1;
+    }
+
     function getHitLine(worldPt) {
         const page = getActivePage(); if (!page.lines || uiState.showLines === false) return -1;
         for (let i = page.lines.length - 1; i >= 0; i--) {
@@ -770,6 +673,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         ctx.restore(); return -1;
     }
 
+    // --- MOUSE EVENTS ---
     canvas.onwheel = (e) => {
         e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const m = getMousePos(e); const world = toWorld(m);
@@ -795,35 +699,60 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         }
         
         if (mode === 'idle') {
+            // 1. Check if dragging an existing selected shape's vertex
+            if (selectedShapeIndex !== -1) {
+                const hitPt = getHitShapePoint(world);
+                if (hitPt !== -1) {
+                    isDraggingShapePoint = true; draggingShapePointIndex = hitPt; saveState(); return;
+                }
+            }
+
+            // 2. Check Hit Screen
             const hitScreen = getHitScreen(world);
             if (hitScreen !== -1) {
-                activeTab = 'screen'; selectedScreenIndex = hitScreen; selectedSignIndex = -1; selectedLineIndex = -1; selectedTextIndex = -1; isDraggingScreen = true; hasDraggedScreen = false;
+                clearSelections(); activeTab = 'screen'; selectedScreenIndex = hitScreen; isDraggingScreen = true; hasDraggedScreen = false;
                 project.dragOffsetX = world.x - page.screens[hitScreen].x; project.dragOffsetY = world.y - page.screens[hitScreen].y;
                 updateUI(); render(); return;
             }
 
+            // 3. Check Hit Sign
             const hitSign = getHitSign(world);
             if (hitSign !== -1) {
-                activeTab = 'sign'; selectedSignIndex = hitSign; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; isDraggingSign = true; hasDraggedSign = false;
+                clearSelections(); activeTab = 'sign'; selectedSignIndex = hitSign; isDraggingSign = true; hasDraggedSign = false;
                 project.dragOffsetX = world.x - page.signs[hitSign].x; project.dragOffsetY = world.y - page.signs[hitSign].y;
                 updateUI(); render(); return;
             }
             
+            // 4. Check Hit Text
             const hitText = getHitText(world);
             if (hitText !== -1) {
-                activeTab = 'annotate'; selectedTextIndex = hitText; selectedLineIndex = -1; selectedSignIndex = -1; selectedScreenIndex = -1; isDraggingText = true; hasDraggedText = false;
+                clearSelections(); activeTab = 'annotate'; selectedTextIndex = hitText; isDraggingText = true; hasDraggedText = false;
                 project.dragOffsetX = world.x - page.texts[hitText].x; project.dragOffsetY = world.y - page.texts[hitText].y;
                 updateUI(); render(); return;
             }
 
+            // 5. Check Hit Line
             const hitLine = getHitLine(world);
             if (hitLine !== -1) {
-                activeTab = 'annotate'; selectedLineIndex = hitLine; selectedSignIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; isDraggingLine = true; hasDraggedLine = false;
+                clearSelections(); activeTab = 'annotate'; selectedLineIndex = hitLine; isDraggingLine = true; hasDraggedLine = false;
                 project.dragStartMouse = {x: world.x, y: world.y}; project.dragStartPoints = JSON.parse(JSON.stringify(page.lines[hitLine].points));
                 updateUI(); render(); return;
             }
 
-            if (selectedSignIndex !== -1 || selectedLineIndex !== -1 || selectedScreenIndex !== -1 || selectedTextIndex !== -1) { selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; updateUI(); render(); }
+            // 6. Check Hit Shape Body (Area, Obs, Aisle)
+            const hitShape = getHitShape(world);
+            if (hitShape !== -1) {
+                clearSelections();
+                activeTab = page.shapes[hitShape].type === 'area' ? 'area' : 'obs';
+                selectedShapeIndex = hitShape;
+                isDraggingShape = true; hasDraggedShape = false;
+                project.dragStartMouse = {x: world.x, y: world.y};
+                project.dragStartPoints = JSON.parse(JSON.stringify(page.shapes[hitShape].points));
+                updateUI(); render(); return;
+            }
+
+            // Clicked Empty Space
+            clearSelections(); updateUI(); render();
         }
 
         if (isShiftDown && currentPoints.length > 0 && mode.startsWith('draw-')) {
@@ -866,23 +795,49 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         
         if (mode === 'idle') {
             hoveredScreenIndex = getHitScreen(world);
-            if (hoveredScreenIndex !== -1) { hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredTextIndex = -1; } 
+            if (hoveredScreenIndex !== -1) { hoveredShapeIndex = -1; hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredTextIndex = -1; } 
             else { 
                 hoveredSignIndex = getHitSign(world); 
-                if (hoveredSignIndex !== -1) { hoveredLineIndex = -1; hoveredTextIndex = -1; }
+                if (hoveredSignIndex !== -1) { hoveredShapeIndex = -1; hoveredLineIndex = -1; hoveredTextIndex = -1; }
                 else {
                     hoveredTextIndex = getHitText(world);
-                    if (hoveredTextIndex !== -1) { hoveredLineIndex = -1; }
-                    else { hoveredLineIndex = getHitLine(world); }
+                    if (hoveredTextIndex !== -1) { hoveredShapeIndex = -1; hoveredLineIndex = -1; }
+                    else { 
+                        hoveredLineIndex = getHitLine(world); 
+                        if (hoveredLineIndex !== -1) { hoveredShapeIndex = -1; }
+                        else { hoveredShapeIndex = getHitShape(world); }
+                    }
                 }
             }
-        } else { hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredScreenIndex = -1; hoveredTextIndex = -1; }
+        } else { hoveredShapeIndex = -1; hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredScreenIndex = -1; hoveredTextIndex = -1; }
 
         if (mode === 'drag-legend') { getActivePage().legend.x = world.x - project.dragOffsetX; getActivePage().legend.y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
         if (mode === 'resize-legend') {
             let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / 250);
             if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0;
             getActivePage().legend.scale = newScale; hasUnsavedChanges = true; render(); return;
+        }
+
+        // --- SHAPE DRAGGING LOGIC ---
+        if (isDraggingShapePoint && selectedShapeIndex !== -1) {
+            getActivePage().shapes[selectedShapeIndex].points[draggingShapePointIndex].x = world.x;
+            getActivePage().shapes[selectedShapeIndex].points[draggingShapePointIndex].y = world.y;
+            getActivePage().shapes[selectedShapeIndex].cacheDirty = true;
+            markSeatCachesDirty(); hasUnsavedChanges = true; render(); return;
+        }
+
+        if (isDraggingShape && selectedShapeIndex !== -1) {
+            if (!hasDraggedShape) { saveState(); hasDraggedShape = true; }
+            const dx = world.x - project.dragStartMouse.x;
+            const dy = world.y - project.dragStartMouse.y;
+            const s = getActivePage().shapes[selectedShapeIndex];
+            for(let i=0; i < s.points.length; i++) { 
+                s.points[i].x = project.dragStartPoints[i].x + dx; 
+                s.points[i].y = project.dragStartPoints[i].y + dy; 
+            }
+            s.cacheDirty = true;
+            markSeatCachesDirty();
+            hasUnsavedChanges = true; render(); return;
         }
 
         if (isDraggingScreen && selectedScreenIndex !== -1) { if (!hasDraggedScreen) { saveState(); hasDraggedScreen = true; } getActivePage().screens[selectedScreenIndex].x = world.x - project.dragOffsetX; getActivePage().screens[selectedScreenIndex].y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
@@ -892,7 +847,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             if (!hasDraggedLine) { saveState(); hasDraggedLine = true; }
             const page = getActivePage(); const dx = world.x - project.dragStartMouse.x; const dy = world.y - project.dragStartMouse.y;
             for(let i=0; i < page.lines[selectedLineIndex].points.length; i++) { page.lines[selectedLineIndex].points[i].x = project.dragStartPoints[i].x + dx; page.lines[selectedLineIndex].points[i].y = project.dragStartPoints[i].y + dy; }
-            hasUnsavedChanges = true; triggerUpdate(); return;
+            hasUnsavedChanges = true; render(); return;
         }
 
         if (isPanning) { view.x += mousePos.x - lastMouse.x; view.y += mousePos.y - lastMouse.y; lastMouse = mousePos; }
@@ -901,6 +856,8 @@ along with this program. If not, see https://www.gnu.org/licenses/.
 
     window.onmouseup = () => {
         isPanning = false;
+        if (isDraggingShapePoint) { isDraggingShapePoint = false; triggerUpdate(); }
+        if (isDraggingShape) { isDraggingShape = false; if (hasDraggedShape) { triggerUpdate(); } }
         if (isDraggingScreen) { isDraggingScreen = false; if (hasDraggedScreen) { markSeatCachesDirty(); updateUI(); triggerUpdate(); } }
         if (isDraggingSign) { isDraggingSign = false; if (hasDraggedSign) updateUI(); }
         if (isDraggingText) { isDraggingText = false; if (hasDraggedText) updateUI(); }
@@ -909,9 +866,12 @@ along with this program. If not, see https://www.gnu.org/licenses/.
     };
 
     canvas.ondblclick = () => {
-        if (currentPoints.length > 2 && (mode === 'draw-area' || mode === 'draw-obs')) {
-            saveState(); let defaultName = mode === 'draw-area' ? "Area " + (document.querySelectorAll('.type-area').length + 1) : "Obstacle " + (document.querySelectorAll('.type-obs').length + 1);
-            getActivePage().shapes.push({ type: mode==='draw-area'?'area':'obs', points: [...currentPoints], name: defaultName, rot: 0, count: 0, seatTypeIndex: project.activeSeatType ?? 0 });
+        if (currentPoints.length > 2 && (mode === 'draw-area' || mode === 'draw-obs' || mode === 'draw-aisle')) {
+            saveState(); 
+            let defaultName = mode === 'draw-area' ? "Area " + (document.querySelectorAll('.type-area').length + 1) : 
+                              (mode === 'draw-obs' ? "Obstacle " : "Aisle ") + (getActivePage().shapes.length + 1);
+            let t = mode === 'draw-area' ? 'area' : (mode === 'draw-obs' ? 'obs' : 'aisle');
+            getActivePage().shapes.push({ type: t, points: [...currentPoints], name: defaultName, rot: 0, count: 0, seatTypeIndex: project.activeSeatType ?? 0 });
             markSeatCachesDirty(); triggerUpdate();
         } else if (currentPoints.length > 1 && mode === 'draw-poly') {
             saveState(); if (!getActivePage().lines) getActivePage().lines = [];
@@ -920,12 +880,6 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         }
         setMode('idle');
     };
-
-    function isInside(poly, pt) {
-        let inside = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { if (((poly[i].y > pt.y) !== (poly[j].y > pt.y)) && (pt.x < (poly[j].x - poly[i].x) * (pt.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) inside = !inside; }
-        return inside;
-    }
 
     function getIntersection(A, B, C, D) {
         const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y); if (bottom === 0) return false;
@@ -959,7 +913,9 @@ along with this program. If not, see https://www.gnu.org/licenses/.
         const startX = minX + offsetX + (cw / 2); const startY = minY + offsetY + (rd / 2); const eps = 0.1;
 
         const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
-        const obstacles = page.shapes.filter(s => s.type === 'obs');
+        
+        const voids = page.shapes.filter(s => s.type === 'obs' || s.type === 'aisle');
+        const losBlockers = page.shapes.filter(s => s.type === 'obs');
 
         for (let i = 0; i < cols; i++) {
             let lx = startX + (i * cw);
@@ -969,7 +925,8 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                 const corners = [ { x: -cw/2 + eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: -rd/2 + eps }, { x: cw/2 - eps, y: rd/2 - eps }, { x: -cw/2 + eps, y: rd/2 - eps } ].map(c => ({ x: rx + (c.x * Math.cos(rotRad) - c.y * Math.sin(rotRad)), y: ry + (c.x * Math.sin(rotRad) + c.y * Math.cos(rotRad)) }));
 
                 if (!corners.every(cp => isInside(area.points, cp))) continue;
-                const blocked = obstacles.some(obs => corners.some(cp => isInside(obs.points, cp)));
+                
+                const blocked = voids.some(v => corners.some(cp => isInside(v.points, cp)));
                 
                 if (!blocked) { 
                     let seat = {x:rx, y:ry, rot:rotRad}; let seatFill = st.color;
@@ -979,7 +936,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                             const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
                             if (isInCone(seat, sc, radiusPixels)) {
                                 inAnyCone = true; let losBlocked = false;
-                                for (const obs of obstacles) {
+                                for (const obs of losBlockers) {
                                     for (let k = 0; k < obs.points.length; k++) { if (getIntersection(sc, seat, obs.points[k], obs.points[(k + 1) % obs.points.length])) { losBlocked = true; break; } }
                                     if (losBlocked) break;
                                 }
@@ -1010,8 +967,12 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                 
                 s.cachedSeats.forEach(seat => {
                     cCtx.save(); cCtx.translate(seat.x, seat.y); cCtx.rotate(seat.rot);
-                    cCtx.fillStyle = seat.fill || st.color; cCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); 
-                    cCtx.strokeStyle = "rgba(0,0,0,0.8)"; cCtx.lineWidth = 0.5; cCtx.strokeRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); cCtx.restore();
+                    cCtx.fillStyle = seat.fill || st.color;
+                    cCtx.fillRect(-cw/2, -rd/2, cw, rd); 
+                    cCtx.strokeStyle = "rgba(0,0,0,0.85)"; 
+                    cCtx.lineWidth = 1.5; 
+                    cCtx.strokeRect(-cw/2, -rd/2, cw, rd); 
+                    cCtx.restore();
                 });
                 
                 globalPageTotal += s.count; 
@@ -1094,10 +1055,35 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             });
         }
 
-        page.shapes.forEach(s => {
+        page.shapes.forEach((s, i) => {
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
-            targetCtx.beginPath(); s.points.forEach((p,i) => i===0 ? targetCtx.moveTo(p.x,p.y) : targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
-            targetCtx.strokeStyle = s.type === 'area' ? st.stroke : '#e74c3c'; targetCtx.lineWidth = 2 / v.zoom; targetCtx.stroke();
+            const isSelected = (isLive && i === selectedShapeIndex);
+            const isHovered = (isLive && i === hoveredShapeIndex);
+            
+            targetCtx.beginPath(); s.points.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x,p.y) : targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
+            
+            if (s.type === 'area') {
+                targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : st.stroke); 
+                targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke();
+            } else if (s.type === 'obs') {
+                targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#e74c3c'); 
+                targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke();
+            } else if (s.type === 'aisle') {
+                targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#f1c40f'); 
+                targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([10 / v.zoom, 10 / v.zoom]); targetCtx.stroke();
+                targetCtx.fillStyle = 'rgba(241, 196, 15, 0.1)'; targetCtx.fill();
+                targetCtx.setLineDash([]); 
+            }
+
+            // Draw vertex handles if selected
+            if (isSelected) {
+                s.points.forEach(p => {
+                    targetCtx.beginPath();
+                    targetCtx.arc(p.x, p.y, 6 / v.zoom, 0, Math.PI * 2);
+                    targetCtx.fillStyle = "white"; targetCtx.fill();
+                    targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke();
+                });
+            }
 
             let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
             targetCtx.save(); targetCtx.translate(cen.x, cen.y); targetCtx.scale(1/v.zoom, 1/v.zoom);
@@ -1216,7 +1202,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
             ctx.moveTo(mousePos.x, 0); ctx.lineTo(mousePos.x, canvas.height);
             ctx.moveTo(0, mousePos.y); ctx.lineTo(canvas.width, mousePos.y); ctx.stroke();
             
-            if (hoveredSignIndex !== -1 || isDraggingSign || hoveredLineIndex !== -1 || isDraggingLine || hoveredScreenIndex !== -1 || isDraggingScreen || hoveredTextIndex !== -1 || isDraggingText) { 
+            if (hoveredShapeIndex !== -1 || isDraggingShape || hoveredSignIndex !== -1 || isDraggingSign || hoveredLineIndex !== -1 || isDraggingLine || hoveredScreenIndex !== -1 || isDraggingScreen || hoveredTextIndex !== -1 || isDraggingText) { 
                 ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 1.5; 
             } else { 
                 ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 0.5; 
@@ -1332,7 +1318,15 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                         const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                         if (s.type === 'area' && page.pixelsPerFoot && s.cachedSeats) {
                             const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
-                            s.cachedSeats.forEach(seat => { rCtx.save(); rCtx.translate(seat.x, seat.y); rCtx.rotate(seat.rot); rCtx.fillStyle = seat.fill || st.color; rCtx.fillRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); rCtx.strokeStyle = "rgba(0,0,0,0.8)"; rCtx.lineWidth = 0.5; rCtx.strokeRect(-cw/2 + 0.5, -rd/2 + 0.5, cw-1, rd-1); rCtx.restore(); });
+                            s.cachedSeats.forEach(seat => {
+                                rCtx.save(); rCtx.translate(seat.x, seat.y); rCtx.rotate(seat.rot);
+                                rCtx.fillStyle = seat.fill || st.color;
+                                rCtx.fillRect(-cw/2, -rd/2, cw, rd);
+                                rCtx.strokeStyle = "rgba(0,0,0,0.85)";
+                                rCtx.lineWidth = 1.5;
+                                rCtx.strokeRect(-cw/2, -rd/2, cw, rd);
+                                rCtx.restore();
+                            });
                         }
                     });
                     
@@ -1352,6 +1346,7 @@ along with this program. If not, see https://www.gnu.org/licenses/.
                     }
 
                     page.shapes.forEach(s => {
+                        if (s.type === 'aisle') return; // Do not draw aisle borders in the final print
                         const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0]; const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
                         svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?st.stroke:'#e74c3c'}" stroke-width="${2 * scaleFac}" />`;
                         let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
