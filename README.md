@@ -48,7 +48,6 @@ Convention Planner allows event coordinators to import architectural floor plans
 * **Blueprint Calibration:** Support for PDF, PNG, and JPG blueprint scaling.
 * **Signage Management:** Node-based signage placement with auto-generated legends.
 * **Reporting:** Print-ready summaries and hybrid layout maps for installation teams.
-* **Attendant Scheduler:** Add positions to your layout for attendants and create shift schedules.
 * **Zero-Install Portability:** A single HTML file that works entirely offline.
 
 ## 🛠️ Technologies Used
@@ -56,7 +55,16 @@ Convention Planner allows event coordinators to import architectural floor plans
 * **HTML5 Canvas:** High-performance rendering and real-time raycasting.
 * **Vanilla JavaScript:** Fast, dependency-free execution.
 * **PDF.js:** Client-side architectural blueprint rendering.
+* **Google Translate API:** Dynamic UI localization.
 
+## 🤝 Contributing
+
+Contributions are welcome! If you have ideas for new features or improvements:
+1. Fork the Project.
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the Branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
 ## ✉️ Contact
 
@@ -64,4 +72,10 @@ Convention Planner allows event coordinators to import architectural floor plans
 **Email:** [dev@abarca-services.com](mailto:dev@abarca-services.com)  
 **Project Link:** [https://github.com/shanewall/Convention-Planner](https://github.com/shanewall/Convention-Planner)
 
+## 📄 License
 
+Distributed under the **GNU General Public License v3.0**. See `LICENSE` for more information.
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. 
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation. See the `LICENSE` file for more details.
