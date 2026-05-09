@@ -163,6 +163,41 @@
         .tutorial-option-btn-disabled:hover { background: #444 !important; }
         .tutorial-option-disabled { opacity: 0.7; }
 
+        /* Attendants sidebar — small uniform action buttons */
+        .att-toolbar-btn {
+            padding: 6px 4px;
+            font-size: 0.78em;
+            font-weight: bold;
+            background: #3a3a3a;
+            color: #ddd;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .att-toolbar-btn:hover {
+            background: #4a4a4a;
+            color: #fff;
+            border-color: var(--accent);
+        }
+        /* Compact Add Post buttons — primary-color but smaller padding/font */
+        .att-add-btn {
+            padding: 7px 6px;
+            font-size: 0.82em;
+            font-weight: bold;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .att-add-btn:hover { background: #0098ff; }
+
         /* Schedule viewer modal — wider/taller than the basic modal-card */
         .modal-card.wide {
             max-width: 900px; width: 92%; max-height: 88vh;
@@ -399,6 +434,8 @@
         <div class="schedule-viewer-header">
             <h2 id="schedule-viewer-title" data-i18n="modal.schedule.title">📋 Shift Schedule</h2>
             <div>
+                <button class="secondary" onclick="exportAttendantsCSV()" title="Export full schedule as CSV" data-i18n-title="modal.schedule.export.title" data-i18n="modal.schedule.export">📤 Export</button>
+                <button class="secondary" onclick="document.getElementById('att-csv-import').click()" title="Import schedule from CSV (overwrites assignments)" data-i18n-title="modal.schedule.import.title" data-i18n="modal.schedule.import">📥 Import</button>
                 <button class="secondary" onclick="printScheduleFromViewer()" title="Print this view (with current filters applied)" data-i18n="modal.schedule.print">🖨️ Print This View</button>
                 <button onclick="hideScheduleViewer()" data-i18n="modal.schedule.close">Close</button>
             </div>
@@ -425,6 +462,32 @@
         </div>
         <div class="schedule-viewer-body" id="schedule-viewer-body"></div>
         <div class="schedule-summary" id="schedule-viewer-summary"></div>
+    </div>
+</div>
+
+<!-- Attendant Roster modal — for managing the pool of names that appear in
+     post-assignment dropdowns. Same styling as the schedule viewer. -->
+<div id="roster-modal" class="modal-overlay" onclick="if(event.target===this) hideRosterModal()">
+    <div class="modal-card wide" role="dialog" aria-labelledby="roster-modal-title" style="max-width: 640px;">
+        <div class="schedule-viewer-header">
+            <h2 id="roster-modal-title" data-i18n="modal.roster.title">👥 Attendant Roster</h2>
+            <div>
+                <button class="secondary" onclick="exportRosterCSV()" title="Export roster as CSV" data-i18n="modal.roster.export">📤 Export</button>
+                <button class="secondary" onclick="document.getElementById('att-roster-import').click()" title="Import roster from CSV" data-i18n="modal.roster.import">📥 Import</button>
+                <button onclick="hideRosterModal()" data-i18n="modal.roster.close">Close</button>
+            </div>
+        </div>
+        <input type="file" id="att-roster-import" accept=".csv,text/csv" onchange="importRosterCSV(this)" style="display:none;">
+        <div style="font-size: 0.85em; color: #aaa; padding: 12px 0; line-height: 1.4;" data-i18n="modal.roster.help">
+            Names appear in the assignment dropdown when filling posts. New typed names are added to this list automatically.
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <span style="font-weight: bold;"><span id="att-roster-badge" class="badge">0</span> <span data-i18n="modal.roster.count">names</span></span>
+            <button class="btn-primary" style="margin-left: auto;" onclick="addRosterEntry()" data-i18n="modal.roster.add">+ Add Name</button>
+        </div>
+        <div class="schedule-viewer-body" style="max-height: 60vh; overflow-y: auto;">
+            <ul class="item-list" id="att-roster-list" style="margin-bottom: 0;"></ul>
+        </div>
     </div>
 </div>
 
@@ -642,7 +705,7 @@
                     <button id="btn-start-aisle" class="btn-full btn-primary" onclick="setMode('draw-aisle')" data-i18n="obs.draw_aisle">✂️ Aisle</button>
                 </div>
                 <div style="font-size: 0.8em; color: #aaa; margin-bottom: 15px; font-style: italic;" data-i18n="obs.help">
-                    <strong>Obstacles</strong> block sightlines and remove seats. <strong>Aisles</strong> remove seats but leave sightlines open.
+                    Obstacles block sightlines and remove seats. Aisles remove seats but leave sightlines open.
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
@@ -744,27 +807,41 @@
 
         <div id="panel-attendants" class="panel-content">
             <div class="panel-tools">
-                <button class="btn-full btn-primary" style="background: var(--success); margin-bottom: 12px;" onclick="showScheduleViewer()" data-i18n="att.view_schedule">📋 View Full Schedule</button>
-
-                <div class="input-group" style="margin-bottom: 12px;">
+                <!-- Active shift dropdown — most-used control sits at top -->
+                <div class="input-group" style="margin-bottom: 8px;">
                     <label data-i18n="att.active_shift.label">Active Shift</label>
                     <select id="att-active-shift" onchange="setActiveShift(this.value)" style="width:100%;">
                         <option value="" data-i18n="att.active_shift.none">— No shift selected —</option>
                     </select>
                 </div>
 
-                <div class="collapse-header collapsed" data-collapse-target="att-types-body" onclick="toggleCollapse(this)">
-                    <span class="title" data-i18n="att.types.header">Post Style Profiles <span id="att-types-badge" class="badge">0</span></span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div id="att-types-body" class="collapse-body collapsed">
-                    <div class="profile-scroll">
-                        <ul class="item-list" id="att-type-list" style="margin-bottom: 0;"></ul>
+                <!-- Active style picker — dropdown showing current style. Profile editing
+                     happens in the collapsible "Manage Style Profiles" below. -->
+                <div class="input-group" style="margin-bottom: 10px;">
+                    <label data-i18n="att.active_style.picker_label">Post Style</label>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <select id="att-active-style-select" onchange="setActiveAttendantType(parseInt(this.value))" style="flex:1;">
+                        </select>
+                        <span id="att-active-style-swatch" style="width:18px; height:18px; border-radius:50%; border:1px solid #555; flex-shrink:0;"></span>
                     </div>
-                    <button class="btn-full btn-primary" onclick="addAttendantType()" data-i18n="att.types.add">+ Add Style Profile</button>
                 </div>
 
-                <div class="collapse-header collapsed" data-collapse-target="att-shifts-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
+                <!-- Action toolbar — Schedule and Roster open modals where their CSV
+                     import/export and other management actions live. -->
+                <div class="att-toolbar" style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:10px;">
+                    <button class="att-toolbar-btn" onclick="showScheduleViewer()" title="View full shift schedule" data-i18n-title="att.toolbar.schedule.title" data-i18n="att.toolbar.schedule">📋 Schedule</button>
+                    <button class="att-toolbar-btn" onclick="showRosterModal()" title="Manage attendant names" data-i18n-title="att.toolbar.roster.title" data-i18n="att.toolbar.roster">👥 Roster</button>
+                </div>
+                <input type="file" id="att-csv-import" accept=".csv,text/csv" onchange="importAttendantsCSV(this)" style="display:none;">
+
+                <!-- Add post buttons — compact, single row, smaller font. Tooltips carry the longer description. -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom: 10px;">
+                    <button id="btn-place-att-persistent" class="att-add-btn" onclick="setMode('place-att-persistent')" title="Add a post that appears on every shift" data-i18n-title="att.add_persistent.title" data-i18n="att.add_persistent">📌 + Persistent</button>
+                    <button id="btn-place-att-shift" class="att-add-btn" onclick="setMode('place-att-shift')" title="Add a post visible only on the active shift" data-i18n-title="att.add_shift.title" data-i18n="att.add_shift">🕒 + Shift Post</button>
+                </div>
+
+                <!-- Manage Shifts (collapsible — only opens when editing) -->
+                <div class="collapse-header collapsed" data-collapse-target="att-shifts-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="att.shifts.header">Shifts <span id="att-shifts-badge" class="badge">0</span></span>
                     <span class="chevron">▼</span>
                 </div>
@@ -775,48 +852,16 @@
                     <button class="btn-full btn-primary" onclick="addShift()" data-i18n="att.shifts.add">+ Add Shift</button>
                 </div>
 
-                <div class="collapse-header collapsed" data-collapse-target="att-roster-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
-                    <span class="title" data-i18n="att.roster.header">Attendant Roster <span id="att-roster-badge" class="badge">0</span></span>
+                <!-- Manage Style Profiles (collapsible — only opens when editing) -->
+                <div class="collapse-header collapsed" data-collapse-target="att-types-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
+                    <span class="title" data-i18n="att.types.header">Manage Post Styles <span id="att-types-badge" class="badge">0</span></span>
                     <span class="chevron">▼</span>
                 </div>
-                <div id="att-roster-body" class="collapse-body collapsed">
-                    <div style="font-size: 0.75em; color: #aaa; margin: 8px 0; line-height: 1.4;" data-i18n="att.roster.help">
-                        Names appear in the assignment dropdown. New typed names are added automatically.
+                <div id="att-types-body" class="collapse-body collapsed">
+                    <div class="profile-scroll">
+                        <ul class="item-list" id="att-type-list" style="margin-bottom: 0;"></ul>
                     </div>
-                    <div class="profile-scroll" style="max-height: 200px;">
-                        <ul class="item-list" id="att-roster-list" style="margin-bottom: 0;"></ul>
-                    </div>
-                    <button class="btn-full btn-primary" style="margin-top: 6px;" onclick="addRosterEntry()" data-i18n="att.roster.add">+ Add Name</button>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top: 8px;">
-                        <button class="btn-full" style="background: #555;" onclick="exportRosterCSV()" data-i18n="att.roster.export">📤 Export Roster</button>
-                        <button class="btn-full" style="background: #555;" onclick="document.getElementById('att-roster-import').click()" data-i18n="att.roster.import">📥 Import Roster</button>
-                    </div>
-                    <input type="file" id="att-roster-import" accept=".csv,text/csv" onchange="importRosterCSV(this)" style="display: none;">
-                </div>
-
-                <div class="collapse-header collapsed" data-collapse-target="att-csv-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
-                    <span class="title" data-i18n="att.csv.header">Schedule CSV Import / Export</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div id="att-csv-body" class="collapse-body collapsed">
-                    <div style="font-size: 0.75em; color: #aaa; margin: 8px 0; line-height: 1.4;" data-i18n="att.csv.help">
-                        Export your full schedule to edit in Excel or Sheets, then re-import to update assignments. Matching uses shift number + post number.
-                    </div>
-                    <button class="btn-full btn-primary" onclick="exportAttendantsCSV()" data-i18n="att.csv.export">📤 Export Schedule CSV</button>
-                    <div class="input-group" style="margin-top: 10px;">
-                        <label data-i18n="att.csv.import.label">Import CSV (overwrites assignments)</label>
-                        <input type="file" id="att-csv-import" accept=".csv,text/csv" onchange="importAttendantsCSV(this)" style="background: #222;">
-                    </div>
-                </div>
-
-                <div id="att-active-style-indicator" style="margin-top: 14px; padding: 8px 10px; background: #2a3a30; border: 1px solid var(--success); border-radius: 4px; font-size: 0.8em;"></div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top: 8px;">
-                    <button id="btn-place-att-persistent" class="btn-full btn-primary" onclick="setMode('place-att-persistent')" title="Posts that appear on all shifts" data-i18n="att.add_persistent">📌 Add Persistent Post</button>
-                    <button id="btn-place-att-shift" class="btn-full btn-primary" onclick="setMode('place-att-shift')" title="Posts only visible on the active shift" data-i18n="att.add_shift">🕒 Add Shift Post</button>
-                </div>
-                <div style="font-size: 0.75em; color: #888; margin-top: 6px; font-style: italic;" data-i18n="att.placement.help">
-                    Persistent posts appear on every shift; shift posts only on the active shift.
+                    <button class="btn-full btn-primary" onclick="addAttendantType()" data-i18n="att.types.add">+ Add Style Profile</button>
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
@@ -1022,7 +1067,27 @@ const I18N_STRINGS = {
         "att.view_schedule": "📋 View Full Schedule",
         "att.active_shift.label": "Active Shift",
         "att.active_shift.none": "— No shift selected —",
-        "att.types.header": "Post Style Profiles",
+        "att.active_style.picker_label": "Post Style",
+        "att.toolbar.schedule": "📋 Schedule",
+        "att.toolbar.schedule.title": "View full shift schedule",
+        "att.toolbar.roster": "👥 Roster",
+        "att.toolbar.roster.title": "Manage attendant names",
+        "att.add_persistent": "📌 + Persistent",
+        "att.add_persistent.title": "Add a post that appears on every shift",
+        "att.add_shift": "🕒 + Shift Post",
+        "att.add_shift.title": "Add a post visible only on the active shift",
+        "modal.schedule.export": "📤 Export",
+        "modal.schedule.export.title": "Export full schedule as CSV",
+        "modal.schedule.import": "📥 Import",
+        "modal.schedule.import.title": "Import schedule from CSV (overwrites assignments)",
+        "modal.roster.title": "👥 Attendant Roster",
+        "modal.roster.help": "Names appear in the assignment dropdown when filling posts. New typed names are added to this list automatically.",
+        "modal.roster.count": "names",
+        "modal.roster.add": "+ Add Name",
+        "modal.roster.export": "📤 Export",
+        "modal.roster.import": "📥 Import",
+        "modal.roster.close": "Close",
+        "att.types.header": "Manage Post Styles",
         "att.types.add": "+ Add Style Profile",
         "att.types.active_marker": "✓ ACTIVE",
         "att.types.click_to_activate": "Click to make this the active style for new posts.",
@@ -1045,9 +1110,6 @@ const I18N_STRINGS = {
         "att.csv.export": "📤 Export Schedule CSV",
         "att.csv.import.label": "Import CSV (overwrites assignments)",
         "att.active_style.label": "Style for new posts:",
-        "att.add_persistent": "📌 Add Persistent Post",
-        "att.add_shift": "🕒 Add Shift Post",
-        "att.placement.help": "Persistent posts appear on every shift; shift posts only on the active shift.",
         "att.posts.header": "Placed Posts",
         "att.posts.empty.no_posts": "No posts placed yet on this page.",
         "att.posts.section.persistent": "📌 Persistent (every shift)",
@@ -1343,7 +1405,27 @@ const I18N_STRINGS = {
         "att.view_schedule": "📋 Ver Horario Completo",
         "att.active_shift.label": "Turno Activo",
         "att.active_shift.none": "— Ningún Turno Seleccionado —",
-        "att.types.header": "Perfiles de Estilo de Puesto",
+        "att.active_style.picker_label": "Estilo de Puesto",
+        "att.toolbar.schedule": "📋 Horario",
+        "att.toolbar.schedule.title": "Ver horario completo de turnos",
+        "att.toolbar.roster": "👥 Lista",
+        "att.toolbar.roster.title": "Gestionar nombres de acomodadores",
+        "att.add_persistent": "📌 + Persistente",
+        "att.add_persistent.title": "Añadir un puesto que aparece en cada turno",
+        "att.add_shift": "🕒 + de Turno",
+        "att.add_shift.title": "Añadir un puesto visible solo en el turno activo",
+        "modal.schedule.export": "📤 Exportar",
+        "modal.schedule.export.title": "Exportar horario completo como CSV",
+        "modal.schedule.import": "📥 Importar",
+        "modal.schedule.import.title": "Importar horario desde CSV (sobrescribe asignaciones)",
+        "modal.roster.title": "👥 Lista de Acomodadores",
+        "modal.roster.help": "Los nombres aparecen en el menú desplegable al asignar puestos. Los nombres nuevos escritos se añaden automáticamente a esta lista.",
+        "modal.roster.count": "nombres",
+        "modal.roster.add": "+ Añadir Nombre",
+        "modal.roster.export": "📤 Exportar",
+        "modal.roster.import": "📥 Importar",
+        "modal.roster.close": "Cerrar",
+        "att.types.header": "Gestionar Estilos de Puesto",
         "att.types.add": "+ Añadir Perfil de Estilo",
         "att.types.active_marker": "✓ ACTIVO",
         "att.types.click_to_activate": "Haz clic para hacer de este el estilo activo para nuevos puestos.",
@@ -1366,9 +1448,6 @@ const I18N_STRINGS = {
         "att.csv.export": "📤 Exportar Horario CSV",
         "att.csv.import.label": "Importar CSV (Sobrescribe Asignaciones)",
         "att.active_style.label": "Estilo para Nuevos Puestos:",
-        "att.add_persistent": "📌 Añadir Puesto Persistente",
-        "att.add_shift": "🕒 Añadir Puesto de Turno",
-        "att.placement.help": "Los puestos persistentes aparecen en cada turno; los puestos de turno solo en el turno activo.",
         "att.posts.header": "Puestos Colocados",
         "att.posts.empty.no_posts": "Aún No Hay Puestos Colocados en Esta Página.",
         "att.posts.section.persistent": "📌 Persistente (Cada Turno)",
@@ -2101,6 +2180,25 @@ const I18N_STRINGS = {
         updateUI(); render();
     }
 
+    function setActiveAttendantType(idx) {
+        ensureAttendants();
+        if (typeof idx !== 'number' || idx < 0 || idx >= project.attendantTypes.length) return;
+        project.attendants.activeAttendantType = idx;
+        hasUnsavedChanges = true;
+        updateUI();
+    }
+
+    // Roster modal — show/hide. The roster list itself rebuilds via renderRosterList,
+    // which is already called from updateUI / buildAttendantsPanel.
+    function showRosterModal() {
+        ensureAttendants();
+        document.getElementById('roster-modal').classList.add('show');
+        updateUI();
+    }
+    function hideRosterModal() {
+        document.getElementById('roster-modal').classList.remove('show');
+    }
+
     function getAttendantTypeFor(post) {
         ensureAttendants();
         const idx = post.typeIndex ?? 0;
@@ -2272,13 +2370,21 @@ const I18N_STRINGS = {
     // ─── Panel rendering ────────────────────────────────────────────────────────
     function buildAttendantsPanel() {
         ensureAttendants();
-        // Active style indicator (compact pill)
-        const styleEl = document.getElementById('att-active-style-indicator');
-        if (styleEl) {
+
+        // Active style picker — populate the dropdown and color swatch
+        const styleSelect = document.getElementById('att-active-style-select');
+        const styleSwatch = document.getElementById('att-active-style-swatch');
+        if (styleSelect) {
             const activeIdx = project.attendants.activeAttendantType ?? 0;
+            let opts = '';
+            project.attendantTypes.forEach((at, i) => {
+                opts += `<option value="${i}" ${i === activeIdx ? 'selected' : ''}>${escapeHTML(at.name)}</option>`;
+            });
+            styleSelect.innerHTML = opts;
             const activeStyle = project.attendantTypes[activeIdx] || project.attendantTypes[0];
-            styleEl.innerHTML = `<span>${escapeHTML(t('att.active_style.label'))}</span>
-                <span class="value" style="color: ${escapeHTML(activeStyle.dotColor)};">● ${escapeHTML(activeStyle.name)}</span>`;
+            if (styleSwatch && activeStyle) {
+                styleSwatch.style.backgroundColor = activeStyle.dotColor;
+            }
         }
 
         // Active shift dropdown
@@ -2918,6 +3024,9 @@ const I18N_STRINGS = {
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && document.getElementById('tutorials-modal').classList.contains('show')) {
             hideTutorialsModal();
+        }
+        if (e.key === 'Escape' && document.getElementById('roster-modal').classList.contains('show')) {
+            hideRosterModal();
         }
     });
 
