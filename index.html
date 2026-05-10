@@ -198,6 +198,30 @@
         }
         .att-add-btn:hover { background: #0098ff; }
 
+        /* Announcement modal — corner X button (matches the modal-card style) */
+        .announcement-x {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: transparent !important;
+            border: none !important;
+            color: #aaa !important;
+            font-size: 1.6em !important;
+            line-height: 1 !important;
+            padding: 4px 8px !important;
+            cursor: pointer;
+            min-width: 0 !important;
+        }
+        .announcement-x:hover { color: #fff !important; }
+        #announcement-content h3,
+        #tutorials-announcement-content h3 { color: var(--accent); margin-bottom: 10px; }
+        #announcement-content p,
+        #tutorials-announcement-content p { line-height: 1.5; margin: 8px 0; color: #ccc; }
+        #announcement-content a,
+        #tutorials-announcement-content a { color: var(--accent); text-decoration: none; }
+        #announcement-content a:hover,
+        #tutorials-announcement-content a:hover { text-decoration: underline; }
+
         /* Schedule viewer modal — wider/taller than the basic modal-card */
         .modal-card.wide {
             max-width: 900px; width: 92%; max-height: 88vh;
@@ -504,10 +528,39 @@
     </div>
 </div>
 
+<!-- Announcement modal — appears on first visit to communicate news.
+     Content is written in JavaScript (ANNOUNCEMENT_EN / ANNOUNCEMENT_ES near
+     the top of the script block); version-bumping triggers re-display. -->
+<div id="announcement-modal" class="modal-overlay" onclick="if(event.target===this) hideAnnouncementModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="announcement-modal-title" style="max-width: 480px; position: relative;">
+        <button onclick="hideAnnouncementModal()" aria-label="Close" class="announcement-x" title="Close">×</button>
+        <div id="announcement-content" style="text-align: left;">
+            <!-- Filled by showAnnouncementIfNew() -->
+        </div>
+        <div class="modal-actions" style="margin-top: 18px;">
+            <button onclick="hideAnnouncementModal()" data-i18n="modal.announcement.dismiss">Got it</button>
+        </div>
+    </div>
+</div>
+
 <div id="tutorials-modal" class="modal-overlay" onclick="if(event.target===this) hideTutorialsModal()">
     <div class="modal-card" role="dialog" aria-labelledby="tutorials-modal-title" style="max-width: 520px;">
-        <h2 id="tutorials-modal-title" data-i18n="modal.tutorials.title" style="text-align:center; margin-bottom: 8px;">🎓 Tutorials</h2>
+        <h2 id="tutorials-modal-title" data-i18n="modal.tutorials.title" style="text-align:center; margin-bottom: 8px;">🎓 Tutorials &amp; Announcements</h2>
+
+        <!-- Menu view — the list of options. Hidden when an option is being viewed inline. -->
+        <div id="tutorials-menu-view">
         <p data-i18n="modal.tutorials.intro" style="text-align:center; color: #aaa; margin-bottom: 20px;">Choose a learning resource:</p>
+
+        <!-- Announcement row — always at top. The button is wired to open the
+             announcement viewer; if no announcement is set, it's disabled. -->
+        <div class="tutorial-option" id="tutorials-announcement-row">
+            <div class="tutorial-option-icon">📣</div>
+            <div class="tutorial-option-text">
+                <div class="tutorial-option-title" data-i18n="modal.tutorials.announcement.title">Latest Announcement</div>
+                <div class="tutorial-option-desc" id="tutorials-announcement-desc" data-i18n="modal.tutorials.announcement.desc">Read the latest news from Convention Planner.</div>
+            </div>
+            <button class="tutorial-option-btn" onclick="showAnnouncementFromTutorials()" data-i18n="modal.tutorials.view">View</button>
+        </div>
 
         <div class="tutorial-option">
             <div class="tutorial-option-icon">📖</div>
@@ -538,6 +591,17 @@
 
         <div class="modal-actions" style="margin-top: 20px;">
             <button onclick="hideTutorialsModal()" data-i18n="modal.tutorials.close">Close</button>
+        </div>
+        </div><!-- /menu view -->
+
+        <!-- Announcement view — shown when user clicks View. Replaces the menu inline,
+             with a Back button that swaps back. Content is filled by JS. -->
+        <div id="tutorials-announcement-view" style="display: none;">
+            <div id="tutorials-announcement-content" style="text-align: left; min-height: 100px;"></div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="secondary" onclick="hideAnnouncementFromTutorials()" data-i18n="modal.tutorials.back">← Back</button>
+                <button onclick="hideTutorialsModal()" data-i18n="modal.tutorials.close">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1140,8 +1204,14 @@ const I18N_STRINGS = {
         "stats.scale.notset": "Scale: Not Set",
         "stats.scale.set": "Scale: {n} px/ft",
         "stats.total_seats": "Total Seats:",
-        "modal.tutorials.title": "🎓 Tutorials",
-        "modal.tutorials.intro": "Choose a learning resource:",
+        "modal.tutorials.title": "🎓 Tutorials &amp; Announcements",
+        "modal.tutorials.intro": "Choose a resource:",
+        "modal.tutorials.announcement.title": "Latest Announcement",
+        "modal.tutorials.announcement.desc": "Read the latest news from Convention Planner.",
+        "modal.tutorials.announcement.none.title": "No Current Announcement",
+        "modal.tutorials.announcement.none.desc": "There's no announcement at this time.",
+        "modal.tutorials.view": "View",
+        "modal.tutorials.back": "← Back",
         "modal.tutorials.manual_en.title": "User Manual (English)",
         "modal.tutorials.manual_en.desc": "Complete guide — Word document",
         "modal.tutorials.manual_es.title": "Manual de Usuario (Español)",
@@ -1152,6 +1222,7 @@ const I18N_STRINGS = {
         "modal.tutorials.descargar": "Descargar",
         "modal.tutorials.coming_soon": "Coming soon",
         "modal.tutorials.close": "Close",
+        "modal.announcement.dismiss": "Got it",
         "modal.tutorials.body1": "We're putting together a set of walkthrough videos to help you get the most out of Convention Planner.",
         "modal.tutorials.body2": "Check back here once they're ready — links will appear in this menu.",
         "modal.tutorials.ok": "Got it",
@@ -1478,8 +1549,14 @@ const I18N_STRINGS = {
         "stats.scale.notset": "Escala: No Establecida",
         "stats.scale.set": "Escala: {n} px/pie",
         "stats.total_seats": "Total de Asientos:",
-        "modal.tutorials.title": "🎓 Tutoriales",
-        "modal.tutorials.intro": "Elige un recurso de aprendizaje:",
+        "modal.tutorials.title": "🎓 Tutoriales y Avisos",
+        "modal.tutorials.intro": "Elige un recurso:",
+        "modal.tutorials.announcement.title": "Aviso Reciente",
+        "modal.tutorials.announcement.desc": "Lee las últimas noticias de Convention Planner.",
+        "modal.tutorials.announcement.none.title": "No Hay Avisos Actuales",
+        "modal.tutorials.announcement.none.desc": "No hay avisos en este momento.",
+        "modal.tutorials.view": "Ver",
+        "modal.tutorials.back": "← Volver",
         "modal.tutorials.manual_en.title": "User Manual (English)",
         "modal.tutorials.manual_en.desc": "Complete guide — Word document",
         "modal.tutorials.manual_es.title": "Manual de Usuario (Español)",
@@ -1490,6 +1567,7 @@ const I18N_STRINGS = {
         "modal.tutorials.descargar": "Descargar",
         "modal.tutorials.coming_soon": "Próximamente",
         "modal.tutorials.close": "Cerrar",
+        "modal.announcement.dismiss": "Entendido",
         "modal.tutorials.body1": "Estamos preparando una serie de videos explicativos para ayudarte a aprovechar al máximo Convention Planner.",
         "modal.tutorials.body2": "Vuelve a revisar aquí una vez que estén listos; los enlaces aparecerán en este menú.",
         "modal.tutorials.ok": "Entendido",
@@ -1734,6 +1812,9 @@ const I18N_STRINGS = {
         // Refresh language selector visual state
         const sel = document.getElementById('lang-select');
         if (sel) sel.value = lang;
+        // Re-check the announcement — if user hasn't seen it in this language yet,
+        // it'll pop up. (Per-language tracking lives inside showAnnouncementIfNew.)
+        if (typeof showAnnouncementIfNew === 'function') showAnnouncementIfNew();
     }
 
     // applyStaticTranslations() — walks every element with a data-i18n attribute
@@ -3015,6 +3096,33 @@ const I18N_STRINGS = {
 
     // ─── Tutorials modal ─────────────────────────────────────────────────────────
     function showTutorialsModal() {
+        // Always start at the menu view, even if the user closed mid-announcement.
+        const menuView = document.getElementById('tutorials-menu-view');
+        const annView  = document.getElementById('tutorials-announcement-view');
+        if (menuView) menuView.style.display = 'block';
+        if (annView)  annView.style.display  = 'none';
+
+        // Update the announcement row's enabled/disabled state based on whether
+        // an announcement is currently configured.
+        const row = document.getElementById('tutorials-announcement-row');
+        const titleEl = row ? row.querySelector('.tutorial-option-title') : null;
+        const descEl  = document.getElementById('tutorials-announcement-desc');
+        const btn     = row ? row.querySelector('.tutorial-option-btn') : null;
+        if (row && titleEl && descEl && btn) {
+            if (ANNOUNCEMENT_VERSION) {
+                row.classList.remove('tutorial-option-disabled');
+                titleEl.textContent = t('modal.tutorials.announcement.title');
+                descEl.textContent  = t('modal.tutorials.announcement.desc');
+                btn.disabled = false;
+                btn.classList.remove('tutorial-option-btn-disabled');
+            } else {
+                row.classList.add('tutorial-option-disabled');
+                titleEl.textContent = t('modal.tutorials.announcement.none.title');
+                descEl.textContent  = t('modal.tutorials.announcement.none.desc');
+                btn.disabled = true;
+                btn.classList.add('tutorial-option-btn-disabled');
+            }
+        }
         document.getElementById('tutorials-modal').classList.add('show');
     }
     function hideTutorialsModal() {
@@ -3028,7 +3136,112 @@ const I18N_STRINGS = {
         if (e.key === 'Escape' && document.getElementById('roster-modal').classList.contains('show')) {
             hideRosterModal();
         }
+        if (e.key === 'Escape' && document.getElementById('announcement-modal').classList.contains('show')) {
+            hideAnnouncementModal();
+        }
     });
+
+    // ─── ANNOUNCEMENTS ──────────────────────────────────────────────────────────
+    // Bump ANNOUNCEMENT_VERSION any time you change the message below; existing
+    // visitors will see the new announcement on their next page load.
+    // Set ANNOUNCEMENT_VERSION to '' (empty string) to disable announcements entirely.
+    //
+    // The content uses HTML — paragraphs, links, simple emphasis are all fine.
+    // English and Spanish are written separately; the app picks based on currentLang.
+    // ────────────────────────────────────────────────────────────────────────────
+    const ANNOUNCEMENT_VERSION = "2026-05-09";
+
+    const ANNOUNCEMENT_EN = `
+        <h3 style="margin-top:0;">📣 We've moved!</h3>
+        <p>Convention Planner now has a permanent home at:</p>
+        <p style="text-align:center; margin: 14px 0;">
+            <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.1em;">app.conventionplanner.org</a>
+        </p>
+        <p>Please update your bookmarks and share the new address with your team.</p>
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">All your saved project files will continue to work — only the URL has changed.</p>
+    `;
+
+    const ANNOUNCEMENT_ES = `
+        <h3 style="margin-top:0;">📣 ¡Nos hemos mudado!</h3>
+        <p>Convention Planner ahora tiene un hogar permanente en:</p>
+        <p style="text-align:center; margin: 14px 0;">
+            <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.1em;">app.conventionplanner.org</a>
+        </p>
+        <p>Por favor actualiza tus marcadores y comparte la nueva dirección con tu equipo.</p>
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Todos tus archivos de proyecto guardados seguirán funcionando — solo la URL ha cambiado.</p>
+    `;
+    // ─── END ANNOUNCEMENTS ──────────────────────────────────────────────────────
+
+    function showAnnouncementIfNew() {
+        if (!ANNOUNCEMENT_VERSION) return;  // disabled
+        // Per-language seen tracking. Each language has its own "last seen" key,
+        // so a user who saw the English version still gets the Spanish one if
+        // they switch languages, and vice versa.
+        const langKey = 'lastSeenAnnouncement_' + currentLang;
+        try {
+            const lastSeen = localStorage.getItem(langKey);
+            if (lastSeen === ANNOUNCEMENT_VERSION) return;  // already saw this one
+            // Migrate legacy single-key value: if the old key matches and the
+            // user is in the language they originally saw it in, treat as seen.
+            // (Best-effort — we can't tell which language they originally saw
+            // it in, so we accept the legacy key for whatever language they're
+            // in right now. This avoids one nuisance re-pop after upgrade.)
+            const legacy = localStorage.getItem('lastSeenAnnouncementVersion');
+            if (legacy === ANNOUNCEMENT_VERSION) {
+                // Mark this language as seen too, so we don't bother them again
+                localStorage.setItem(langKey, ANNOUNCEMENT_VERSION);
+                return;
+            }
+        } catch (e) { /* localStorage unavailable — show anyway */ }
+
+        const modal = document.getElementById('announcement-modal');
+        const content = document.getElementById('announcement-content');
+        if (!modal || !content) return;
+        const html = (currentLang === 'es') ? ANNOUNCEMENT_ES : ANNOUNCEMENT_EN;
+        content.innerHTML = html;
+        // Small delay before showing so the page has time to settle visually.
+        // If called from a language change while the modal is already up, there's
+        // no need to delay; the user just clicked, they expect an immediate response.
+        const delay = modal.classList.contains('show') ? 0 : 500;
+        setTimeout(() => modal.classList.add('show'), delay);
+    }
+
+    function hideAnnouncementModal() {
+        const modal = document.getElementById('announcement-modal');
+        if (modal) modal.classList.remove('show');
+        try {
+            // Mark as seen for the CURRENT language only. Other languages get
+            // their own seen-flag the first time they're shown in that language.
+            const langKey = 'lastSeenAnnouncement_' + currentLang;
+            localStorage.setItem(langKey, ANNOUNCEMENT_VERSION);
+        } catch (e) { /* localStorage unavailable — silent */ }
+    }
+
+    // Open the announcement INSIDE the Tutorials modal (manual access).
+    // Doesn't change the seen-state — this is just "let me look at it again."
+    // The menu view is hidden and replaced by the announcement view; the Back
+    // button restores the menu.
+    function showAnnouncementFromTutorials() {
+        if (!ANNOUNCEMENT_VERSION) return;  // nothing to show
+        const menuView = document.getElementById('tutorials-menu-view');
+        const annView  = document.getElementById('tutorials-announcement-view');
+        const annContent = document.getElementById('tutorials-announcement-content');
+        if (!menuView || !annView || !annContent) return;
+        const html = (currentLang === 'es') ? ANNOUNCEMENT_ES : ANNOUNCEMENT_EN;
+        annContent.innerHTML = html;
+        menuView.style.display = 'none';
+        annView.style.display  = 'block';
+    }
+
+    // Swap back to the menu view inside the Tutorials modal.
+    function hideAnnouncementFromTutorials() {
+        const menuView = document.getElementById('tutorials-menu-view');
+        const annView  = document.getElementById('tutorials-announcement-view');
+        if (!menuView || !annView) return;
+        annView.style.display  = 'none';
+        menuView.style.display = 'block';
+    }
+
 
     // ─── Embedded user manuals (base64-encoded .docx files) ──────────────────────
     // The two manuals are embedded so the app stays a single self-contained file.
@@ -3601,6 +3814,9 @@ const I18N_STRINGS = {
         document.title = t('brand.title') + ' | Professional UI';
         applyStaticTranslations();
         updateUI(); setMode('idle'); applyLogo();
+        // Show first-visit announcement (or new version of it) — runs after a
+        // brief delay handled inside the function so the page settles first.
+        showAnnouncementIfNew();
     }
     function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; render(); }
 
@@ -5239,7 +5455,7 @@ const I18N_STRINGS = {
                             svg += `<circle cx="${p.x}" cy="${p.y}" r="${at.dotSize}" fill="${escapeHTML(at.dotColor)}" stroke="white" stroke-width="2" />`;
                             if (p.number) {
                                 svg += `<text x="${p.x}" y="${p.y}" font-family="Arial" font-size="${at.dotSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round">${escapeHTML(p.number)}</text>`;
-                                svg += `<text x="${p.x}" y="${p.y}" fot-family="Arial" font-size="${at.dotSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(p.number)}</text>`;
+                                svg += `<text x="${p.x}" y="${p.y}" font-family="Arial" font-size="${at.dotSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(p.number)}</text>`;
                             }
                             const name = getAssignedName(p);
                             if (name) {
