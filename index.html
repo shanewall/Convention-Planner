@@ -8,6 +8,10 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007acc%22/><text x=%2250%22 y=%2268%22 font-size=%2255%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22>CP</text></svg>">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- SheetJS for Excel (.xlsx) export of chair/key item data. Loaded from CDN;
+         falls back gracefully if offline — exportToExcel() checks for window.XLSX
+         and shows a toast if unavailable. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         :root { --bg: #1e1e1e; --panel-bg: #252526; --ribbon-bg: #333333; --accent: #007acc; --danger: #e74c3c; --success: #4caf50; --warning: #f1c40f; --screen: #e67e22; --text: #cccccc; --text-light: #ffffff; --border: #3e3e42; }
@@ -728,33 +732,58 @@
     </div>
 </div>
 
+<!-- Post Edit modal — one place to edit everything about an attendant post:
+     number, description, profile, and the style overrides (dot color/size,
+     label color/size). The post row in the sidebar shows only the essentials;
+     this modal is for the rare case where overrides or full edits are needed. -->
+<div id="post-edit-modal" class="modal-overlay" onclick="if(event.target===this) hidePostEditModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="post-edit-title" style="max-width: 520px;">
+        <h2 id="post-edit-title" data-i18n="modal.post.edit.title">Edit Post</h2>
+        <div id="post-edit-body" style="max-height: 70vh; overflow-y: auto;"></div>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px;">
+            <button id="post-edit-reset-btn" onclick="postEditResetOverrides()" class="secondary" style="background: #555;" data-i18n="modal.post.edit.reset">Reset Overrides to Profile</button>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="hidePostEditModal()" class="secondary" data-i18n="modal.post.edit.cancel">Cancel</button>
+                <button onclick="savePostEdit()" data-i18n="modal.post.edit.save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Announcement modal — appears on first visit to communicate news.
      Content is written in JavaScript (ANNOUNCEMENT_EN / ANNOUNCEMENT_ES near
      the top of the script block); version-bumping triggers re-display. -->
 <div id="announcement-modal" class="modal-overlay" onclick="if(event.target===this) hideAnnouncementModal()">
-    <div class="modal-card" role="dialog" aria-labelledby="announcement-modal-title" style="max-width: 480px; position: relative;">
-        <button onclick="hideAnnouncementModal()" aria-label="Close" class="announcement-x" title="Close">×</button>
-        <div id="announcement-content" style="text-align: left;">
+    <div class="modal-card" role="dialog" aria-labelledby="announcement-modal-title"
+         style="max-width: 480px; width: 90%; position: relative; max-height: calc(100vh - 60px); display: grid; grid-template-rows: auto 1fr auto; padding: 0;">
+        <!-- Top: close button + invisible spacer (anchored absolutely so it floats over the scroll area) -->
+        <div style="position: relative; padding: 18px 32px 0 32px;">
+            <button onclick="hideAnnouncementModal()" aria-label="Close" class="announcement-x" title="Close" style="position: absolute; top: 12px; right: 16px;">×</button>
+        </div>
+        <!-- Middle: scrollable content (this is the row that grows/shrinks) -->
+        <div id="announcement-content" style="text-align: left; overflow-y: auto; padding: 0 32px; min-height: 0;">
             <!-- Filled by showAnnouncementIfNew() -->
         </div>
-        <div class="modal-actions" style="margin-top: 18px;">
+        <!-- Bottom: dismiss button, always visible -->
+        <div class="modal-actions" style="margin: 0; padding: 16px 32px 22px 32px; border-top: 1px solid #444; display: flex; gap: 10px; justify-content: center;">
             <button onclick="hideAnnouncementModal()" data-i18n="modal.announcement.dismiss">Got it</button>
         </div>
     </div>
 </div>
 
 <div id="tutorials-modal" class="modal-overlay" onclick="if(event.target===this) hideTutorialsModal()">
-    <div class="modal-card" role="dialog" aria-labelledby="tutorials-modal-title" style="max-width: 520px;">
+    <div class="modal-card" role="dialog" aria-labelledby="tutorials-modal-title"
+         style="max-width: 520px; width: 90%; max-height: calc(100vh - 60px); display: flex; flex-direction: column; padding: 28px 32px;">
         <!-- Bilingual stacked title — same in both languages so users in either
              see the menu's purpose. The intro line below switches with the active
              language. Spans with display:block keep the HTML valid (div-in-h2 isn't). -->
-        <h2 id="tutorials-modal-title" style="text-align:center; margin: 0 0 14px 0; line-height: 1.2;">
+        <h2 id="tutorials-modal-title" style="text-align:center; margin: 0 0 14px 0; line-height: 1.2; flex-shrink: 0;">
             <span style="display:block;">About &amp; Help</span>
             <span style="display:block; font-size: 0.7em; color: #aaa; font-weight: normal;">Información y Ayuda</span>
         </h2>
 
         <!-- Menu view — the list of options. Hidden when an option is being viewed inline. -->
-        <div id="tutorials-menu-view">
+        <div id="tutorials-menu-view" style="overflow-y: auto; min-height: 0; flex: 1 1 auto;">
         <p data-i18n="modal.tutorials.intro" style="text-align:center; color: #aaa; margin-bottom: 20px;">Choose a learning resource:</p>
 
         <!-- Announcement row — always at top. The button is wired to open the
@@ -806,10 +835,12 @@
         </div><!-- /menu view -->
 
         <!-- Announcement view — shown when user clicks View. Replaces the menu inline,
-             with a Back button that swaps back. Content is filled by JS. -->
-        <div id="tutorials-announcement-view" style="display: none;">
-            <div id="tutorials-announcement-content" style="text-align: left; min-height: 100px;"></div>
-            <div class="modal-actions" style="margin-top: 20px;">
+             with a Back button that swaps back. Content is filled by JS.
+             Uses flex column layout so the content scrolls and the action buttons
+             at the bottom stay visible regardless of how long the announcement is. -->
+        <div id="tutorials-announcement-view" style="display: none; flex: 1 1 auto; min-height: 0; flex-direction: column;">
+            <div id="tutorials-announcement-content" style="text-align: left; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px;"></div>
+            <div class="modal-actions" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #444; flex-shrink: 0;">
                 <button class="secondary" onclick="hideAnnouncementFromTutorials()" data-i18n="modal.tutorials.back">← Back</button>
                 <button onclick="hideTutorialsModal()" data-i18n="modal.tutorials.close">Close</button>
             </div>
@@ -911,10 +942,14 @@
                      the name 'project-units' so the browser handles mutual exclusion. -->
                 <div class="input-group" style="margin-bottom: 0;">
                     <label data-i18n="project.units.label">Units</label>
-                    <div style="display: flex; gap: 14px; padding: 4px 0;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 0;">
                         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
                             <input type="radio" name="project-units" value="ft" id="project-units-ft" onchange="setUnits('ft')" style="width: auto; margin: 0;">
                             <span data-i18n="project.units.feet">Feet (ft)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="project-units" value="m" id="project-units-m" onchange="setUnits('m')" style="width: auto; margin: 0;">
+                            <span data-i18n="project.units.meters">Meters (m)</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
                             <input type="radio" name="project-units" value="mm" id="project-units-mm" onchange="setUnits('mm')" style="width: auto; margin: 0;">
@@ -983,6 +1018,19 @@
                     </p>
                     <button class="btn-full btn-primary" style="margin-top: 6px;" onclick="startMergeProject()" data-i18n="project.merge.start">📥 Choose File to Merge</button>
                     <input type="file" id="merge-file-input" accept=".json,application/json" onchange="handleMergeFileSelected(this)" style="display:none;">
+                </div>
+                <!-- Export chair & key-item data to a two-sheet Excel workbook.
+                     One row per area / per item; users can pivot or filter as
+                     they wish. Shifts/attendants stay in their own import/export. -->
+                <div class="collapse-header collapsed" data-collapse-target="export-excel-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
+                    <span class="title" data-i18n="project.export_excel.header">📊 Export to Excel</span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div id="export-excel-body" class="collapse-body collapsed">
+                    <p style="font-size: 0.8em; color: #aaa; margin: 8px 0;" data-i18n="project.export_excel.description">
+                        Download chair counts and key-item data as a two-sheet .xlsx file. Useful for pivot tables, reporting, or combining with other projects.
+                    </p>
+                    <button class="btn-full btn-primary" style="margin-top: 6px;" onclick="exportToExcel()" data-i18n="project.export_excel.start">📥 Download .xlsx</button>
                 </div>
             </div>
         </div>
@@ -1248,6 +1296,16 @@
             <div id="crosshair-h"></div>
             <div id="crosshair-mark"></div>
         </div>
+        <!-- In-place text editor overlay. Shown when placing new text or
+             editing existing text. Positioned absolutely within the viewport;
+             font/size/color set in JS to match the rendered text. -->
+        <textarea id="canvas-text-editor"
+            style="display:none; position:absolute; background:rgba(255,255,255,0.95); color:#000;
+                   border:2px dashed #2ecc71; border-radius:3px; padding:2px 4px; margin:0;
+                   resize:none; outline:none; font-family:Arial; font-weight:bold;
+                   line-height:1.1; box-sizing:content-box; z-index:50; overflow:hidden;
+                   white-space:pre; min-width:30px; min-height:1em;"
+            spellcheck="false"></textarea>
     </div>
 </div>
 </div><!-- /app-root -->
@@ -1296,7 +1354,7 @@ const I18N_STRINGS = {
         "btn.open": "📁 Open",
         "btn.print": "🖨️ Print",
         "ribbon.system": "System",
-        "print.summary": "Summary",
+        "print.summary": "Chair Summary",
         "print.layout": "Layout",
         "print.signs": "Key Item Report",
         "print.schedule": "Shift Schedule",
@@ -1327,6 +1385,7 @@ const I18N_STRINGS = {
         "project.title.label": "Project Title",
         "project.units.label": "Units",
         "project.units.feet": "Feet (ft)",
+        "project.units.meters": "Meters (m)",
         "project.units.millimeters": "Millimeters (mm)",
         "project.pages.header": "Pages & Backgrounds",
         "project.pages.add": "+ New Page",
@@ -1361,6 +1420,20 @@ const I18N_STRINGS = {
         "screen.field.beam": "Beam (°)",
         "screen.field.dist": "Dist ({unit})",
         "screen.field.width": "Width ({unit})",
+        "line.arrow.start": "Start arrow",
+        "line.arrow.end": "End arrow",
+        "line.label_size": "Label Size",
+        "common.color": "Color",
+        "common.weight": "Weight",
+        "common.size": "Size",
+        "common.text_size": "Text Size",
+        "common.rotation": "Rotation",
+        "common.profile": "Profile",
+        "common.label": "Label",
+        "common.default_size": "Default Size",
+        "common.override_size": "Override Instance Size",
+        "common.angle_deg": "Angle (°)",
+        "common.beam_deg": "Beam (°)",
         "sign.points.header": "Point Profiles",
         "sign.points.add": "+ Add Point Profile",
         "sign.measures.header": "Measure Profiles",
@@ -1453,8 +1526,10 @@ const I18N_STRINGS = {
         "layers.all_screens": "🟨 A/V Screens",
         "layers.all_attendants": "🧍 Attendant Posts",
         "layers.all_obs": "🧱 Cutouts & Aisles",
-        "layers.all_lines": "➖ Annotations, Poly & Measures",
+        "layers.all_lines": "➖ Lines & Polylines",
         "layers.all_dims": "📏 Dimensions",
+        "layers.all_texts": "🅰 Text Labels",
+        "layers.all_measures": "〰️ Polymeasures",
         "stats.scale.notset": "Scale: Not Set",
         "stats.scale.set": "Scale: {n} px/{unit}",
         "stats.total_seats": "Total Seats:",
@@ -1488,12 +1563,43 @@ const I18N_STRINGS = {
         "project.merge.header": "🔀 Merge from File",
         "project.merge.description": "Combine another project file with this one. Profiles match by name; placed items append. Useful for collaborative workflows.",
         "project.merge.start": "📥 Choose File to Merge",
+        "project.export_excel.header": "📊 Export to Excel",
+        "project.export_excel.description": "Download chair counts and key-item data as a two-sheet .xlsx file. Useful for pivot tables, reporting, or combining with other projects.",
+        "project.export_excel.start": "📥 Download .xlsx",
+        "project.export_excel.sheet.chairs": "Chair Summary",
+        "project.export_excel.sheet.keyitems": "Key Items",
+        "project.export_excel.col.page": "Page",
+        "project.export_excel.col.type": "Type",
+        "project.export_excel.col.area": "Area Name",
+        "project.export_excel.col.count": "Count",
+        "project.export_excel.col.kind": "Kind",
+        "project.export_excel.col.length": "Total Length ({unit})",
+        "project.export_excel.kind.sign": "Sign",
+        "project.export_excel.kind.measure": "Measure",
+        "project.export_excel.toast.success": "Excel file downloaded",
+        "project.export_excel.toast.empty": "Nothing to export — no chairs or key items in this project",
+        "project.export_excel.toast.unavailable": "Excel export library not loaded. Check your connection and reload.",
         "modal.merge.savefirst.title": "Save First",
         "modal.merge.savefirst.body": "Merging another file modifies your current project. Save first so you can always go back if you don't like the result.",
         "modal.merge.savefirst.save": "💾 Save now, then merge",
         "modal.merge.savefirst.continue": "I've already saved — continue",
         "modal.merge.savefirst.cancel": "Cancel",
         "modal.merge.preview.title": "Merge Preview",
+        "modal.post.edit.title": "Edit Post",
+        "modal.post.edit.section.identity": "Post Identity",
+        "modal.post.edit.section.style": "Style Overrides",
+        "modal.post.edit.section.style.hint": "Most posts use the profile's defaults. Override here only when this specific post needs something different (e.g. shrink a dot when several posts cluster together).",
+        "modal.post.edit.field.number": "Post Number",
+        "modal.post.edit.field.description": "Description",
+        "modal.post.edit.field.profile": "Style Profile (base)",
+        "modal.post.edit.field.dot_color": "Dot Color",
+        "modal.post.edit.field.dot_size": "Dot Size",
+        "modal.post.edit.field.label_color": "Label Color",
+        "modal.post.edit.field.label_size": "Label Size",
+        "modal.post.edit.override_tag": "★ overridden",
+        "modal.post.edit.reset": "Reset Overrides to Profile",
+        "modal.post.edit.cancel": "Cancel",
+        "modal.post.edit.save": "Save",
         "modal.merge.preview.intro": "Review what will be added and resolve any conflicts before applying.",
         "modal.merge.preview.cancel": "Cancel",
         "modal.merge.preview.apply": "Apply Merge",
@@ -1646,11 +1752,12 @@ const I18N_STRINGS = {
         "canvas.measure.cumulative_prefix": "Σ",
         "print.subtitle": "Convention Planner",
         "print.layout.heading": "Layout",
-        "print.summary.title": "Project Summary",
+        "print.summary.title": "Chair Summary",
         "print.summary.col.section": "Section Name",
-        "print.summary.col.count": "Count / Length",
+        "print.summary.col.count": "Count",
         "print.summary.group.suffix": "{name} Group",
         "print.summary.subtotal": "{name} Subtotal:",
+        "print.summary.page_total": "AREA TOTAL ALL CHAIRS",
         "print.summary.total_type": "TOTAL {name}",
         "print.summary.grand_total": "GRAND TOTAL ALL CHAIRS",
         "print.summary.keyitems_banner": "KEY ITEMS",
@@ -1679,7 +1786,7 @@ const I18N_STRINGS = {
         "btn.open": "📁 Abrir",
         "btn.print": "🖨️ Imprimir",
         "ribbon.system": "Sistema",
-        "print.summary": "Resumen",
+        "print.summary": "Resumen de Sillas",
         "print.layout": "Plano",
         "print.signs": "Informe de Artículos Claves",
         "print.schedule": "Horario de Turnos",
@@ -1710,6 +1817,7 @@ const I18N_STRINGS = {
         "project.title.label": "Título del Proyecto",
         "project.units.label": "Unidades",
         "project.units.feet": "Pies (ft)",
+        "project.units.meters": "Metros (m)",
         "project.units.millimeters": "Milímetros (mm)",
         "project.pages.header": "Páginas y Fondos",
         "project.pages.add": "+ Nueva página",
@@ -1744,6 +1852,20 @@ const I18N_STRINGS = {
         "screen.field.beam": "Haz (°)",
         "screen.field.dist": "Dist ({unit})",
         "screen.field.width": "Ancho ({unit})",
+        "line.arrow.start": "Flecha al inicio",
+        "line.arrow.end": "Flecha al final",
+        "line.label_size": "Tamaño Etiqueta",
+        "common.color": "Color",
+        "common.weight": "Grosor",
+        "common.size": "Tamaño",
+        "common.text_size": "Tamaño Texto",
+        "common.rotation": "Rotación",
+        "common.profile": "Perfil",
+        "common.label": "Etiqueta",
+        "common.default_size": "Tamaño Predeterminado",
+        "common.override_size": "Anular Tamaño de Instancia",
+        "common.angle_deg": "Ángulo (°)",
+        "common.beam_deg": "Haz (°)",
         "sign.points.header": "Perfiles de Puntos",
         "sign.points.add": "+ Añadir Perfil de Punto",
         "sign.measures.header": "Perfiles de Medición",
@@ -1836,8 +1958,10 @@ const I18N_STRINGS = {
         "layers.all_screens": "🔳 Pantallas A/V",
         "layers.all_attendants": "🧍 Puestos de Acomodadores",
         "layers.all_obs": "🧱 Recortes y Pasillos",
-        "layers.all_lines": "➖ Anotaciones, Polilíneas y Medidas",
+        "layers.all_lines": "➖ Líneas y Polilíneas",
         "layers.all_dims": "📏 Cotas",
+        "layers.all_texts": "🅰 Etiquetas de Texto",
+        "layers.all_measures": "〰️ Polimedidas",
         "stats.scale.notset": "Escala: No Establecida",
         "stats.scale.set": "Escala: {n} px/{unit}",
         "stats.total_seats": "Total de Asientos:",
@@ -1871,12 +1995,43 @@ const I18N_STRINGS = {
         "project.merge.header": "🔀 Fusionar desde Archivo",
         "project.merge.description": "Combina otro archivo de proyecto con éste. Los perfiles coinciden por nombre; los elementos colocados se añaden al final. Útil para flujos colaborativos.",
         "project.merge.start": "📥 Elegir Archivo para Fusionar",
+        "project.export_excel.header": "📊 Exportar a Excel",
+        "project.export_excel.description": "Descarga los recuentos de sillas y los datos de artículos claves como un archivo .xlsx con dos hojas. Útil para tablas dinámicas, informes o combinar con otros proyectos.",
+        "project.export_excel.start": "📥 Descargar .xlsx",
+        "project.export_excel.sheet.chairs": "Resumen de Sillas",
+        "project.export_excel.sheet.keyitems": "Artículos Claves",
+        "project.export_excel.col.page": "Página",
+        "project.export_excel.col.type": "Tipo",
+        "project.export_excel.col.area": "Nombre del Área",
+        "project.export_excel.col.count": "Cantidad",
+        "project.export_excel.col.kind": "Clase",
+        "project.export_excel.col.length": "Longitud Total ({unit})",
+        "project.export_excel.kind.sign": "Letrero",
+        "project.export_excel.kind.measure": "Medida",
+        "project.export_excel.toast.success": "Archivo Excel descargado",
+        "project.export_excel.toast.empty": "Nada que exportar — no hay sillas ni artículos claves en este proyecto",
+        "project.export_excel.toast.unavailable": "Biblioteca de exportación a Excel no cargada. Comprueba tu conexión y recarga.",
         "modal.merge.savefirst.title": "Guarda Primero",
         "modal.merge.savefirst.body": "Fusionar otro archivo modifica tu proyecto actual. Guarda primero para poder volver atrás si no te gusta el resultado.",
         "modal.merge.savefirst.save": "💾 Guardar ahora y fusionar",
         "modal.merge.savefirst.continue": "Ya guardé — continuar",
         "modal.merge.savefirst.cancel": "Cancelar",
         "modal.merge.preview.title": "Vista Previa de Fusión",
+        "modal.post.edit.title": "Editar Puesto",
+        "modal.post.edit.section.identity": "Identidad del Puesto",
+        "modal.post.edit.section.style": "Anulaciones de Estilo",
+        "modal.post.edit.section.style.hint": "La mayoría de los puestos usan los valores predeterminados del perfil. Anula aquí sólo cuando este puesto específico necesite algo diferente (por ejemplo, reducir el tamaño del punto cuando varios puestos están agrupados).",
+        "modal.post.edit.field.number": "Número del Puesto",
+        "modal.post.edit.field.description": "Descripción",
+        "modal.post.edit.field.profile": "Perfil de Estilo (base)",
+        "modal.post.edit.field.dot_color": "Color del Punto",
+        "modal.post.edit.field.dot_size": "Tamaño del Punto",
+        "modal.post.edit.field.label_color": "Color de Etiqueta",
+        "modal.post.edit.field.label_size": "Tamaño de Etiqueta",
+        "modal.post.edit.override_tag": "★ anulado",
+        "modal.post.edit.reset": "Restablecer Anulaciones al Perfil",
+        "modal.post.edit.cancel": "Cancelar",
+        "modal.post.edit.save": "Guardar",
         "modal.merge.preview.intro": "Revisa qué se añadirá y resuelve los conflictos antes de aplicar.",
         "modal.merge.preview.cancel": "Cancelar",
         "modal.merge.preview.apply": "Aplicar Fusión",
@@ -2029,11 +2184,12 @@ const I18N_STRINGS = {
         "canvas.measure.cumulative_prefix": "Σ",
         "print.subtitle": "Organiza Asambleas",
         "print.layout.heading": "Plano",
-        "print.summary.title": "Resumen del Proyecto",
+        "print.summary.title": "Resumen de Sillas",
         "print.summary.col.section": "Nombre de la Sección",
-        "print.summary.col.count": "Cantidad / Longitud",
+        "print.summary.col.count": "Cantidad",
         "print.summary.group.suffix": "Grupo {name}",
         "print.summary.subtotal": "Subtotal {name}:",
+        "print.summary.page_total": "TOTAL DEL ÁREA",
         "print.summary.total_type": "TOTAL {name}",
         "print.summary.grand_total": "TOTAL GENERAL DE TODAS LAS SILLAS",
         "print.summary.keyitems_banner": "ARTÍCULOS CLAVES",
@@ -2329,9 +2485,12 @@ const I18N_STRINGS = {
 
     function renameSelectedItem() {
         const item = getSelectedItem(); if (!item) return;
+        // Text gets the new in-place editor (no more prompt for text).
+        if (item.kind === 'text') {
+            startTextEdit(item.index, 0, 0);
+            return;
+        }
         let promptLabel = t('prompt.rename', { label: item.label });
-        // Text uses the .text property (the actual displayed text)
-        if (item.kind === 'text') promptLabel = t('prompt.edit_text');
         if (item.kind === 'attendant') promptLabel = t('prompt.attendant_number');
         // Sign instances don't have their own name — they inherit from typeIndex
         if (item.kind === 'sign') {
@@ -2343,15 +2502,13 @@ const I18N_STRINGS = {
             alert(t('measure.cannot_rename_instance'));
             return;
         }
-        const current = item.kind === 'text' ? item.ref.text : (item.kind === 'attendant' ? (item.ref.number || '') : (item.ref.name || ''));
+        const current = item.kind === 'attendant' ? (item.ref.number || '') : (item.ref.name || '');
         const next = prompt(promptLabel, current);
         if (next === null) return; // user cancelled
         const trimmed = next.trim();
         if (trimmed === '') { showToast(t('error.empty_name')); return; }
         saveState();
-        if (item.kind === 'text') item.ref.text = trimmed;
-        else if (item.kind === 'attendant') {
-            // Rename for attendant: edit the post number (the dot label)
+        if (item.kind === 'attendant') {
             item.ref.number = trimmed.slice(0, 3);
         }
         else item.ref.name = trimmed;
@@ -2528,12 +2685,20 @@ const I18N_STRINGS = {
         showScreens: true,
         showObs: true,
         showMeasures: true,
+        showTexts: true,
         showAttendants: true,
         showShiftInPrint: true
     };
     
     let view = { x: 0, y: 0, zoom: 1 };
     let mode = 'idle', currentPoints = [], calPoint = null;
+    // Tracks which text annotation is currently being edited in-place
+    // (textarea overlay). -1 means none. When set, the canvas rendering
+    // skips drawing that text item (since the overlay displays it instead).
+    // When -2, we're in "placing new" mode (the textarea is shown over a
+    // location where no text item exists yet).
+    let _textEditingIndex = -1;
+    let _textEditingNewPos = null; // {x, y} for new-placement mode
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
     let bgImage = new Image();
     
@@ -2833,16 +2998,166 @@ const I18N_STRINGS = {
         updateUI(); triggerUpdate();
     }
 
+    // ─── POST EDIT MODAL ────────────────────────────────────────────────────────
+    // Opens a modal where the user can edit a post's number/description, choose
+    // its profile, and (rarely) override its dot/label color/size. Pulls the
+    // post into a working copy; Save writes back; Cancel discards.
+
+    let _postEditTargetIdx = -1;
+
     function editAttendantPostMeta(idx) {
         const post = project.attendants.posts[idx]; if (!post) return;
-        const num = prompt(t('att.post.number.prompt'), post.number || '');
-        if (num === null) return;
-        const desc = prompt(t('att.post.desc.prompt'), post.description || '');
-        if (desc === null) return;
+        _postEditTargetIdx = idx;
+        renderPostEditBody();
+        document.getElementById('post-edit-modal').classList.add('show');
+    }
+
+    function hidePostEditModal() {
+        document.getElementById('post-edit-modal').classList.remove('show');
+        _postEditTargetIdx = -1;
+    }
+
+    function renderPostEditBody() {
+        const idx = _postEditTargetIdx;
+        const post = project.attendants.posts[idx]; if (!post) return;
+        const profile = project.attendantTypes[post.typeIndex ?? 0] || project.attendantTypes[0];
+
+        // Effective values: override if set, else profile default
+        const effDotColor   = post.dotColor   !== undefined ? post.dotColor   : profile.dotColor;
+        const effDotSize    = post.dotSize    !== undefined ? post.dotSize    : profile.dotSize;
+        const effLabelColor = post.labelColor !== undefined ? post.labelColor : profile.labelColor;
+        const effLabelSize  = post.labelSize  !== undefined ? post.labelSize  : profile.labelSize;
+
+        // Override badge: shown next to a field's label when that field has an
+        // override (i.e. its value differs from the profile by having been set).
+        const tag = (overridden) => overridden
+            ? ` <span style="color:#f1c40f; font-size:0.75em; font-weight:normal;" title="${escapeHTML(t('modal.post.edit.override_tag'))}">★</span>`
+            : '';
+
+        // Build an inline swatch row that sets the color input by id when clicked.
+        const swatchRow = (inputId) => {
+            const swatches = PRESET_COLORS.map(c =>
+                `<button type="button" class="color-swatch" style="background-color: ${escapeHTML(c)};"
+                    title="${escapeHTML(c)}"
+                    onclick="document.getElementById('${inputId}').value='${escapeHTML(c)}';"></button>`
+            ).join('');
+            return `<div style="display: flex; flex-wrap: wrap; gap: 3px;">${swatches}</div>`;
+        };
+
+        const body = document.getElementById('post-edit-body');
+        body.innerHTML = `
+            <!-- Identity section: number, description (profile is picked when
+                 creating the post and editable inline in the sidebar; no need
+                 to repeat it here). -->
+            <h3 style="margin-top: 8px; margin-bottom: 8px; font-size: 0.95em; color: #ddd;">${escapeHTML(t('modal.post.edit.section.identity'))}</h3>
+            <div style="display: grid; grid-template-columns: 110px 1fr; gap: 8px 10px; align-items: center; margin-bottom: 14px;">
+                <label style="font-size: 0.9em; color: #aaa;">${escapeHTML(t('modal.post.edit.field.number'))}</label>
+                <input id="post-edit-number" type="text" maxlength="3" class="text-input-dark" value="${escapeHTML(post.number || '')}" style="width: 100%;">
+                <label style="font-size: 0.9em; color: #aaa;">${escapeHTML(t('modal.post.edit.field.description'))}</label>
+                <input id="post-edit-description" type="text" class="text-input-dark" value="${escapeHTML(post.description || '')}" style="width: 100%;">
+            </div>
+
+            <!-- Style overrides section. Simple inline-row layout: each row has
+                 a native color picker, a strip of preset swatches, and a size
+                 input. No stretched columns, no separate palette block — same
+                 pattern most graphics tools use. -->
+            <h3 style="margin-top: 14px; margin-bottom: 4px; font-size: 0.95em; color: #ddd;">${escapeHTML(t('modal.post.edit.section.style'))}</h3>
+            <p style="font-size: 0.8em; color: #888; font-style: italic; margin: 0 0 12px 0;">${escapeHTML(t('modal.post.edit.section.style.hint'))}</p>
+
+            <!-- Dot row -->
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <label style="width: 60px; font-size: 0.85em; color: #aaa; flex-shrink: 0;">
+                    ${escapeHTML(t('modal.post.edit.field.dot_color').replace(/ Color$/i, ''))}${tag(post.dotColor !== undefined || post.dotSize !== undefined)}
+                </label>
+                <input id="post-edit-dot-color" type="color" value="${escapeHTML(effDotColor)}" style="width: 36px; height: 28px; padding: 0; border: 1px solid #444; flex-shrink: 0;">
+                ${swatchRow('post-edit-dot-color')}
+                <label style="font-size: 0.85em; color: #aaa; margin-left: auto; flex-shrink: 0;">${escapeHTML(t('modal.post.edit.field.dot_size'))}</label>
+                <input id="post-edit-dot-size" type="number" min="6" max="80" step="1" value="${effDotSize}" style="width: 60px; flex-shrink: 0;">
+            </div>
+
+            <!-- Label row -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="width: 60px; font-size: 0.85em; color: #aaa; flex-shrink: 0;">
+                    ${escapeHTML(t('modal.post.edit.field.label_color').replace(/ Color$/i, ''))}${tag(post.labelColor !== undefined || post.labelSize !== undefined)}
+                </label>
+                <input id="post-edit-label-color" type="color" value="${escapeHTML(effLabelColor)}" style="width: 36px; height: 28px; padding: 0; border: 1px solid #444; flex-shrink: 0;">
+                ${swatchRow('post-edit-label-color')}
+                <label style="font-size: 0.85em; color: #aaa; margin-left: auto; flex-shrink: 0;">${escapeHTML(t('modal.post.edit.field.label_size'))}</label>
+                <input id="post-edit-label-size" type="number" min="6" max="60" step="1" value="${effLabelSize}" style="width: 60px; flex-shrink: 0;">
+            </div>
+        `;
+    }
+
+    function postEditResetOverrides() {
+        const idx = _postEditTargetIdx;
+        const post = project.attendants.posts[idx]; if (!post) return;
         saveState();
-        post.number = (num || '').trim().slice(0, 3);
-        post.description = (desc || '').trim();
-        updateUI(); triggerUpdate();
+        // Clear the override fields on the working post and re-render.
+        delete post.dotColor;
+        delete post.dotSize;
+        delete post.labelColor;
+        delete post.labelSize;
+        renderPostEditBody();
+        // Also refresh the sidebar (clears the ⚙ override indicator on the
+        // post row) and the canvas (so the dot/label revert to profile sizing).
+        updateUI();
+        triggerUpdate();
+    }
+
+    // Called by Save. Reads the modal inputs and writes back to the post.
+    // An override field is set only if it differs from the profile default;
+    // matching values clear the override (so the field tracks the profile).
+    function savePostEdit() {
+        const idx = _postEditTargetIdx;
+        const post = project.attendants.posts[idx]; if (!post) return;
+        saveState();
+
+        // Identity (number + description only; profile lives in the sidebar)
+        const numVal  = (document.getElementById('post-edit-number').value || '').trim().slice(0, 3);
+        const descVal = (document.getElementById('post-edit-description').value || '').trim();
+        post.number = numVal;
+        post.description = descVal;
+
+        // Style overrides: each field is stored only if it differs from the
+        // profile default. If a value matches the profile, we delete any
+        // existing override so the post just inherits.
+        const profile = project.attendantTypes[post.typeIndex ?? 0] || project.attendantTypes[0];
+        const dotColor   = document.getElementById('post-edit-dot-color').value;
+        const dotSize    = parseFloat(document.getElementById('post-edit-dot-size').value);
+        const labelColor = document.getElementById('post-edit-label-color').value;
+        const labelSize  = parseFloat(document.getElementById('post-edit-label-size').value);
+
+        // Normalize colors to lowercase 6-digit hex so case/format differences
+        // between "#FF0000" and "#ff0000" don't create spurious overrides.
+        const normColor = (c) => {
+            if (typeof c !== 'string') return c;
+            let s = c.trim().toLowerCase();
+            // Expand 3-digit hex (#f00) to 6-digit (#ff0000) for fair comparison
+            if (/^#[0-9a-f]{3}$/.test(s)) {
+                s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+            }
+            return s;
+        };
+        const colorsEqual = (a, b) => normColor(a) === normColor(b);
+
+        const applyColor = (field, value, defaultValue) => {
+            if (value === undefined) return;
+            if (colorsEqual(value, defaultValue)) delete post[field];
+            else post[field] = value;
+        };
+        const applyNumber = (field, value, defaultValue) => {
+            if (value === undefined || (typeof value === 'number' && isNaN(value))) return;
+            if (value === defaultValue) delete post[field];
+            else post[field] = value;
+        };
+        applyColor('dotColor',   dotColor,   profile.dotColor);
+        applyNumber('dotSize',   dotSize,    profile.dotSize);
+        applyColor('labelColor', labelColor, profile.labelColor);
+        applyNumber('labelSize', labelSize,  profile.labelSize);
+
+        hidePostEditModal();
+        updateUI();
+        triggerUpdate();
     }
 
     // ─── Panel rendering ────────────────────────────────────────────────────────
@@ -2961,46 +3276,21 @@ const I18N_STRINGS = {
                     <span style="font-size: 0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${scopeLabel} <strong>${escapeHTML(p.number || '?')}</strong> — ${escapeHTML(p.description || t('att.post.no_description'))}${isOverridden ? ' <span style="color:#f1c40f; font-size:0.8em;" title="This post has style overrides">⚙</span>' : ''}</span>
                     <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                         ${reorderArrowsHTMLEx('movePost', realIdx, hasPrev, hasNext)}
-                        <button class="icon-btn" onclick="event.stopPropagation(); editAttendantPostMeta(${realIdx})" title="Edit number/description">✎</button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); editAttendantPostMeta(${realIdx})" title="${escapeHTML(t('modal.post.edit.title'))}">✎</button>
                         <button class="icon-btn" onclick="event.stopPropagation(); deleteAttendantPost(${realIdx})" title="Delete post">✕</button>
                     </div>
+                </div>
+                <!-- Profile dropdown: shown inline because it's the most-changed
+                     field (decides what "kind" of post this is) and is useful
+                     for at-a-glance scanning of post types. -->
+                <div style="margin-top:6px;" onclick="event.stopPropagation();">
+                    <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.post.style_profile_label'))}</label>
+                    <select style="width:100%;" onchange="saveState(); project.attendants.posts[${realIdx}].typeIndex=parseInt(this.value); triggerUpdate(); updateUI();">${profileOpts}</select>
                 </div>
                 ${activeShiftId ? `<div style="margin-top:6px;" onclick="event.stopPropagation();">
                     <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.post.assigned_label'))}</label>
                     <input list="att-roster-datalist" type="text" class="text-input-dark" style="background:#222; border:1px solid #444; padding:4px 6px;" placeholder="${escapeHTML(t('att.post.assigned_placeholder'))}" value="${escapeHTML(assignedName)}" onchange="setAssignedName('${p.id}', this.value)">
                 </div>` : `<div style="font-size:0.7em; color:#888; font-style:italic; margin-top:4px;">${escapeHTML(t('att.post.no_shift_selected'))}</div>`}
-
-                ${isSel ? `<div style="margin-top:10px; padding-top:10px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-size:0.75em; color:#aaa; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">${escapeHTML(t('att.post.style_section'))}</span>
-                        ${isOverridden ? `<button class="icon-btn" style="font-size:0.75em; color:#f1c40f;" onclick="resetAttendantPostOverrides(${realIdx})" title="Clear all overrides and use the profile default">${escapeHTML(t('att.post.reset_to_profile'))}</button>` : ''}
-                    </div>
-                    <div style="margin-bottom:8px;">
-                        <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.post.style_profile_label'))}</label>
-                        <select onchange="saveState(); project.attendants.posts[${realIdx}].typeIndex=parseInt(this.value); triggerUpdate(); updateUI();">${profileOpts}</select>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                        <div>
-                            <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.types.field.dot_color'))}${p.dotColor !== undefined ? ' <span style="color:#f1c40f;">★</span>' : ''}</label>
-                            <input type="color" value="${escapeHTML(at.dotColor)}" onchange="updateAttendantPostOverride(${realIdx}, 'dotColor', this.value)">
-                            ${getPaletteHTML('updateAttendantPostOverride', realIdx, 'dotColor')}
-                        </div>
-                        <div>
-                            <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.types.field.dot_size'))}${p.dotSize !== undefined ? ' <span style="color:#f1c40f;">★</span>' : ''}</label>
-                            <input type="number" min="6" max="80" step="1" value="${at.dotSize}" onchange="updateAttendantPostOverride(${realIdx}, 'dotSize', this.value)">
-                        </div>
-                        <div>
-                            <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.types.field.label_color'))}${p.labelColor !== undefined ? ' <span style="color:#f1c40f;">★</span>' : ''}</label>
-                            <input type="color" value="${escapeHTML(at.labelColor)}" onchange="updateAttendantPostOverride(${realIdx}, 'labelColor', this.value)">
-                            ${getPaletteHTML('updateAttendantPostOverride', realIdx, 'labelColor')}
-                        </div>
-                        <div>
-                            <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('att.types.field.label_size'))}${p.labelSize !== undefined ? ' <span style="color:#f1c40f;">★</span>' : ''}</label>
-                            <input type="number" min="6" max="60" step="1" value="${at.labelSize}" onchange="updateAttendantPostOverride(${realIdx}, 'labelSize', this.value)">
-                        </div>
-                    </div>
-                    <div style="font-size:0.7em; color:#888; font-style:italic; margin-top:6px;">${escapeHTML(t('att.post.override_legend'))}</div>
-                </div>` : ''}
             </li>`;
         }
 
@@ -3569,7 +3859,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "1.3.0";
+    const APP_VERSION = "1.7.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -3661,15 +3951,18 @@ const I18N_STRINGS = {
     // round-tripping between unit modes is lossless.
     // ────────────────────────────────────────────────────────────────────────────
     const FT_TO_MM = 304.8;
+    const FT_TO_M = 0.3048;
 
     function getUnits() {
-        return (project && project.units === 'mm') ? 'mm' : 'ft';
+        const u = project && project.units;
+        return (u === 'mm' || u === 'm') ? u : 'ft';
     }
 
     // Format a value-in-feet for display in the user's current unit.
-    // Returns a string like "12.5 ft" or "3810 mm".
+    // Returns a string like "12.5 ft", "3810 mm", or "3.81 m".
     // opts.includeUnit defaults to true; pass false for raw numeric strings.
-    // opts.precision overrides the default precision (1 decimal for ft, 0 for mm).
+    // opts.precision overrides the default precision (1 decimal for ft, 0 for
+    // mm, 2 for m).
     function formatLength(feet, opts = {}) {
         const units = getUnits();
         const includeUnit = opts.includeUnit !== false;
@@ -3678,6 +3971,11 @@ const I18N_STRINGS = {
             const precision = (opts.precision !== undefined) ? opts.precision : 0;
             const numStr = mm.toFixed(precision);
             return includeUnit ? `${numStr} mm` : numStr;
+        } else if (units === 'm') {
+            const m = feet * FT_TO_M;
+            const precision = (opts.precision !== undefined) ? opts.precision : 2;
+            const numStr = m.toFixed(precision);
+            return includeUnit ? `${numStr} m` : numStr;
         } else {
             const precision = (opts.precision !== undefined) ? opts.precision : 1;
             const numStr = feet.toFixed(precision);
@@ -3687,29 +3985,52 @@ const I18N_STRINGS = {
 
     // Parse user input (a string or number) as the current unit, return feet.
     // Invalid input returns NaN; callers decide how to handle.
+    // Accepts both "." and "," as decimal separators so Spanish/European users
+    // who type "3,5" get the same result as English users who type "3.5".
     function parseLength(input) {
+        if (typeof input === 'string') input = input.replace(',', '.');
         const num = parseFloat(input);
         if (isNaN(num)) return NaN;
         const units = getUnits();
-        return (units === 'mm') ? num / FT_TO_MM : num;
+        if (units === 'mm') return num / FT_TO_MM;
+        if (units === 'm')  return num / FT_TO_M;
+        return num; // ft
     }
 
     // Convert feet to the current display unit (number, no formatting).
     // Used for input fields where we need the numeric value, not a string.
     function feetToDisplay(feet) {
         const units = getUnits();
-        return (units === 'mm') ? feet * FT_TO_MM : feet;
+        if (units === 'mm') return feet * FT_TO_MM;
+        if (units === 'm')  return feet * FT_TO_M;
+        return feet; // ft
     }
 
-    // Returns the user-facing label for the current unit ("ft" or "mm")
+    // Returns the user-facing label for the current unit ("ft", "mm", or "m")
     function getUnitLabel() {
-        return (getUnits() === 'mm') ? 'mm' : 'ft';
+        return getUnits();
+    }
+
+    // Returns the step attribute for <input type="number"> in the current unit.
+    // mm uses 1, m uses 0.01, ft uses 0.1.
+    function getUnitStep() {
+        const u = getUnits();
+        if (u === 'mm') return '1';
+        if (u === 'm')  return '0.01';
+        return '0.1';
+    }
+    // Number of decimal places to display in the current unit.
+    function getUnitDecimals() {
+        const u = getUnits();
+        if (u === 'mm') return 0;
+        if (u === 'm')  return 2;
+        return 1;
     }
 
     // Switch the project's units. Storage stays in feet; only display changes.
     // Triggers a full UI rebuild + canvas redraw so every measurement re-renders.
     function setUnits(unit) {
-        if (unit !== 'ft' && unit !== 'mm') return;
+        if (unit !== 'ft' && unit !== 'mm' && unit !== 'm') return;
         if (!project) return;
         if (project.units === unit) return;  // no-op if already set
         project.units = unit;
@@ -3726,28 +4047,49 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2026-05-12";
+    const ANNOUNCEMENT_VERSION = "2026-05-17b";
 
     const ANNOUNCEMENT_EN = `
-        <h3 style="margin-top:0;">📣 What's New</h3>
+        <h3 style="margin-top:0;">📣 What's New in 1.7</h3>
+        <p style="font-size: 0.85em; color: #aaa; margin-top: -6px;">A combined summary of recent updates.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🔀 New: Merge from File</p>
-        <p style="font-size: 0.9em;">You can now combine another project file with the current one. Useful when a team is collaborating — one person can build a template (profiles, pages, shifts), share it, and merge everyone's contributions back together later.</p>
-        <p style="font-size: 0.9em;">Find it in the <strong>Project</strong> tab under <strong>🔀 Merge from File</strong>. The preview shows what will be added, flags duplicates, and lets you pick which items to include before applying.</p>
+        <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Drawing &amp; editing</h4>
 
-        <p style="font-size: 0.9em; margin-top: 10px;"><strong style="color:#ddd;">Also new:</strong> ▲▼ reorder arrows on every sidebar list (profiles, pages, shifts, posts, and more) so you can put things in the order that makes sense for your project.</p>
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edit text directly on the canvas</p>
+        <p style="font-size: 0.9em;">Place or edit text annotations right where they live. <strong>Double-click</strong> any text to edit in place. Press <strong>Enter</strong> for a new line, click anywhere outside (or press <strong>Esc</strong>) to commit. Cleared text deletes the annotation.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">🌐 New site address</p>
-        <p>Convention Planner now has a permanent home at:</p>
-        <p style="text-align:center; margin: 10px 0;">
-            <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.05em;">app.conventionplanner.org</a>
-        </p>
-        <p style="font-size: 0.9em;">Please update your bookmarks and share the new address with your team.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Meters joins Feet and Millimeters</p>
+        <p style="font-size: 0.9em;">A third unit option is now available — <strong>Meters (m)</strong>. Switch any time from the <strong>Project</strong> tab. Both <code>.</code> and <code>,</code> work as decimal separators when typing values.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 Feet or Millimeters</p>
-        <p style="font-size: 0.9em;">You can switch all measurements between feet and millimeters. Find the toggle at the top of the <strong>Project</strong> tab.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">What You See Is What You Print</p>
+        <p style="font-size: 0.9em;">Line thickness, dimension labels, polymeasure labels, arrowheads, <strong>plus seat-area names, seat counts, and screen labels</strong> now all render in real-world units. <strong>At 100% zoom, what you see matches exactly what you'll print.</strong> Zoom becomes a pure magnifier.</p>
 
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">All your saved project files will continue to work — measurements are stored consistently and convert automatically based on your preference.</p>
+        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Visual control</h4>
+
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Per-instance label sizes for everything</p>
+        <p style="font-size: 0.9em;">Each dimension, polymeasure, seat area (name + seat count), and screen has its own <strong>Text Size</strong> control. Make labels bigger for visibility or smaller for tight diagrams — all on the same page.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Arrowheads on lines and polymeasures</p>
+        <p style="font-size: 0.9em;">Add filled-triangle arrowheads to either end of any line or polymeasure. Useful for pointing out features on plans.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Finer layer control</p>
+        <p style="font-size: 0.9em;">The Layers panel splits annotations into <strong>Lines</strong>, <strong>Dimensions</strong>, <strong>Text Labels</strong>, and <strong>Polymeasures</strong> — each with its own toggle.</p>
+
+        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">📊 Output &amp; data</h4>
+
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Export to Excel</p>
+        <p style="font-size: 0.9em;">Download chair counts and key-item data as a two-sheet <strong>.xlsx file</strong>. One row per area or item — perfect for pivot tables or reporting. Find it on the <strong>Project</strong> tab under <strong>📊 Export to Excel</strong>.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Cleaner Chair Summary print</p>
+        <p style="font-size: 0.9em;">The Summary print is now called <strong>Chair Summary</strong> and is laid out for easier reading:</p>
+        <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+            <li>Each area starts on its own printed page</li>
+            <li>Every page shows the area total of all chairs</li>
+            <li>All grand totals appear together on a dedicated final page</li>
+        </ul>
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Key items now live exclusively in the Key Items Report.</p>
+
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Polish: post editing opens a proper modal, the announcement dialog scrolls correctly, and a long list of translation, layout, and color-picker fixes shipped along the way.</p>
 
         <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
             🐛 Found a bug or have a suggestion? Email <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
@@ -3755,25 +4097,46 @@ const I18N_STRINGS = {
     `;
 
     const ANNOUNCEMENT_ES = `
-        <h3 style="margin-top:0;">📣 Novedades</h3>
+        <h3 style="margin-top:0;">📣 Novedades de 1.7</h3>
+        <p style="font-size: 0.85em; color: #aaa; margin-top: -6px;">Un resumen combinado de las actualizaciones recientes.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🔀 Nuevo: Fusionar desde Archivo</p>
-        <p style="font-size: 0.9em;">Ahora puedes combinar otro archivo de proyecto con el actual. Útil cuando un equipo colabora — una persona puede crear una plantilla (perfiles, páginas, turnos), compartirla, y fusionar las contribuciones de todos al final.</p>
-        <p style="font-size: 0.9em;">Lo encuentras en la pestaña <strong>Proyecto</strong> bajo <strong>🔀 Fusionar desde Archivo</strong>. La vista previa muestra qué se añadirá, marca duplicados, y te permite elegir qué elementos incluir antes de aplicar.</p>
+        <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Dibujo y edición</h4>
 
-        <p style="font-size: 0.9em; margin-top: 10px;"><strong style="color:#ddd;">También nuevo:</strong> flechas ▲▼ para reordenar en todas las listas del panel lateral (perfiles, páginas, turnos, puestos y más) para que puedas organizar las cosas en el orden que tenga sentido para tu proyecto.</p>
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edita texto directamente en el lienzo</p>
+        <p style="font-size: 0.9em;">Coloca o edita anotaciones de texto justo donde están. <strong>Doble clic</strong> en cualquier texto para editarlo en su lugar. Pulsa <strong>Enter</strong> para una nueva línea, haz clic fuera (o pulsa <strong>Esc</strong>) para confirmar. Si borras todo el texto, se elimina la anotación.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">🌐 Nueva dirección del sitio</p>
-        <p>Convention Planner ahora tiene un hogar permanente en:</p>
-        <p style="text-align:center; margin: 10px 0;">
-            <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.05em;">app.conventionplanner.org</a>
-        </p>
-        <p style="font-size: 0.9em;">Por favor actualiza tus marcadores y comparte la nueva dirección con tu equipo.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Metros se une a Pies y Milímetros</p>
+        <p style="font-size: 0.9em;">Ahora hay una tercera opción de unidad — <strong>Metros (m)</strong>. Cambia cuando quieras desde la pestaña <strong>Proyecto</strong>. Al escribir valores funcionan tanto <code>.</code> como <code>,</code> como separador decimal.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 Pies o Milímetros</p>
-        <p style="font-size: 0.9em;">Puedes cambiar todas las medidas entre pies y milímetros. Encuentra el selector en la parte superior de la pestaña <strong>Proyecto</strong>.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Lo Que Ves Es Lo Que Imprimes</p>
+        <p style="font-size: 0.9em;">El grosor de línea, las etiquetas de cota, las etiquetas de polimedida, las flechas, <strong>además de los nombres de áreas de asientos, los recuentos y las etiquetas de pantalla</strong> ahora se renderizan en unidades del mundo real. <strong>Al 100% de zoom, lo que ves coincide exactamente con lo que se imprimirá.</strong> El zoom se convierte en una lupa pura.</p>
 
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Todos tus archivos de proyecto guardados seguirán funcionando — las medidas se almacenan de forma uniforme y se convierten automáticamente según tu preferencia.</p>
+        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Control visual</h4>
+
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Tamaño de etiqueta por instancia para todo</p>
+        <p style="font-size: 0.9em;">Cada cota, polimedida, área de asientos (nombre + recuento) y pantalla tiene su propio control de <strong>Tamaño de Texto</strong>. Hazlas más grandes para mayor visibilidad o más pequeñas para diagramas ajustados — todo en la misma página.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Flechas en líneas y polimedidas</p>
+        <p style="font-size: 0.9em;">Añade flechas (triángulo relleno) a cualquier extremo de una línea o polimedida. Útil para señalar elementos en los planos.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Control de capas más detallado</p>
+        <p style="font-size: 0.9em;">El panel de Capas divide las anotaciones en <strong>Líneas</strong>, <strong>Cotas</strong>, <strong>Etiquetas de Texto</strong> y <strong>Polimedidas</strong> — cada una con su propio interruptor.</p>
+
+        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">📊 Salida y datos</h4>
+
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Exportar a Excel</p>
+        <p style="font-size: 0.9em;">Descarga los recuentos de sillas y los datos de artículos claves como un <strong>archivo .xlsx</strong> con dos hojas. Una fila por área o artículo — perfecto para tablas dinámicas o informes. Lo encuentras en la pestaña <strong>Proyecto</strong> bajo <strong>📊 Exportar a Excel</strong>.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Impresión de Resumen de Sillas más clara</p>
+        <p style="font-size: 0.9em;">La impresión de Resumen ahora se llama <strong>Resumen de Sillas</strong> y tiene un diseño más fácil de leer:</p>
+        <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+            <li>Cada área empieza en su propia página impresa</li>
+            <li>Cada página muestra el total de todas las sillas del área</li>
+            <li>Todos los totales generales aparecen juntos en una página final dedicada</li>
+        </ul>
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Los artículos claves ahora viven exclusivamente en el Reporte de Artículos Claves.</p>
+
+        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Pulido: editar un puesto abre una ventana modal apropiada, el diálogo de anuncios se desplaza correctamente, y se corrigieron muchos problemas de traducción, diseño y selectores de color en el camino.</p>
 
         <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
             🐛 ¿Encontraste un error o tienes una sugerencia? Escribe a <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
@@ -3839,7 +4202,13 @@ const I18N_STRINGS = {
         const html = (currentLang === 'es') ? ANNOUNCEMENT_ES : ANNOUNCEMENT_EN;
         annContent.innerHTML = html;
         menuView.style.display = 'none';
-        annView.style.display  = 'block';
+        // Use 'flex' (not 'block') because the announcement view uses flex
+        // column layout to keep its action bar pinned at the bottom while
+        // the content area scrolls.
+        annView.style.display  = 'flex';
+        // Scroll content to top when opening (in case the user scrolled
+        // previously then came back).
+        annContent.scrollTop = 0;
     }
 
     // Swap back to the menu view inside the Tutorials modal.
@@ -3848,6 +4217,9 @@ const I18N_STRINGS = {
         const annView  = document.getElementById('tutorials-announcement-view');
         if (!menuView || !annView) return;
         annView.style.display  = 'none';
+        // Menu view uses block-style flow internally, but its overflow:auto
+        // works fine in either display mode. Use 'block' to match how it
+        // was originally rendered.
         menuView.style.display = 'block';
     }
 
@@ -4019,10 +4391,12 @@ const I18N_STRINGS = {
         // Sync the units radios with project.units
         const ftRadio = document.getElementById('project-units-ft');
         const mmRadio = document.getElementById('project-units-mm');
+        const mRadio  = document.getElementById('project-units-m');
         if (ftRadio && mmRadio) {
             const u = getUnits();
             ftRadio.checked = (u === 'ft');
             mmRadio.checked = (u === 'mm');
+            if (mRadio) mRadio.checked = (u === 'm');
         }
         const pActive = getActivePage();
 
@@ -4057,10 +4431,19 @@ const I18N_STRINGS = {
         const scaleEl = document.getElementById('scale-info');
         if (scale) {
             // Display as pixels per current unit. Internally pixelsPerFoot;
-            // for mm display, divide by 304.8 to get pixels per mm.
+            // convert for mm or m display.
             const units = getUnits();
-            const displayScale = (units === 'mm') ? scale / FT_TO_MM : scale;
-            const precision = (units === 'mm') ? 4 : 2;
+            let displayScale, precision;
+            if (units === 'mm') {
+                displayScale = scale / FT_TO_MM;
+                precision = 4;
+            } else if (units === 'm') {
+                displayScale = scale / FT_TO_M;
+                precision = 2;
+            } else {
+                displayScale = scale;
+                precision = 2;
+            }
             scaleEl.innerText = t('stats.scale.set', { n: displayScale.toFixed(precision), unit: getUnitLabel() });
         } else {
             scaleEl.innerText = t('stats.scale.notset');
@@ -4100,6 +4483,8 @@ const I18N_STRINGS = {
         html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showObs ? 'checked' : ''} onchange="uiState.showObs=this.checked; render();"> <span>${escapeHTML(t('layers.all_obs'))}</span></label>`;
         html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showLines ? 'checked' : ''} onchange="uiState.showLines=this.checked; render();"> <span>${escapeHTML(t('layers.all_lines'))}</span></label>`;
         html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showDims ? 'checked' : ''} onchange="uiState.showDims=this.checked; render();"> <span>${escapeHTML(t('layers.all_dims'))}</span></label>`;
+        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showTexts !== false ? 'checked' : ''} onchange="uiState.showTexts=this.checked; render();"> <span>${escapeHTML(t('layers.all_texts'))}</span></label>`;
+        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showMeasures !== false ? 'checked' : ''} onchange="uiState.showMeasures=this.checked; render();"> <span>${escapeHTML(t('layers.all_measures'))}</span></label>`;
         document.getElementById('layers-list-container').innerHTML = html;
     }
     
@@ -4154,12 +4539,12 @@ const I18N_STRINGS = {
                 <div class="profile-header"><span style="color:${escapeHTML(st.stroke)};">■ ${escapeHTML(st.name)}</span><div>${reorderArrowsHTML('moveSeatProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
-                        <label>Color</label>
+                        <label>${escapeHTML(t('common.color'))}</label>
                         <input type="color" value="${escapeHTML(safeHex)}" onchange="updateSeatColor(${i}, this.value)">
                         ${getPaletteHTML('updateSeatColor', i)}
                     </div>
-                    <div><label>${escapeHTML(t('seat.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${getUnits() === 'mm' ? '1' : '0.1'}" value="${feetToDisplay(st.w).toFixed(getUnits() === 'mm' ? 0 : 1)}" onchange="updateSeatProp(${i}, 'w', this.value)"></div>
-                    <div><label>${escapeHTML(t('seat.field.depth', { unit: getUnitLabel() }))}</label><input type="number" step="${getUnits() === 'mm' ? '1' : '0.1'}" value="${feetToDisplay(st.d).toFixed(getUnits() === 'mm' ? 0 : 1)}" onchange="updateSeatProp(${i}, 'd', this.value)"></div>
+                    <div><label>${escapeHTML(t('seat.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${getUnitStep()}" value="${feetToDisplay(st.w).toFixed(getUnitDecimals())}" onchange="updateSeatProp(${i}, 'w', this.value)"></div>
+                    <div><label>${escapeHTML(t('seat.field.depth', { unit: getUnitLabel() }))}</label><input type="number" step="${getUnitStep()}" value="${feetToDisplay(st.d).toFixed(getUnitDecimals())}" onchange="updateSeatProp(${i}, 'd', this.value)"></div>
                 </div>
                 <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>` : ''}
             </li>`;
@@ -4175,12 +4560,12 @@ const I18N_STRINGS = {
                 <div class="profile-header"><span style="color:${escapeHTML(st.color)};">● ${escapeHTML(st.name)}</span><div>${reorderArrowsHTML('moveSignProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
-                        <label>Color</label>
+                        <label>${escapeHTML(t('common.color'))}</label>
                         <input type="color" value="${escapeHTML(st.color)}" onchange="updateSignProp(${i}, 'color', this.value)">
                         ${getPaletteHTML('updateSignProp', i, 'color')}
                     </div>
-                    <div><label>Default Size</label><input type="number" step="1" value="${st.size}" onchange="updateSignProp(${i}, 'size', this.value)"></div>
-                    <div><label>Label</label><input type="text" maxlength="3" value="${escapeHTML(st.label || '')}" onchange="updateSignProp(${i}, 'label', this.value)"></div>
+                    <div><label>${escapeHTML(t('common.default_size'))}</label><input type="number" step="1" value="${st.size}" onchange="updateSignProp(${i}, 'size', this.value)"></div>
+                    <div><label>${escapeHTML(t('common.label'))}</label><input type="text" maxlength="3" value="${escapeHTML(st.label || '')}" onchange="updateSignProp(${i}, 'label', this.value)"></div>
                 </div>
                 <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Point</button>` : ''}
             </li>`;
@@ -4197,11 +4582,11 @@ const I18N_STRINGS = {
                 <div class="profile-header"><span style="color:${escapeHTML(mt.color)};">〰️ ${escapeHTML(mt.name)}</span><div>${reorderArrowsHTML('moveMeasureProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('measure', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('measure', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
-                        <label>Color</label>
+                        <label>${escapeHTML(t('common.color'))}</label>
                         <input type="color" value="${escapeHTML(mt.color)}" onchange="updateMeasureProp(${i}, 'color', this.value)">
                         ${getPaletteHTML('updateMeasureProp', i, 'color')}
                     </div>
-                    <div><label>Weight</label><input type="number" min="1" max="20" step="1" value="${mt.thickness}" onchange="updateMeasureProp(${i}, 'thickness', this.value)"></div>
+                    <div><label>${escapeHTML(t('common.weight'))}</label><input type="number" min="1" max="20" step="1" value="${mt.thickness}" onchange="updateMeasureProp(${i}, 'thickness', this.value)"></div>
                 </div>
                 <button class="btn-full btn-primary" style="${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeMeasureType=${i}; setMode('draw-measure');">📏 Draw Polymeasure</button>` : ''}
             </li>`;
@@ -4217,7 +4602,30 @@ const I18N_STRINGS = {
                 const { hasPrev, hasNext } = filteredNeighbors(shapes, i, isArea);
                 const sTypeIdx = s.seatTypeIndex ?? 0; const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
                 let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${escapeHTML(st.name)}</option>`).join('');
-                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(strokeColor)}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveAreaShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
+                const labelSize = s.labelSize || 18;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(strokeColor)}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
+                        <input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveAreaShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div>
+                    </div>
+                    <!-- Row 1: Rotation + Text Size side by side. Labels above inputs
+                         so longer (translated) words don't squeeze the inputs. -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+                        <div>
+                            <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.rotation'))}</label>
+                            <input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.text_size'))}</label>
+                            <input type="number" min="6" max="80" step="1" value="${labelSize}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].labelSize=parseFloat(this.value)||18; triggerUpdate();" style="width:100%;">
+                        </div>
+                    </div>
+                    <!-- Row 2: Profile, full width so the name doesn't get truncated. -->
+                    <div>
+                        <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.profile'))}</label>
+                        <select style="width:100%;" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select>
+                    </div>
+                </li>`;
             }
         });
     }
@@ -4231,7 +4639,22 @@ const I18N_STRINGS = {
                 const { hasPrev, hasNext } = filteredNeighbors(shapes, i, isObs);
                 let color = s.type === 'obs' ? 'var(--danger)' : '#f1c40f';
                 let icon = s.type === 'obs' ? '🧱' : '✂️';
-                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px; flex-shrink:0;">${icon}</span><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveObsShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div></li>`;
+                const labelSize = s.labelSize || 18;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>
+                        <input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveObsShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div>
+                    </div>
+                    <!-- Text Size: aisles don't render a label so the control is
+                         only useful for obs (cutouts). Shown regardless for
+                         consistency with the area panel; hidden visually if
+                         it's an aisle since the label is suppressed at render. -->
+                    ${s.type === 'obs' ? `<div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                        <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('common.text_size'))}</label>
+                        <input type="number" min="6" max="80" step="1" value="${labelSize}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].labelSize=parseFloat(this.value)||18; triggerUpdate();" style="width:70px;">
+                    </div>` : ''}
+                </li>`;
             }
         });
     }
@@ -4252,7 +4675,7 @@ const I18N_STRINGS = {
                         </div>
                     </div>
                     ${i === selectedSignIndex ? `<div style="display:grid; grid-template-columns: 1fr; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                        <div><label>Override Instance Size</label><input type="number" value="${activeSize}" onchange="updatePlacedSignProp(${i}, 'size', this.value)"></div>
+                        <div><label>${escapeHTML(t('common.override_size'))}</label><input type="number" value="${activeSize}" onchange="updatePlacedSignProp(${i}, 'size', this.value)"></div>
                     </div>` : ''}
                 </li>`; 
             }); 
@@ -4289,6 +4712,20 @@ const I18N_STRINGS = {
                             <button class="icon-btn" onclick="event.stopPropagation(); deleteMeasure(${i})">✕</button>
                         </div>
                     </div>
+                    ${i === selectedMeasureIndex ? `<div style="display:flex; gap:14px; margin-top:8px; padding:6px 8px; background:#222; border-radius:3px; align-items:center;" onclick="event.stopPropagation();">
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:1.1em;" title="${escapeHTML(t('line.arrow.start'))}">
+                            <input type="checkbox" ${m.arrowStart ? 'checked' : ''} onchange="updatePlacedMeasureProp(${i}, 'arrowStart', this.checked)" style="width:auto;">
+                            <span>⇤</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:1.1em;" title="${escapeHTML(t('line.arrow.end'))}">
+                            <input type="checkbox" ${m.arrowEnd ? 'checked' : ''} onchange="updatePlacedMeasureProp(${i}, 'arrowEnd', this.checked)" style="width:auto;">
+                            <span>⇥</span>
+                        </label>
+                        <div style="display:flex; align-items:center; gap:5px; margin-left:auto;">
+                            <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('line.label_size'))}</label>
+                            <input type="number" min="6" max="60" step="1" value="${m.labelSize || 13}" onchange="updatePlacedMeasureProp(${i}, 'labelSize', parseFloat(this.value) || 13)" style="width:50px;">
+                        </div>
+                    </div>` : ''}
                     ${segHTML}
                 </li>`;
             });
@@ -4301,10 +4738,29 @@ const I18N_STRINGS = {
         const screenTotal = currentScreens.length;
         currentScreens.forEach((s, i) => {
             let beamVal = s.beamAngle !== undefined ? s.beamAngle : 120;
-            const distDisplay  = feetToDisplay(s.radius).toFixed(getUnits() === 'mm' ? 0 : 1);
-            const widthDisplay = feetToDisplay(s.width || 16).toFixed(getUnits() === 'mm' ? 0 : 1);
-            const stepAttr = getUnits() === 'mm' ? '1' : '0.1';
-            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; flex-shrink:0;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTML('moveScreen', i, screenTotal)}<button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.dist', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${distDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseLength(this.value)||10; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${widthDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].width=parseLength(this.value)||16; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
+            const distDisplay  = feetToDisplay(s.radius).toFixed(getUnitDecimals());
+            const widthDisplay = feetToDisplay(s.width || 16).toFixed(getUnitDecimals());
+            const stepAttr = getUnitStep();
+            const labelSize = s.labelSize || 16;
+            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
+                    <input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; flex-shrink:0;">
+                    <input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTML('moveScreen', i, screenTotal)}<button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div>
+                </div>
+                <!-- Row 1: angle/beam/distance/width — 4-column grid kept from before. -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; margin-bottom: 6px;">
+                    <div><label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t("common.angle_deg"))}</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();" style="width:100%;"></div>
+                    <div><label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t("common.beam_deg"))}</label><input type="number" value="${beamVal}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();" style="width:100%;"></div>
+                    <div><label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('screen.field.dist', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${distDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseLength(this.value)||10; markSeatCachesDirty(); triggerUpdate();" style="width:100%;"></div>
+                    <div><label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('screen.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${widthDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].width=parseLength(this.value)||16; markSeatCachesDirty(); triggerUpdate();" style="width:100%;"></div>
+                </div>
+                <!-- Row 2: Text Size (own row, narrow). -->
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-size:0.7em; color:#aaa;">${escapeHTML(t('common.text_size'))}</label>
+                    <input type="number" min="6" max="80" step="1" value="${labelSize}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].labelSize=parseFloat(this.value)||16; triggerUpdate();" style="width:70px;">
+                </div>
+            </li>`;
         });
     }
 
@@ -4322,13 +4778,39 @@ const I18N_STRINGS = {
                             <button class="icon-btn" onclick="deleteLine(${i})">✕</button>
                         </div>
                     </div>
-                    ${i === selectedLineIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                        <div>
-                            <label>Color</label>
-                            <input type="color" value="${escapeHTML(activeColor)}" onchange="updateLineProp(${i}, 'color', this.value)">
-                            ${getPaletteHTML('updateLineProp', i, 'color')}
+                    ${i === selectedLineIndex ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
+                        <!-- Color row: small picker + inline swatches. Label above to save horizontal space. -->
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.color'))}</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <input type="color" value="${escapeHTML(activeColor)}" onchange="updateLineProp(${i}, 'color', this.value)" style="width:36px; height:28px; padding:0; border:1px solid #444; flex-shrink:0;">
+                                <div style="flex:1; min-width:0;">${getPaletteHTML('updateLineProp', i, 'color')}</div>
+                            </div>
                         </div>
-                        <div><label>Weight</label><input type="number" min="1" max="20" value="${activeThick}" onchange="updateLineProp(${i}, 'thickness', this.value)"></div>
+                        <!-- Numeric row: Weight + Label Size side by side, labels stacked above inputs.
+                             Stacking puts the (potentially long) Spanish labels in vertical space (cheap)
+                             instead of horizontal space (scarce in a narrow sidebar). -->
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1; min-width:0;">
+                                <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.weight'))}</label>
+                                <input type="number" min="1" max="20" value="${activeThick}" onchange="updateLineProp(${i}, 'thickness', this.value)" style="width:100%;">
+                            </div>
+                            ${l.type === 'dimension' ? `<div style="flex:1; min-width:0;">
+                                <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('line.label_size'))}</label>
+                                <input type="number" min="6" max="60" step="1" value="${l.labelSize || 16}" onchange="updateLineProp(${i}, 'labelSize', this.value)" style="width:100%;">
+                            </div>` : ''}
+                        </div>
+                    </div>
+                    <!-- Arrows row: compact icon checkboxes (⇤ start, ⇥ end). -->
+                    <div style="display:flex; gap:14px; margin-top:8px; padding:6px 8px; background:#222; border-radius:3px;" onclick="event.stopPropagation();">
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:1.1em;" title="${escapeHTML(t('line.arrow.start'))}">
+                            <input type="checkbox" ${l.arrowStart ? 'checked' : ''} onchange="updateLineProp(${i}, 'arrowStart', this.checked)" style="width:auto;">
+                            <span>⇤</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:1.1em;" title="${escapeHTML(t('line.arrow.end'))}">
+                            <input type="checkbox" ${l.arrowEnd ? 'checked' : ''} onchange="updateLineProp(${i}, 'arrowEnd', this.checked)" style="width:auto;">
+                            <span>⇥</span>
+                        </label>
                     </div>` : ''}
                 </li>`;
             });
@@ -4339,23 +4821,32 @@ const I18N_STRINGS = {
         const el = document.getElementById('text-list'); el.innerHTML = '';
         if (getActivePage().texts) {
             const textsTotal = getActivePage().texts.length;
-            getActivePage().texts.forEach((t, i) => {
-                let activeColor = t.color || '#000000'; let activeSize = t.size || 24;
+            getActivePage().texts.forEach((tx, i) => {
+                let activeColor = tx.color || '#000000'; let activeSize = tx.size || 24;
+                // Single-line preview: newlines are replaced with a visible marker
+                // so the user can see the text contains line breaks. Editing the
+                // text itself happens in-place on the canvas (double-click or F2).
+                const preview = (tx.text || '').replace(/\n/g, ' ↵ ');
                 el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(activeColor)}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                        <input type="text" class="text-input-dark" value="${escapeHTML(t.text)}" onchange="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                        <div style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px; background:#222; border:1px solid #333; border-radius:3px; font-size:0.85em; cursor:pointer;" title="${escapeHTML(tx.text || '')}" onclick="event.stopPropagation(); selectedTextIndex=${i}; clearSelectionsExcept('text'); activeTab='annotate'; updateUI(); render(); startTextEdit(${i}, 0, 0);">${escapeHTML(preview) || '<em style=\"color:#666;\">(empty)</em>'}</div>
                         <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                             ${reorderArrowsHTML('moveText', i, textsTotal)}
-                            <button class="icon-btn" onclick="deleteText(${i})">✕</button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); deleteText(${i})">✕</button>
                         </div>
                     </div>
-                    ${i === selectedTextIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
-                        <div>
-                            <label>Color</label>
-                            <input type="color" value="${escapeHTML(activeColor)}" onchange="updateTextProp(${i}, 'color', this.value)">
-                            ${getPaletteHTML('updateTextProp', i, 'color')}
+                    ${i === selectedTextIndex ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.color'))}</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <input type="color" value="${escapeHTML(activeColor)}" onchange="updateTextProp(${i}, 'color', this.value)" style="width:36px; height:28px; padding:0; border:1px solid #444; flex-shrink:0;">
+                                <div style="flex:1; min-width:0;">${getPaletteHTML('updateTextProp', i, 'color')}</div>
+                            </div>
                         </div>
-                        <div><label>Size</label><input type="number" min="8" max="200" value="${activeSize}" onchange="updateTextProp(${i}, 'size', this.value)"></div>
+                        <div>
+                            <label style="font-size:0.7em; color:#aaa; display:block; margin-bottom:3px;">${escapeHTML(t('common.size'))}</label>
+                            <input type="number" min="8" max="200" value="${activeSize}" onchange="updateTextProp(${i}, 'size', this.value)" style="width:100%;">
+                        </div>
                     </div>` : ''}
                 </li>`;
             });
@@ -4413,8 +4904,192 @@ const I18N_STRINGS = {
     function updateSignProp(idx, prop, val) { saveState(); if (prop === 'size') project.signTypes[idx][prop] = parseFloat(val) || 10; else project.signTypes[idx][prop] = val; triggerUpdate(); updateUI(); }
     function updateMeasureProp(idx, prop, val) { saveState(); if (prop === 'thickness') project.measureTypes[idx][prop] = parseFloat(val) || 4; else project.measureTypes[idx][prop] = val; triggerUpdate(); updateUI(); }
     function updatePlacedSignProp(idx, prop, val) { saveState(); if (prop === 'size') getActivePage().signs[idx][prop] = parseFloat(val) || 10; triggerUpdate(); updateUI(); }
-    function updateLineProp(idx, prop, val) { saveState(); if (prop === 'thickness') project.pages[project.activePageIndex].lines[idx][prop] = parseFloat(val) || 2; else project.pages[project.activePageIndex].lines[idx][prop] = val; triggerUpdate(); updateUI(); }
+    function updateLineProp(idx, prop, val) {
+        saveState();
+        const line = project.pages[project.activePageIndex].lines[idx];
+        if (prop === 'thickness') line[prop] = parseFloat(val) || 2;
+        else if (prop === 'labelSize') line[prop] = parseFloat(val) || 16;
+        else line[prop] = val;
+        triggerUpdate(); updateUI();
+    }
     function updateTextProp(idx, prop, val) { saveState(); if (prop === 'size') project.pages[project.activePageIndex].texts[idx][prop] = parseFloat(val) || 24; else project.pages[project.activePageIndex].texts[idx][prop] = val; triggerUpdate(); updateUI(); }
+
+    // ─── IN-PLACE TEXT EDITING ──────────────────────────────────────────────────
+    // Floating textarea overlay for placing/editing text annotations directly
+    // on the canvas. Multi-line, click-away or Esc to commit, empty discards.
+
+    function startTextEdit(textIndex, worldX, worldY) {
+        // textIndex >= 0  → editing existing annotation
+        // textIndex === -1 → placing a NEW annotation at (worldX, worldY)
+        const page = getActivePage();
+        const editor = document.getElementById('canvas-text-editor');
+        if (!editor) return;
+
+        let initialText = '';
+        let size = 36;
+        let color = '#000000';
+        let wx, wy;
+
+        if (textIndex >= 0) {
+            const t = page.texts[textIndex];
+            initialText = t.text || '';
+            size = t.size || 24;
+            color = t.color || '#000000';
+            wx = t.x; wy = t.y;
+            _textEditingIndex = textIndex;
+            _textEditingNewPos = null;
+        } else {
+            wx = worldX; wy = worldY;
+            _textEditingIndex = -2; // placeholder for "new"
+            _textEditingNewPos = { x: worldX, y: worldY };
+        }
+
+        // Hide the canvas version of this text by re-rendering.
+        triggerUpdate();
+
+        // Position the textarea at the screen coords of (wx, wy). The text is
+        // centered horizontally and vertically around its anchor point, so we
+        // offset by half the textarea's expected size. We start with a small
+        // default width and let it auto-grow as the user types via the input
+        // handler below.
+        const editorFontSize = size * view.zoom;
+        editor.style.fontSize = editorFontSize + 'px';
+        editor.style.color = color;
+        editor.value = initialText;
+        editor.style.display = 'block';
+
+        // Set initial width based on existing text (or a sensible minimum).
+        // Auto-grow happens on input.
+        editor.style.width = 'auto';
+        editor.style.height = 'auto';
+        // Force layout so we can read scrollWidth/scrollHeight.
+        editor.style.width = Math.max(60, editor.scrollWidth + 8) + 'px';
+        editor.style.height = Math.max(editorFontSize * 1.2, editor.scrollHeight) + 'px';
+
+        positionTextEditor(wx, wy);
+
+        // Focus & select-all for immediate typing replacement.
+        // (Setting selectionStart/End separately so the cursor sits at end
+        // for new placements, but for edits we select-all for easy replace.)
+        editor.focus();
+        if (textIndex >= 0) {
+            editor.select();
+        } else {
+            editor.setSelectionRange(editor.value.length, editor.value.length);
+        }
+    }
+
+    function positionTextEditor(worldX, worldY) {
+        const editor = document.getElementById('canvas-text-editor');
+        if (!editor || editor.style.display === 'none') return;
+        // World → screen: screen = world * zoom + view offset, then add the
+        // viewport's offset within the page.
+        const screenX = worldX * view.zoom + view.x;
+        const screenY = worldY * view.zoom + view.y;
+        // We want the textarea CENTERED on the anchor point. Read its size
+        // now (after a possible auto-grow) to compute the offset.
+        const w = editor.offsetWidth || 60;
+        const h = editor.offsetHeight || 30;
+        editor.style.left = (screenX - w / 2) + 'px';
+        editor.style.top = (screenY - h / 2) + 'px';
+    }
+
+    // Wire up the textarea once.
+    (function setupTextEditor() {
+        const editor = document.getElementById('canvas-text-editor');
+        if (!editor) return;
+        // Auto-grow as the user types. Reset width/height to 'auto' first so
+        // scrollWidth/scrollHeight reflects content, not the previous size.
+        editor.addEventListener('input', () => {
+            editor.style.width = 'auto';
+            editor.style.height = 'auto';
+            const fontPx = parseFloat(editor.style.fontSize) || 18;
+            editor.style.width = Math.max(60, editor.scrollWidth + 8) + 'px';
+            editor.style.height = Math.max(fontPx * 1.2, editor.scrollHeight) + 'px';
+            // Recenter on the original anchor point as it grows.
+            const anchor = (_textEditingIndex >= 0)
+                ? getActivePage().texts[_textEditingIndex]
+                : _textEditingNewPos;
+            if (anchor) positionTextEditor(anchor.x, anchor.y);
+        });
+        editor.addEventListener('keydown', (e) => {
+            // Esc commits (same as click-away). Enter inserts newline (default
+            // textarea behavior — don't preventDefault).
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                commitTextEdit();
+            }
+            // Stop arrow keys, etc. from bubbling to canvas shortcuts.
+            e.stopPropagation();
+        });
+        editor.addEventListener('blur', () => {
+            // A brief delay so click-on-toolbar doesn't race the commit
+            // (toolbar click may set mode, but we still want to commit first).
+            setTimeout(commitTextEdit, 0);
+        });
+    })();
+
+    function commitTextEdit() {
+        if (_textEditingIndex === -1) return; // nothing in flight
+        const editor = document.getElementById('canvas-text-editor');
+        if (!editor) return;
+        const newText = editor.value.replace(/\s+$/, ''); // trim trailing whitespace incl. trailing newline
+        const page = getActivePage();
+
+        // Capture state and reset early. Once we set _textEditingIndex back to
+        // -1 and hide the editor, the canvas can render normally. Other work
+        // (mode change, selection) happens after.
+        const wasPlacingNew = (_textEditingIndex === -2);
+        const wasEditingIdx = _textEditingIndex;
+        const newPos = _textEditingNewPos;
+        editor.style.display = 'none';
+        editor.value = '';
+        _textEditingIndex = -1;
+        _textEditingNewPos = null;
+
+        // If we were in place-text mode, exit it now (clears selections).
+        if (mode === 'place-text') setMode('idle');
+
+        if (wasPlacingNew) {
+            // Was placing new — if user typed something, create the annotation.
+            if (newText.trim() !== '') {
+                saveState();
+                if (!page.texts) page.texts = [];
+                page.texts.push({
+                    x: newPos.x,
+                    y: newPos.y,
+                    text: newText,
+                    color: '#000000',
+                    size: 36
+                });
+                // Set selection AFTER setMode (which clears selections).
+                selectedTextIndex = page.texts.length - 1;
+                activeTab = 'annotate';
+                triggerUpdate();
+            } else {
+                // Empty text — show toast that nothing was placed.
+                showToast(t('text.toast.cancelled'));
+            }
+        } else if (wasEditingIdx >= 0) {
+            // Editing existing — if blank, delete; otherwise update.
+            const tx = page.texts[wasEditingIdx];
+            if (tx) {
+                if (newText.trim() === '') {
+                    saveState();
+                    page.texts.splice(wasEditingIdx, 1);
+                    if (selectedTextIndex === wasEditingIdx) selectedTextIndex = -1;
+                    else if (selectedTextIndex > wasEditingIdx) selectedTextIndex--;
+                    triggerUpdate();
+                } else if (newText !== tx.text) {
+                    saveState();
+                    tx.text = newText;
+                    triggerUpdate();
+                }
+            }
+        }
+
+        updateUI();
+    }
     
     function renamePage(i) { const newName = prompt(t('page.prompt.rename'), project.pages[i].name); if (newName && newName.trim() !== "") { project.pages[i].name = newName.trim(); updateUI(); triggerUpdate(); } }
     function addNewPage() { const n = prompt(t('page.prompt.add')); if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], measures:[], lines:[], texts:[], legend:{show:true, x:40, y:40, scale:1}, seatLegend:{show:true, x:40, y:150, scale:1}, attLegend:{show:false, x:40, y:280, scale:1}}); switchPage(project.pages.length-1); } }
@@ -4439,6 +5114,15 @@ const I18N_STRINGS = {
         saveState();
         const m = getActivePage().measures[i];
         m.showLabels = m.showLabels === false ? true : false; // flip (default true)
+        updateUI(); triggerUpdate();
+    }
+    // Per-instance property updater for placed polymeasures (arrows, etc.).
+    // Distinct from updateMeasureProp which operates on the *profile*.
+    function updatePlacedMeasureProp(i, prop, val) {
+        saveState();
+        const m = getActivePage().measures[i];
+        if (!m) return;
+        m[prop] = val;
         updateUI(); triggerUpdate();
     }
     function clearSelectionsExcept(kind) {
@@ -4689,7 +5373,7 @@ const I18N_STRINGS = {
     
     function getHitMeasure(worldPt) {
         const page = getActivePage(); if (!page.measures) return -1;
-        if (uiState.showLines === false) return -1;
+        if (uiState.showMeasures === false) return -1;
         for (let i = page.measures.length - 1; i >= 0; i--) {
             const m = page.measures[i];
             const mt = project.measureTypes[m.typeIndex ?? 0] || project.measureTypes[0];
@@ -4724,13 +5408,16 @@ const I18N_STRINGS = {
     // ─── FIX #3: getHitText uses dedicated measureCtx, not live ctx ─────────────
     function getHitText(worldPt) {
         const page = getActivePage(); if (!page.texts) return -1;
-        if (!uiState.showLines) return -1; 
+        if (uiState.showTexts === false) return -1; 
         for (let i = page.texts.length - 1; i >= 0; i--) {
             const t = page.texts[i];
             const size = t.size || 24;
             measureCtx.font = `bold ${size}px Arial`;
-            const w = measureCtx.measureText(t.text).width;
-            if (Math.abs(worldPt.x - t.x) <= (w / 2) + (10 / view.zoom) && Math.abs(worldPt.y - t.y) <= (size / 2) + (10 / view.zoom)) {
+            // Multiline: hit-test against the box of the widest line × number of lines.
+            const lines = (t.text || '').split('\n');
+            let maxW = 0; lines.forEach(ln => { const w = measureCtx.measureText(ln).width; if (w > maxW) maxW = w; });
+            const totalH = (size * 1.1) * lines.length;
+            if (Math.abs(worldPt.x - t.x) <= (maxW / 2) + (10 / view.zoom) && Math.abs(worldPt.y - t.y) <= (totalH / 2) + (10 / view.zoom)) {
                 return i;
             }
         }
@@ -4804,7 +5491,7 @@ const I18N_STRINGS = {
         if (page.legend && page.legend.show) {
             let signCounts = {}; let measureTotals = {};
             if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) { signCounts[s.typeIndex ?? 0] = (signCounts[s.typeIndex ?? 0] || 0) + 1; } }); }
-            if (page.measures && uiState.showLines !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[m.typeIndex ?? 0] = (measureTotals[m.typeIndex ?? 0] || 0) + ft; }); }
+            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[m.typeIndex ?? 0] = (measureTotals[m.typeIndex ?? 0] || 0) + ft; }); }
             let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
             if (items.length > 0 || mItems.length > 0) {
                 measureCtx.font = "16px Arial"; let maxW=0; 
@@ -4874,7 +5561,12 @@ const I18N_STRINGS = {
             if (hitSign !== -1) { clearSelections(); activeTab = 'sign'; selectedSignIndex = hitSign; isDraggingSign = true; hasDraggedSign = false; project.dragOffsetX = world.x - page.signs[hitSign].x; project.dragOffsetY = world.y - page.signs[hitSign].y; updateUI(); render(); return; }
             
             const hitText = getHitText(world);
-            if (hitText !== -1) { clearSelections(); activeTab = 'annotate'; selectedTextIndex = hitText; isDraggingText = true; hasDraggedText = false; project.dragOffsetX = world.x - page.texts[hitText].x; project.dragOffsetY = world.y - page.texts[hitText].y; updateUI(); render(); return; }
+            if (hitText !== -1) {
+                // Single-click selects and starts drag (so the user can move
+                // the text around freely). Double-click is the only path to
+                // enter edit mode — see canvas.ondblclick below.
+                clearSelections(); activeTab = 'annotate'; selectedTextIndex = hitText; isDraggingText = true; hasDraggedText = false; project.dragOffsetX = world.x - page.texts[hitText].x; project.dragOffsetY = world.y - page.texts[hitText].y; updateUI(); render(); return;
+            }
             
             const hitMeasure = getHitMeasure(world);
             if (hitMeasure !== -1) { clearSelections(); activeTab = 'sign'; selectedMeasureIndex = hitMeasure; isDraggingMeasure = true; hasDraggedMeasure = false; project.dragStartMouse = {x: world.x, y: world.y}; project.dragStartPoints = JSON.parse(JSON.stringify(page.measures[hitMeasure].points)); updateUI(); render(); return; }
@@ -4944,16 +5636,14 @@ const I18N_STRINGS = {
             getActivePage().signs.push({ x: world.x, y: world.y, typeIndex: project.activeSignType ?? 0 });
             updateUI(); triggerUpdate(); 
         } else if (mode === 'place-text') {
-            const txt = prompt(t('text.prompt'));
-            if (txt && txt.trim() !== '') {
-                saveState(); if (!getActivePage().texts) getActivePage().texts = [];
-                getActivePage().texts.push({ x: world.x, y: world.y, text: txt.trim(), color: '#000000', size: 36 });
-                setMode('idle'); triggerUpdate();
-            } else {
-                // ─── FIX #12: Show cancellation feedback ─────────────────────────
-                showToast(t('text.toast.cancelled'));
-                setMode('idle');
-            }
+            // Capture coords, exit place-text mode immediately, then defer the
+            // editor open until after this click cycle completes. Exiting mode
+            // here means the user's later click-away just blurs/commits the
+            // editor — it doesn't try to place another text annotation.
+            const wx = world.x, wy = world.y;
+            setMode('idle');
+            setTimeout(() => startTextEdit(-1, wx, wy), 0);
+            return;
         } else if (mode === 'draw-dim' || mode === 'draw-line') {
             currentPoints.push(world);
             if (currentPoints.length === 2) {
@@ -5116,6 +5806,20 @@ const I18N_STRINGS = {
 
     // ─── FIX #1: dblclick — set flag, strip the two phantom mousedown points ─────
     canvas.ondblclick = (e) => {
+        // First check: did the user double-click on a text annotation? If so,
+        // open the in-place editor for that text (the more common intent than
+        // polygon finalization, which only matters when drawing).
+        if (mode === 'idle' || mode === 'edit-shape' || mode === 'edit-line' || mode === 'edit-measure') {
+            const m = getMousePos(e); const world = toWorld(m);
+            const textIdx = getHitText(world);
+            if (textIdx !== -1) {
+                e.preventDefault();
+                // Defer one tick so any in-progress single-click selection
+                // completes before we open the editor.
+                setTimeout(() => startTextEdit(textIdx, 0, 0), 0);
+                return;
+            }
+        }
         _dblClickPending = true;
         // The browser fires: mousedown → mouseup → mousedown → mouseup → dblclick
         // By the time ondblclick fires, currentPoints already has 2 extra entries
@@ -5443,6 +6147,98 @@ const I18N_STRINGS = {
         updateUI(); triggerUpdate();
     }
 
+    // Returns a copy of `points` where the first and/or last points have been
+    // moved INWARD toward their neighbors so the line stops at the arrowhead's
+    // base instead of running through the arrow. This makes the line + arrow
+    // form a clean continuous shape at any thickness — no visible flat back
+    // on the arrow, no stroke overshoot past the triangle.
+    //
+    // Arrow size is in world units (thickness × 4) — NOT adjusted for zoom.
+    // This means the arrow size you pick is exactly what prints, and when
+    // zooming the arrow scales with the line just like everything else in
+    // world space.
+    function pointsForStroke(points, arrowStart, arrowEnd, thickness) {
+        if (!points || points.length < 2 || (!arrowStart && !arrowEnd)) return points;
+        const arrowSize = thickness * 4;
+        const inset = arrowSize - (thickness / 2);
+        const out = points.slice();
+        if (arrowStart) {
+            const p0 = out[0], p1 = out[1];
+            const dx = p1.x - p0.x, dy = p1.y - p0.y;
+            const len = Math.hypot(dx, dy);
+            if (len > inset) {
+                out[0] = {
+                    x: p0.x + (dx / len) * inset,
+                    y: p0.y + (dy / len) * inset,
+                };
+            }
+        }
+        if (arrowEnd) {
+            const pN = out[out.length - 1], pP = out[out.length - 2];
+            const dx = pN.x - pP.x, dy = pN.y - pP.y;
+            const len = Math.hypot(dx, dy);
+            if (len > inset) {
+                out[out.length - 1] = {
+                    x: pN.x - (dx / len) * inset,
+                    y: pN.y - (dy / len) * inset,
+                };
+            }
+        }
+        return out;
+    }
+
+    // ─── ARROWHEAD HELPERS ──────────────────────────────────────────────────────
+    // Filled-triangle arrowheads for lines/polylines/polymeasures. The tip lands
+    // AT the endpoint coordinate (CAD-standard) so the line's start/end is
+    // unambiguously where the arrow points.
+    //
+    // Arrow size is in world units: thickness × 4. This means the arrow has a
+    // fixed real size — zoom changes how big it appears on screen, but the
+    // printed size is always thickness × 4 (in the same units the line uses).
+
+    function drawArrowhead(ctx, tipX, tipY, angleRad, thickness, color) {
+        const size = thickness * 4;
+        const halfBase = size * 0.4;
+        const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+        const baseCX = tipX - size * cos;
+        const baseCY = tipY - size * sin;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(baseCX - halfBase * (-sin), baseCY - halfBase * cos);
+        ctx.lineTo(baseCX + halfBase * (-sin), baseCY + halfBase * cos);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function arrowheadSVG(tipX, tipY, angleRad, thickness, color) {
+        const size = thickness * 4;
+        const halfBase = size * 0.4;
+        const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+        const baseCX = tipX - size * cos;
+        const baseCY = tipY - size * sin;
+        const x1 = tipX, y1 = tipY;
+        const x2 = baseCX - halfBase * (-sin), y2 = baseCY - halfBase * cos;
+        const x3 = baseCX + halfBase * (-sin), y3 = baseCY + halfBase * cos;
+        return `<polygon points="${x1},${y1} ${x2},${y2} ${x3},${y3}" fill="${color}" />`;
+    }
+
+    function drawLineArrows(ctx, points, arrowStart, arrowEnd, thickness, color) {
+        if (!points || points.length < 2) return;
+        if (arrowStart) {
+            const p0 = points[0], p1 = points[1];
+            const angle = Math.atan2(p0.y - p1.y, p0.x - p1.x);
+            drawArrowhead(ctx, p0.x, p0.y, angle, thickness, color);
+        }
+        if (arrowEnd) {
+            const pN = points[points.length - 1], pP = points[points.length - 2];
+            const angle = Math.atan2(pN.y - pP.y, pN.x - pP.x);
+            drawArrowhead(ctx, pN.x, pN.y, angle, thickness, color);
+        }
+    }
+
     function markSeatCachesDirty() {
         getActivePage().shapes.forEach(s => s.cacheDirty = true);
     }
@@ -5635,8 +6431,12 @@ const I18N_STRINGS = {
                 else if (isLive && i === hoveredScreenIndex) { targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeStyle = '#f1c40f'; targetCtx.stroke(); } 
                 else { targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = COLORS.screen; targetCtx.stroke(); }
                 targetCtx.beginPath(); targetCtx.moveTo(sc.x, sc.y); targetCtx.lineTo(sc.x + Math.cos(rotRad)*20/(isLive ? v.zoom : 1), sc.y + Math.sin(rotRad)*20/(isLive ? v.zoom : 1)); targetCtx.strokeStyle = COLORS.screen; targetCtx.stroke();
-                targetCtx.save(); targetCtx.translate(sc.x, sc.y - (20/(isLive ? v.zoom : 1))); targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
-                targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4; targetCtx.strokeText(sc.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(sc.name, 0, 0); targetCtx.restore();
+                // Screen label: per-instance labelSize (default 16), rendered in
+                // world units. Vertical offset scales with the label so the
+                // gap looks right at any size.
+                const scLblSize = sc.labelSize || 16;
+                targetCtx.save(); targetCtx.translate(sc.x, sc.y - (scLblSize * 1.25));
+                targetCtx.font = `bold ${scLblSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4; targetCtx.strokeText(sc.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(sc.name, 0, 0); targetCtx.restore();
             });
         }
 
@@ -5651,28 +6451,55 @@ const I18N_STRINGS = {
             if (isSelected) { s.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 6 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
             if (uiState.showAreaLabels !== false) {
                 let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
-                targetCtx.save(); targetCtx.translate(cen.x, cen.y); targetCtx.scale(1/v.zoom, 1/v.zoom);
+                // Per-instance label size (default 18). Seat-count text renders
+                // 4px smaller to match the original visual ratio. Labels are
+                // content — no .scale(1/zoom), they grow with the drawing.
+                const lblSize = s.labelSize || 18;
+                const countSize = Math.max(8, lblSize - 4);
+                // Vertical offset between name and count scales with the size
+                // so they stay visually balanced at any size.
+                const nameOffset = -lblSize * 0.6;
+                const countOffset = lblSize * 0.5;
+                targetCtx.save(); targetCtx.translate(cen.x, cen.y);
                 targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
-                if (s.type === 'area') { targetCtx.font = "bold 18px Arial"; targetCtx.strokeText(s.name, 0, -12); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, -12); targetCtx.font = "bold 14px Arial"; let countStr = s.count !== undefined ? tn("canvas.seats", s.count, { n: fmtNum(s.count) }) : tn("canvas.seats", 0, { n: fmtNum(0) }); targetCtx.strokeText(countStr, 0, 10); targetCtx.fillStyle = "#ccc"; targetCtx.fillText(countStr, 0, 10); }
-                else { targetCtx.font = "bold 18px Arial"; targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); }
+                if (s.type === 'area') {
+                    targetCtx.font = `bold ${lblSize}px Arial`; targetCtx.strokeText(s.name, 0, nameOffset); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, nameOffset);
+                    targetCtx.font = `bold ${countSize}px Arial`; let countStr = s.count !== undefined ? tn("canvas.seats", s.count, { n: fmtNum(s.count) }) : tn("canvas.seats", 0, { n: fmtNum(0) });
+                    targetCtx.strokeText(countStr, 0, countOffset); targetCtx.fillStyle = "#ccc"; targetCtx.fillText(countStr, 0, countOffset);
+                }
+                else { targetCtx.font = `bold ${lblSize}px Arial`; targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); }
                 targetCtx.restore();
             }
         });
 
-        if (page.measures && uiState.showLines !== false) {
+        if (page.measures && uiState.showMeasures !== false) {
             page.measures.forEach((m, i) => {
                 const isSelected = (isLive && i === selectedMeasureIndex); const isHovered = (isLive && i === hoveredMeasureIndex);
                 const mt = project.measureTypes[m.typeIndex ?? 0] || project.measureTypes[0];
                 let activeColor = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : mt.color);
                 let activeThick = mt.thickness || 4;
-                targetCtx.strokeStyle = activeColor; targetCtx.lineWidth = ((isSelected || isHovered ? 2 : 0) + activeThick) / (isLive ? v.zoom : 1);
-                targetCtx.beginPath(); m.points.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x, p.y) : targetCtx.lineTo(p.x, p.y)); targetCtx.stroke();
+                // Content thickness (activeThick) is in world units — what you
+                // see at 100% zoom is what prints. The +2 boost when selected/
+                // hovered is a UI affordance and stays zoom-adjusted so it
+                // remains visible at every zoom level.
+                targetCtx.strokeStyle = activeColor;
+                targetCtx.lineWidth = activeThick + ((isSelected || isHovered ? 2 : 0) / (isLive ? v.zoom : 1));
+                const mStrokePts = pointsForStroke(m.points, m.arrowStart, m.arrowEnd, activeThick);
+                targetCtx.beginPath(); mStrokePts.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x, p.y) : targetCtx.lineTo(p.x, p.y)); targetCtx.stroke();
+                if (m.arrowStart || m.arrowEnd) {
+                    drawLineArrows(targetCtx, m.points, m.arrowStart, m.arrowEnd, activeThick, activeColor);
+                }
                 if (isSelected) { m.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 5 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
 
                 // Per-measure label visibility (default true)
                 const showLabels = m.showLabels !== false;
                 if (showLabels) {
-                    // Draw individual segment lengths
+                    // Per-instance label size (default 13 for segment, 14 for cumulative).
+                    const segLabelSize = m.labelSize || 13;
+                    const cumLabelSize = segLabelSize + 1;
+                    // Draw individual segment lengths.
+                    // Labels are content — fixed font size in world units, no
+                    // .scale(1/zoom) to keep screen size constant.
                     for (let k = 1; k < m.points.length; k++) {
                         const p1 = m.points[k-1]; const p2 = m.points[k];
                         const segPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -5683,8 +6510,7 @@ const I18N_STRINGS = {
                         targetCtx.translate(mx, my);
                         let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
                         targetCtx.rotate(textAng);
-                        targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
-                        targetCtx.font = "bold 13px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
+                        targetCtx.font = `bold ${segLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
                         targetCtx.strokeStyle = "rgba(255,255,255,0.85)"; targetCtx.lineWidth = 4;
                         targetCtx.strokeText(segLen, 0, -6);
                         targetCtx.fillStyle = activeColor;
@@ -5698,8 +6524,7 @@ const I18N_STRINGS = {
                         const lastPt = m.points[m.points.length - 1];
                         targetCtx.save();
                         targetCtx.translate(lastPt.x, lastPt.y);
-                        targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
-                        targetCtx.font = "bold 14px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
+                        targetCtx.font = `bold ${cumLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
                         targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 3;
                         targetCtx.strokeText(lenFt, 0, -10); targetCtx.fillText(lenFt, 0, -10);
                         targetCtx.restore();
@@ -5715,34 +6540,69 @@ const I18N_STRINGS = {
                 const isSelected = (isLive && i === selectedLineIndex); const isHovered = (isLive && i === hoveredLineIndex);
                 let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
                 if (isSelected) activeColor = '#2ecc71'; else if (isHovered && !isSelected) activeColor = '#f1c40f';
-                targetCtx.strokeStyle = activeColor; targetCtx.lineWidth = ((isSelected || isHovered ? 2 : 0) + activeThick) / (isLive ? v.zoom : 1);
-                targetCtx.beginPath(); l.points.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x, p.y) : targetCtx.lineTo(p.x, p.y)); targetCtx.stroke();
+                // Content thickness (activeThick) is in world units — the +2
+                // selection/hover boost stays zoom-adjusted as a UI affordance.
+                targetCtx.strokeStyle = activeColor;
+                targetCtx.lineWidth = activeThick + ((isSelected || isHovered ? 2 : 0) / (isLive ? v.zoom : 1));
+                // Compute shortened endpoints if arrows are enabled, so the stroke
+                // stops at the arrow's base and the line+arrow form a clean shape.
+                const strokePts = pointsForStroke(l.points, l.arrowStart, l.arrowEnd, activeThick);
+                targetCtx.beginPath(); strokePts.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x, p.y) : targetCtx.lineTo(p.x, p.y)); targetCtx.stroke();
+                // Arrowheads — drawn AFTER the stroke so they layer on top.
+                // Use the actual line color (not the selection highlight color)
+                // so the arrow visually matches the line in its normal state.
+                if (l.arrowStart || l.arrowEnd) {
+                    drawLineArrows(targetCtx, l.points, l.arrowStart, l.arrowEnd, activeThick, activeColor);
+                }
                 if (isSelected) { l.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 5 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
                 if (l.type === 'dimension' && l.points.length === 2) {
-                    const p1 = l.points[0], p2 = l.points[1]; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x); const tickLen = (10 + activeThick) / (isLive ? v.zoom : 1);
+                    // Dimension tick length is content — sized in world units, scales
+                    // with zoom like the line itself. Dimension distance label is
+                    // also content — fixed font size in world units (no .scale(1/zoom)).
+                    const p1 = l.points[0], p2 = l.points[1]; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x); const tickLen = 10 + activeThick;
                     targetCtx.beginPath(); targetCtx.moveTo(p1.x - Math.sin(ang)*tickLen, p1.y + Math.cos(ang)*tickLen); targetCtx.lineTo(p1.x + Math.sin(ang)*tickLen, p1.y - Math.cos(ang)*tickLen); targetCtx.moveTo(p2.x - Math.sin(ang)*tickLen, p2.y + Math.cos(ang)*tickLen); targetCtx.lineTo(p2.x + Math.sin(ang)*tickLen, p2.y - Math.cos(ang)*tickLen); targetCtx.stroke();
                     const distFt = page.pixelsPerFoot ? formatLength(Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot) : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
                     const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
-                    targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI; targetCtx.rotate(textAng); targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom"; targetCtx.scale(1/(isLive ? v.zoom : 1), 1/(isLive ? v.zoom : 1));
+                    targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI; targetCtx.rotate(textAng);
+                    const dimLabelSize = l.labelSize || 16;
+                    targetCtx.font = `bold ${dimLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
                     targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4; targetCtx.strokeText(distFt, 0, -5); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
                 }
             });
         }
 
-        if (page.texts && uiState.showLines !== false) {
+        if (page.texts && uiState.showTexts !== false) {
             page.texts.forEach((t, i) => {
+                // Hide the text we're currently editing — the textarea overlay
+                // shows it instead. Otherwise we'd see canvas text ghosting
+                // behind the editor.
+                if (isLive && _textEditingIndex === i) return;
                 const isSelected = (isLive && i === selectedTextIndex); const isHovered = (isLive && i === hoveredTextIndex);
                 const size = t.size || 24;
                 targetCtx.font = `bold ${size}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
+                // Multiline support: split on \n and render each line offset
+                // vertically. Line spacing 1.1× to match the textarea editor.
+                const lines = (t.text || '').split('\n');
+                const lineHeight = size * 1.1;
+                const totalHeight = lineHeight * lines.length;
+                // Width is the widest line; used for selection box and hover halo.
+                let maxWidth = 0;
+                lines.forEach(ln => { const w = targetCtx.measureText(ln).width; if (w > maxWidth) maxWidth = w; });
+                // Top of the text block (centered around t.y vertically).
+                const topY = t.y - (totalHeight / 2) + (lineHeight / 2);
+
                 if (isSelected || isHovered) {
-                    const metrics = targetCtx.measureText(t.text); const pad = 5 / (isLive ? v.zoom : 1);
+                    const pad = 5 / (isLive ? v.zoom : 1);
                     targetCtx.fillStyle = isSelected ? "rgba(46, 204, 113, 0.2)" : "rgba(241, 196, 15, 0.2)";
-                    targetCtx.fillRect(t.x - (metrics.width/2) - pad, t.y - (size/2) - pad, metrics.width + (pad*2), size + (pad*2));
+                    targetCtx.fillRect(t.x - (maxWidth/2) - pad, t.y - (totalHeight/2) - pad, maxWidth + (pad*2), totalHeight + (pad*2));
                     targetCtx.strokeStyle = isSelected ? "#2ecc71" : "#f1c40f"; targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1);
-                    targetCtx.strokeRect(t.x - (metrics.width/2) - pad, t.y - (size/2) - pad, metrics.width + (pad*2), size + (pad*2));
+                    targetCtx.strokeRect(t.x - (maxWidth/2) - pad, t.y - (totalHeight/2) - pad, maxWidth + (pad*2), totalHeight + (pad*2));
                 }
-                if (isLive) { targetCtx.strokeStyle = "rgba(255,255,255,0.7)"; targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeText(t.text, t.x, t.y); }
-                targetCtx.fillStyle = t.color || '#000000'; targetCtx.fillText(t.text, t.x, t.y);
+                lines.forEach((line, li) => {
+                    const ly = topY + (li * lineHeight);
+                    if (isLive) { targetCtx.strokeStyle = "rgba(255,255,255,0.7)"; targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeText(line, t.x, ly); }
+                    targetCtx.fillStyle = t.color || '#000000'; targetCtx.fillText(line, t.x, ly);
+                });
             });
         }
 
@@ -5796,7 +6656,7 @@ const I18N_STRINGS = {
         if (page.legend && page.legend.show) {
             let signCounts = {}; let measureTotals = {}; let grandTotal = 0;
             if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) { let idx = s.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
-            if (page.measures && uiState.showLines !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; let idx = m.typeIndex ?? 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
+            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; let idx = m.typeIndex ?? 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
             let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
             if (items.length > 0 || mItems.length > 0) {
                 targetCtx.save();
@@ -6026,6 +6886,24 @@ const I18N_STRINGS = {
             // Crosshair is now drawn by the DOM overlay (#crosshair-overlay) which tracks
             // the cursor in real time without waiting for canvas redraws.
         } else { targetCtx.restore(); }
+
+        // If the in-place text editor is showing, keep it positioned over its
+        // world-coord anchor as the view changes (pan / zoom).
+        if (isLive && _textEditingIndex !== -1) {
+            const anchor = (_textEditingIndex >= 0)
+                ? getActivePage().texts[_textEditingIndex]
+                : _textEditingNewPos;
+            if (anchor) {
+                // Also update the editor's font size so it scales with zoom
+                // (matching the WYSIWYG rule for canvas text).
+                const editor = document.getElementById('canvas-text-editor');
+                if (editor && editor.style.display !== 'none') {
+                    const size = (_textEditingIndex >= 0) ? (anchor.size || 24) : 36;
+                    editor.style.fontSize = (size * view.zoom) + 'px';
+                    positionTextEditor(anchor.x, anchor.y);
+                }
+            }
+        }
     }
 
     // ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
@@ -6041,6 +6919,160 @@ const I18N_STRINGS = {
         a.click();
         hasUnsavedChanges = false;
         showToast(t('toast.project_saved'));
+    }
+
+    // ─── EXCEL EXPORT (chairs + key items) ──────────────────────────────────────
+    //
+    // Builds a two-sheet .xlsx workbook using SheetJS:
+    //   1) "Chair Summary"  — one row per seating area, columns: Page | Type | Area Name | Count
+    //   2) "Key Items"      — one row per (page, item type, kind), columns: Page | Kind | Type | Count | Length
+    //
+    // Both sheets are pure raw data — no embedded totals — so users can pivot
+    // and filter freely in Excel. Shifts/attendants are intentionally NOT
+    // included here; they have their own import/export elsewhere.
+    function exportToExcel() {
+        // SheetJS may not have loaded (offline, CDN blocked). Bail with a toast.
+        if (typeof XLSX === 'undefined') {
+            showToast(t('project.export_excel.toast.unavailable'));
+            return;
+        }
+
+        // ── Recompute counts for every page ────────────────────────────────
+        // Areas store their seat count in s.count, which is only refreshed when
+        // the page becomes active and the seat cache updates. To export an
+        // accurate, current value for every page (not just the one the user is
+        // viewing), walk every page and force a cache update — same pattern as
+        // the print summary builder.
+        const origIndex = project.activePageIndex;
+        project.pages.forEach((p, idx) => {
+            project.activePageIndex = idx;
+            needsCacheUpdate = true;
+            updateCache();
+        });
+        project.activePageIndex = origIndex;
+        needsCacheUpdate = true;
+        // Note: we don't call render() here. The next user interaction will.
+
+        // ── Chair Summary sheet ────────────────────────────────────────────
+        // Header row plus one row per area. seat types are looked up by index
+        // so the row shows the human-readable name, not the index number.
+        const chairHeader = [
+            t('project.export_excel.col.page'),
+            t('project.export_excel.col.type'),
+            t('project.export_excel.col.area'),
+            t('project.export_excel.col.count')
+        ];
+        const chairRows = [chairHeader];
+        project.pages.forEach(p => {
+            (p.shapes || []).forEach(s => {
+                if (s.type !== 'area') return;
+                const typeIdx = s.seatTypeIndex ?? 0;
+                const typeName = (project.seatTypes[typeIdx] && project.seatTypes[typeIdx].name) || `Type ${typeIdx + 1}`;
+                chairRows.push([p.name, typeName, s.name || '', s.count || 0]);
+            });
+        });
+
+        // ── Key Items sheet ────────────────────────────────────────────────
+        // One row per (page, item type, kind). Signs only have a count;
+        // polymeasures have both a count and a total length in the user's
+        // current unit. The length column header includes the unit name in
+        // parentheses so it's obvious without forcing a unit on every cell.
+        const unitLabel = getUnitLabel();
+        const keyHeader = [
+            t('project.export_excel.col.page'),
+            t('project.export_excel.col.kind'),
+            t('project.export_excel.col.type'),
+            t('project.export_excel.col.count'),
+            t('project.export_excel.col.length', { unit: unitLabel })
+        ];
+        const keyRows = [keyHeader];
+        project.pages.forEach(p => {
+            // Signs: group by type, count how many on this page.
+            if (p.signs && p.signs.length > 0) {
+                project.signTypes.forEach((st, typeIdx) => {
+                    const count = p.signs.filter(sg => (sg.typeIndex ?? 0) === typeIdx).length;
+                    if (count > 0) {
+                        keyRows.push([
+                            p.name,
+                            t('project.export_excel.kind.sign'),
+                            st.name,
+                            count,
+                            '' // signs have no length
+                        ]);
+                    }
+                });
+            }
+            // Polymeasures: group by type, count occurrences AND sum their
+            // total length. Length is computed in feet (internal unit) then
+            // converted for the export.
+            if (p.measures && p.measures.length > 0) {
+                project.measureTypes.forEach((mt, typeIdx) => {
+                    let count = 0;
+                    let totalFt = 0;
+                    p.measures.forEach(m => {
+                        if ((m.typeIndex ?? 0) !== typeIdx) return;
+                        count++;
+                        let pxLen = 0;
+                        for (let k = 1; k < m.points.length; k++) {
+                            pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y);
+                        }
+                        totalFt += p.pixelsPerFoot ? pxLen / p.pixelsPerFoot : 0;
+                    });
+                    if (count > 0) {
+                        const lengthInUnit = feetToDisplay(totalFt);
+                        // Round to the unit's natural precision so the
+                        // exported number matches what the user sees on screen.
+                        const lengthRounded = Number(lengthInUnit.toFixed(getUnitDecimals()));
+                        keyRows.push([
+                            p.name,
+                            t('project.export_excel.kind.measure'),
+                            mt.name,
+                            count,
+                            lengthRounded
+                        ]);
+                    }
+                });
+            }
+        });
+
+        // ── Empty-project check ────────────────────────────────────────────
+        // If both sheets only have the header row, there's nothing to export.
+        // Show a toast rather than producing a useless workbook.
+        if (chairRows.length === 1 && keyRows.length === 1) {
+            showToast(t('project.export_excel.toast.empty'));
+            return;
+        }
+
+        // ── Build the workbook ─────────────────────────────────────────────
+        const wb = XLSX.utils.book_new();
+        const chairSheet = XLSX.utils.aoa_to_sheet(chairRows);
+        const keySheet   = XLSX.utils.aoa_to_sheet(keyRows);
+
+        // Reasonable column widths so the headers aren't truncated when the
+        // user opens the file. (Excel's auto-fit doesn't apply on first open.)
+        chairSheet['!cols'] = [
+            { wch: 22 }, // Page
+            { wch: 28 }, // Type
+            { wch: 22 }, // Area Name
+            { wch: 10 }  // Count
+        ];
+        keySheet['!cols'] = [
+            { wch: 22 }, // Page
+            { wch: 12 }, // Kind
+            { wch: 28 }, // Type
+            { wch: 10 }, // Count
+            { wch: 22 }  // Total Length
+        ];
+
+        XLSX.utils.book_append_sheet(wb, chairSheet, t('project.export_excel.sheet.chairs'));
+        XLSX.utils.book_append_sheet(wb, keySheet,   t('project.export_excel.sheet.keyitems'));
+
+        // Filename: use project title (sanitized) + a fixed suffix. SheetJS
+        // handles the actual download — no need for our own anchor click.
+        const safeName = (project.title || 'project').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim() || 'project';
+        XLSX.writeFile(wb, `${safeName}_chairs_and_keyitems.xlsx`);
+
+        showToast(t('project.export_excel.toast.success'));
     }
 
     // ─── FIX #7: loadProject with schema validation ──────────────────────────────
@@ -6893,36 +7925,69 @@ const I18N_STRINGS = {
                 document.getElementById('rpt-table-header').innerHTML = `<th>${escapeHTML(t('print.summary.col.section'))}</th><th>${escapeHTML(t('print.summary.col.count'))}</th>`;
                 const body = document.getElementById('rpt-body'); body.innerHTML = '';
                 let typeGrandTotals = new Array(project.seatTypes.length).fill(0);
-                let signGrandTotals = new Array(project.signTypes.length).fill(0);
-                let measureGrandTotals = new Array(project.measureTypes.length).fill(0);
                 const origIndex = project.activePageIndex;
+                let areasShown = 0; // index of the current visible area; first is 0
                 project.pages.forEach((p, idx) => {
                     project.activePageIndex = idx; needsCacheUpdate = true; updateCache();
-                    let pageRows = ''; let hasAreas = false;
+                    let pageRows = ''; let hasAreas = false; let pageTotal = 0;
                     project.seatTypes.forEach((st, typeIdx) => {
                         let typeSubtotal = 0; let typeRows = '';
                         p.shapes.forEach(s => { if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) { typeRows += `<tr><td style="padding-left: 20px;">${escapeHTML(s.name)}</td><td>${fmtNum(s.count)}</td></tr>`; typeSubtotal += s.count; } });
-                        if (typeRows !== '') { hasAreas = true; pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${escapeHTML(t('print.summary.group.suffix', { name: st.name }))}</td></tr>`; pageRows += typeRows; pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${escapeHTML(t('print.summary.subtotal', { name: st.name }))}</td><td style="border-bottom: 1px solid #ccc;">${fmtNum(typeSubtotal)}</td></tr>`; typeGrandTotals[typeIdx] += typeSubtotal; }
+                        if (typeRows !== '') {
+                            hasAreas = true;
+                            pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${escapeHTML(t('print.summary.group.suffix', { name: st.name }))}</td></tr>`;
+                            pageRows += typeRows;
+                            pageRows += `<tr style="font-weight: bold; font-style: italic;"><td style="text-align: right; border-bottom: 1px solid #ccc;">${escapeHTML(t('print.summary.subtotal', { name: st.name }))}</td><td style="border-bottom: 1px solid #ccc;">${fmtNum(typeSubtotal)}</td></tr>`;
+                            typeGrandTotals[typeIdx] += typeSubtotal;
+                            pageTotal += typeSubtotal;
+                        }
                     });
-                    if ((p.signs && p.signs.length > 0) || (p.measures && p.measures.length > 0)) {
-                        hasAreas = true; pageRows += `<tr style="background: #fff3e0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #e67e22;">${escapeHTML(t('print.summary.keyitems_banner'))}</td></tr>`;
-                        if (p.signs) { project.signTypes.forEach((st, typeIdx) => { let signCount = p.signs.filter(s => (s.typeIndex ?? 0) === typeIdx).length; if (signCount > 0) { pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${escapeHTML(st.color)}">●</span> ${escapeHTML(st.name)}</td><td>${fmtNum(signCount)}</td></tr>`; signGrandTotals[typeIdx] += signCount; } }); }
-                        if (p.measures) { project.measureTypes.forEach((mt, typeIdx) => { let totalFt = 0; p.measures.forEach(m => { if((m.typeIndex ?? 0) === typeIdx) { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); totalFt += p.pixelsPerFoot ? pxLen / p.pixelsPerFoot : 0; } }); if (totalFt > 0) { pageRows += `<tr><td style="padding-left: 20px;"><span style="color:${escapeHTML(mt.color)}">〰️</span> ${escapeHTML(mt.name)}</td><td>${formatLength(totalFt)}</td></tr>`; measureGrandTotals[typeIdx] += totalFt; } }); }
+                    // Key items have their own report ("Key Items Report"); we
+                    // deliberately don't include them here so this report stays
+                    // focused on chairs only.
+                    if (hasAreas) {
+                        // Each area starts on a new printed page so the layout is
+                        // easy to scan. The very first area skips the page break
+                        // so it doesn't leave a blank page after the report title.
+                        const breakStyle = areasShown > 0 ? 'page-break-before: always; break-before: page; ' : '';
+                        body.innerHTML += `<tr style="${breakStyle}background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${escapeHTML(p.name).toUpperCase()}</td></tr>`;
+                        body.innerHTML += pageRows;
+                        // Per-page total chairs row (sum of all types on this page)
+                        body.innerHTML += `<tr style="font-weight: bold; background: #555 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.page_total'))}</td><td>${fmtNum(pageTotal)}</td></tr>`;
+                        areasShown++;
                     }
-                    if (hasAreas) { body.innerHTML += `<tr style="background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; border-top: 2px solid #000;"><td colspan="2">${escapeHTML(p.name).toUpperCase()}</td></tr>`; body.innerHTML += pageRows; }
                 });
                 project.activePageIndex = origIndex; needsCacheUpdate = true; render();
-                let footHTML = ''; let absoluteTotal = 0;
-                project.seatTypes.forEach((st, i) => { if(typeGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.total_type', { name: st.name.toUpperCase() }))}</td><td>${fmtNum(typeGrandTotals[i])}</td></tr>`; absoluteTotal += typeGrandTotals[i]; } });
-                footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
-                footHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.grand_total'))}</td><td>${fmtNum(absoluteTotal)}</td></tr>`;
-                let hasSigns = signGrandTotals.some(x => x > 0); let hasMeasures = measureGrandTotals.some(x => x > 0);
-                if (hasSigns || hasMeasures) {
-                    footHTML += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
-                    project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#e67e22 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.total_type', { name: st.name.toUpperCase() }))}</td><td>${fmtNum(signGrandTotals[i])}</td></tr>`; } });
-                    project.measureTypes.forEach((mt, i) => { if (measureGrandTotals[i] > 0) { footHTML += `<tr style="font-weight:bold; background:#9b59b6 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.total_type', { name: mt.name.toUpperCase() }))}</td><td>${formatLength(measureGrandTotals[i])}</td></tr>`; } });
-                }
-                document.querySelector('#print-report-container tfoot').innerHTML = footHTML;
+
+                // Grand totals go at the very end, NOT in <tfoot>. The browser
+                // repeats tfoot rows on every printed page (display:table-footer-group
+                // is what allows that pattern, useful for column headers but not for
+                // a single end-of-report total block). Appending to tbody guarantees
+                // these rows print exactly once, right after the last page's content.
+                // The block is given a page break before it so all the totals stay
+                // together on one final page — avoids the ugly case where the per-type
+                // totals get split across two pages with the GRAND TOTAL alone on the
+                // next one.
+                let finalRows = ''; let absoluteTotal = 0;
+                let isFirstGrandTotalRow = true;
+                project.seatTypes.forEach((st, i) => {
+                    if (typeGrandTotals[i] > 0) {
+                        const breakStyle = isFirstGrandTotalRow ? 'page-break-before: always; break-before: page; ' : '';
+                        finalRows += `<tr style="${breakStyle}font-weight:bold; background:#444 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.total_type', { name: st.name.toUpperCase() }))}</td><td>${fmtNum(typeGrandTotals[i])}</td></tr>`;
+                        absoluteTotal += typeGrandTotals[i];
+                        isFirstGrandTotalRow = false;
+                    }
+                });
+                // If there were no per-type totals (edge case: empty project),
+                // the grand total row itself becomes the first row and needs the
+                // break-before instead.
+                const grandBreakStyle = isFirstGrandTotalRow ? 'page-break-before: always; break-before: page; ' : '';
+                finalRows += `<tr style="height: 10px; background: white;"><td colspan="2"></td></tr>`;
+                finalRows += `<tr style="${grandBreakStyle}font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.summary.grand_total'))}</td><td>${fmtNum(absoluteTotal)}</td></tr>`;
+                body.innerHTML += finalRows;
+                // Clear tfoot — for the chair summary we put everything in tbody
+                // so totals don't repeat per page.
+                document.querySelector('#print-report-container tfoot').innerHTML = '';
                 document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
             } else if (type === 'schedule') {
@@ -7075,8 +8140,13 @@ const I18N_STRINGS = {
                             svg += `<line x1="${leftX}" y1="${leftY}" x2="${rightX}" y2="${rightY}" stroke="${COLORS.screen}" stroke-width="${6 * scaleFac}" stroke-linecap="round" />`;
                             svg += `<circle cx="${sc.x}" cy="${sc.y}" r="${8 * scaleFac}" fill="white" stroke="${COLORS.screen}" stroke-width="${2 * scaleFac}" />`;
                             svg += `<line x1="${sc.x}" y1="${sc.y}" x2="${sc.x + Math.cos(rotRad)*20*scaleFac}" y2="${sc.y + Math.sin(rotRad)*20*scaleFac}" stroke="${COLORS.screen}" stroke-width="${2 * scaleFac}" />`;
-                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(sc.name)}</text>`;
-                            svg += `<text x="${sc.x}" y="${sc.y - (18 * scaleFac)}" font-size="${16 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="white">${escapeHTML(sc.name)}</text>`;
+                            // Per-instance label size for screen name. Offset
+                            // above the screen scales with the label so the
+                            // gap looks right at any size.
+                            const scLblPx = (sc.labelSize || 16) * scaleFac;
+                            const scOff = scLblPx * 1.25;
+                            svg += `<text x="${sc.x}" y="${sc.y - scOff}" font-size="${scLblPx}px" font-weight="bold" text-anchor="middle" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(sc.name)}</text>`;
+                            svg += `<text x="${sc.x}" y="${sc.y - scOff}" font-size="${scLblPx}px" font-weight="bold" text-anchor="middle" fill="white">${escapeHTML(sc.name)}</text>`;
                         });
                     }
                     if (uiState.showAreaLabels !== false) {
@@ -7086,25 +8156,48 @@ const I18N_STRINGS = {
                             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0]; const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
                             if (s.type !== 'area') svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?escapeHTML(st.stroke):'#e74c3c'}" stroke-width="${2 * scaleFac}" />`;
                             let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
+                            // Per-instance label size (default 18). Seat-count
+                            // renders 4 smaller. Vertical offsets scale with the
+                            // label so spacing looks consistent at any size.
+                            const lblSize = (s.labelSize || 18) * scaleFac;
+                            const countSize = Math.max(8 * scaleFac, lblSize - (4 * scaleFac));
+                            const nameOffset = -lblSize * 0.6;
+                            const countOffset = lblSize * 0.5;
                             if (s.type === 'area') {
-                                svg += `<text x="${cen.x}" y="${cen.y - (10 * scaleFac)}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
-                                svg += `<text x="${cen.x}" y="${cen.y - (10 * scaleFac)}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
                                 let countStr = s.count !== undefined ? tn("canvas.seats", s.count, { n: fmtNum(s.count) }) : tn("canvas.seats", 0, { n: fmtNum(0) });
-                                svg += `<text x="${cen.x}" y="${cen.y + (12 * scaleFac)}" font-size="${14 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${countStr}</text>`;
-                                svg += `<text x="${cen.x}" y="${cen.y + (12 * scaleFac)}" font-size="${14 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#cccccc">${countStr}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y + countOffset}" font-size="${countSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${countStr}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y + countOffset}" font-size="${countSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#cccccc">${countStr}</text>`;
                             } else {
-                                svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
-                                svg += `<text x="${cen.x}" y="${cen.y}" font-size="${18 * scaleFac}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
+                                svg += `<text x="${cen.x}" y="${cen.y}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
                             }
                         });
                     }
-                    if (page.measures && uiState.showLines !== false) {
+                    if (page.measures && uiState.showMeasures !== false) {
                         page.measures.forEach(m => {
                             const mt = project.measureTypes[m.typeIndex ?? 0] || project.measureTypes[0];
-                            const thick = (mt.thickness || 4) * scaleFac; const pts = m.points.map(p => `${p.x},${p.y}`).join(' ');
+                            const thick = (mt.thickness || 4) * scaleFac;
+                            const renderPts = pointsForStroke(m.points, m.arrowStart, m.arrowEnd, thick);
+                            const pts = renderPts.map(p => `${p.x},${p.y}`).join(' ');
                             svg += `<polyline points="${pts}" fill="none" stroke="${escapeHTML(mt.color)}" stroke-width="${thick}" stroke-linecap="round" stroke-linejoin="round" />`;
+                            if ((m.arrowStart || m.arrowEnd) && m.points.length >= 2) {
+                                if (m.arrowStart) {
+                                    const p0 = m.points[0], p1 = m.points[1];
+                                    const angle = Math.atan2(p0.y - p1.y, p0.x - p1.x);
+                                    svg += arrowheadSVG(p0.x, p0.y, angle, thick, mt.color);
+                                }
+                                if (m.arrowEnd) {
+                                    const pN = m.points[m.points.length-1], pP = m.points[m.points.length-2];
+                                    const angle = Math.atan2(pN.y - pP.y, pN.x - pP.x);
+                                    svg += arrowheadSVG(pN.x, pN.y, angle, thick, mt.color);
+                                }
+                            }
                             // Honor per-measure label toggle (default true)
                             if (m.showLabels !== false) {
+                                const segLabelSize = (m.labelSize || 13) * scaleFac;
+                                const cumLabelSize = ((m.labelSize || 13) + 1) * scaleFac;
                                 // Per-segment labels
                                 for (let k = 1; k < m.points.length; k++) {
                                     const p1 = m.points[k-1]; const p2 = m.points[k];
@@ -7113,10 +8206,9 @@ const I18N_STRINGS = {
                                     const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
                                     const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2;
                                     let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
-                                    const fSize = 13 * scaleFac;
                                     svg += `<g transform="rotate(${textAng}, ${mx}, ${my})">`;
-                                    svg += `<text x="${mx}" y="${my - (6 * scaleFac)}" font-family="Arial" font-size="${fSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${segLen}</text>`;
-                                    svg += `<text x="${mx}" y="${my - (6 * scaleFac)}" font-family="Arial" font-size="${fSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${segLen}</text>`;
+                                    svg += `<text x="${mx}" y="${my - (6 * scaleFac)}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${4 * scaleFac}" stroke-linejoin="round">${segLen}</text>`;
+                                    svg += `<text x="${mx}" y="${my - (6 * scaleFac)}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${segLen}</text>`;
                                     svg += `</g>`;
                                 }
                                 // Cumulative total at endpoint (only for multi-segment)
@@ -7124,8 +8216,8 @@ const I18N_STRINGS = {
                                     let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y);
                                     const lenFt = page.pixelsPerFoot ? "Σ " + formatLength(pxLen / page.pixelsPerFoot) : "Σ " + Math.round(pxLen) + " px";
                                     const lastPt = m.points[m.points.length - 1];
-                                    svg += `<text x="${lastPt.x}" y="${lastPt.y - (10 * scaleFac)}" font-family="Arial" font-size="${14 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${3 * scaleFac}" stroke-linejoin="round">${lenFt}</text>`;
-                                    svg += `<text x="${lastPt.x}" y="${lastPt.y - (10 * scaleFac)}" font-family="Arial" font-size="${14 * scaleFac}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${lenFt}</text>`;
+                                    svg += `<text x="${lastPt.x}" y="${lastPt.y - (10 * scaleFac)}" font-family="Arial" font-size="${cumLabelSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${3 * scaleFac}" stroke-linejoin="round">${lenFt}</text>`;
+                                    svg += `<text x="${lastPt.x}" y="${lastPt.y - (10 * scaleFac)}" font-family="Arial" font-size="${cumLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${lenFt}</text>`;
                                 }
                             }
                         });
@@ -7134,23 +8226,53 @@ const I18N_STRINGS = {
                         page.lines.forEach(l => {
                             if (l.type === 'dimension' && uiState.showDims === false) return;
                             if (l.type !== 'dimension' && uiState.showLines === false) return;
-                            const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db'); const thick = (l.thickness || 2) * scaleFac; const pts = l.points.map(p => `${p.x},${p.y}`).join(' ');
+                            const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db'); const thick = (l.thickness || 2) * scaleFac;
+                            // Use shortened endpoints if arrows enabled, so the stroked line
+                            // stops at the arrow base. The data isn't modified — only what
+                            // we emit in the SVG.
+                            const renderPts = pointsForStroke(l.points, l.arrowStart, l.arrowEnd, thick);
+                            const pts = renderPts.map(p => `${p.x},${p.y}`).join(' ');
                             svg += `<polyline points="${pts}" fill="none" stroke="${escapeHTML(color)}" stroke-width="${thick}" stroke-linecap="round" stroke-linejoin="round" />`;
+                            // Arrowheads — match the canvas rendering
+                            if ((l.arrowStart || l.arrowEnd) && l.points.length >= 2) {
+                                if (l.arrowStart) {
+                                    const p0 = l.points[0], p1 = l.points[1];
+                                    const angle = Math.atan2(p0.y - p1.y, p0.x - p1.x);
+                                    svg += arrowheadSVG(p0.x, p0.y, angle, thick, color);
+                                }
+                                if (l.arrowEnd) {
+                                    const pN = l.points[l.points.length-1], pP = l.points[l.points.length-2];
+                                    const angle = Math.atan2(pN.y - pP.y, pN.x - pP.x);
+                                    svg += arrowheadSVG(pN.x, pN.y, angle, thick, color);
+                                }
+                            }
                             if (l.type === 'dimension' && l.points.length === 2) {
                                 const p1 = l.points[0], p2 = l.points[1]; const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x); const tickLen = (12 + (thick / 2)) * scaleFac;
                                 svg += `<line x1="${p1.x - Math.sin(ang)*tickLen}" y1="${p1.y + Math.cos(ang)*tickLen}" x2="${p1.x + Math.sin(ang)*tickLen}" y2="${p1.y - Math.cos(ang)*tickLen}" stroke="${escapeHTML(color)}" stroke-width="${thick}" stroke-linecap="round" />`;
                                 svg += `<line x1="${p2.x - Math.sin(ang)*tickLen}" y1="${p2.y + Math.cos(ang)*tickLen}" x2="${p2.x + Math.sin(ang)*tickLen}" y2="${p2.y - Math.cos(ang)*tickLen}" stroke="${escapeHTML(color)}" stroke-width="${thick}" stroke-linecap="round" />`;
                                 const distFt = page.pixelsPerFoot ? formatLength(Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot) : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
                                 const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2; let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
-                                const fontSize = 16 * scaleFac; const strokeW = 4 * scaleFac;
+                                const fontSize = (l.labelSize || 16) * scaleFac; const strokeW = 4 * scaleFac;
                                 svg += `<g transform="rotate(${textAng}, ${mx}, ${my})"><text x="${mx}" y="${my - (5 * scaleFac)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${strokeW}" stroke-linejoin="round">${distFt}</text><text x="${mx}" y="${my - (5 * scaleFac)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(color)}">${distFt}</text></g>`;
                             }
                         });
                     }
-                    if (page.texts && uiState.showLines !== false) {
+                    if (page.texts && uiState.showTexts !== false) {
                         page.texts.forEach(t => {
-                            const color = t.color || '#000000'; const size = (t.size || 24) * scaleFac;
-                            svg += `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${size}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${escapeHTML(color)}">${escapeHTML(t.text)}</text>`;
+                            const color = t.color || '#000000'; const sizeWorld = t.size || 24;
+                            const fontSize = sizeWorld * scaleFac;
+                            // Multiline: split into lines, render with <tspan>s.
+                            // SVG <text> with multiple <tspan> children each with
+                            // x= and dy= gives line-by-line layout. The first
+                            // line sits at y = t.y - (totalH/2 - lineH/2) so the
+                            // block is vertically centered around t.y.
+                            const lines = (t.text || '').split('\n');
+                            const lineHeight = sizeWorld * 1.1;
+                            const topY = t.y - ((lineHeight * lines.length) / 2) + (lineHeight / 2);
+                            const tspans = lines.map((line, li) =>
+                                `<tspan x="${t.x}" y="${topY + (li * lineHeight)}">${escapeHTML(line)}</tspan>`
+                            ).join('');
+                            svg += `<text font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${escapeHTML(color)}">${tspans}</text>`;
                         });
                     }
                     if (page.seatLegend && page.seatLegend.show) {
@@ -7199,7 +8321,7 @@ const I18N_STRINGS = {
                         let legendX = page.legend.x; let legendY = page.legend.y; let s = (page.legend.scale || 1); 
                         let signCounts = {}; let measureTotals = {}; let grandTotal = 0;
                         if (page.signs && uiState.showSigns) { page.signs.forEach(sign => { if (!uiState.hiddenSignTypes.includes(sign.typeIndex ?? 0)) { let idx = sign.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
-                        if (page.measures && uiState.showLines !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; let idx = m.typeIndex ?? 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
+                        if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; let idx = m.typeIndex ?? 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
                         let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
                         if (items.length > 0 || mItems.length > 0) {
                             measureCtx.font = "16px Arial"; let maxW=0; items.forEach(idx=>{ const st = project.signTypes[idx] || project.signTypes[0]; let w=measureCtx.measureText(st.name).width + measureCtx.measureText(fmtNum(signCounts[idx])).width; if(w>maxW)maxW=w; }); mItems.forEach(idx=>{ const mt = project.measureTypes[idx] || project.measureTypes[0]; let w=measureCtx.measureText(mt.name).width + measureCtx.measureText(formatLength(measureTotals[idx])).width; if(w>maxW)maxW=w; });
