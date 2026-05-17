@@ -12,6 +12,11 @@
     <style>
         :root { --bg: #1e1e1e; --panel-bg: #252526; --ribbon-bg: #333333; --accent: #007acc; --danger: #e74c3c; --success: #4caf50; --warning: #f1c40f; --screen: #e67e22; --text: #cccccc; --text-light: #ffffff; --border: #3e3e42; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; top: 0 !important; }
+        /* app-root wraps the primary UI (ribbon + workspace) so the auto-scale
+           system can transform it as a unit. Positioned absolute so its width
+           and height come directly from inline styles (set by fitAppToViewport)
+           rather than from the flex parent's layout rules. */
+        #app-root { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
         
         /* Custom Scrollbars */
         ::-webkit-scrollbar { width: 6px; }
@@ -198,6 +203,70 @@
         }
         .att-add-btn:hover { background: #0098ff; }
 
+        /* Compact inline-labeled rows for the Active Shift / Post Style pickers.
+           Small label on the left, dropdown taking the rest of the row width.
+           Replaces the older stacked layout with separate ALL-CAPS labels. */
+        .att-inline-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 6px;
+        }
+        .att-inline-label {
+            font-size: 0.75em; color: #999;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            min-width: 44px; flex-shrink: 0;
+        }
+        .att-inline-row select {
+            flex: 1; min-width: 0;
+        }
+        .att-style-swatch {
+            width: 18px; height: 18px;
+            border-radius: 50%; border: 1px solid #555;
+            flex-shrink: 0;
+        }
+
+        /* Sticky "Placed Posts" header. When the posts list scrolls, the header
+           stays pinned at the top of the scrollable region so users always see
+           the count + collapse chevron. */
+        #att-posts-section > .collapse-header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: var(--panel-bg);
+        }
+
+        /* Tiny up/down arrow buttons used to reorder items in sidebar lists.
+           Compact (about 16x16), unobtrusive, but discoverable on hover. */
+        .reorder-arrow {
+            background: transparent;
+            border: 1px solid #444;
+            color: #aaa;
+            font-size: 9px;
+            line-height: 1;
+            padding: 1px 4px;
+            margin: 0 1px;
+            border-radius: 2px;
+            cursor: pointer;
+            min-width: 0;
+        }
+        .reorder-arrow:hover:not([disabled]) {
+            background: #3a3a3a;
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .reorder-arrow[disabled] {
+            opacity: 0.25;
+            cursor: default;
+        }
+        .reorder-arrows-wrap {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .reorder-arrows-wrap .reorder-arrow {
+            padding: 0 4px;
+            font-size: 8px;
+        }
+
         /* Announcement modal — corner X button (matches the modal-card style) */
         .announcement-x {
             position: absolute;
@@ -304,12 +373,51 @@
         .btn-danger { background: var(--danger); }
 
         ul.item-list { list-style: none; padding: 0; margin: 0 0 15px 0; display: flex; flex-direction: column; gap: 6px; }
-        .list-item { background: #333; padding: 10px; border-radius: 4px; font-size: 0.85em; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; cursor: pointer; }
+        .list-item {
+            background: #333; padding: 10px; border-radius: 4px; font-size: 0.85em;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid transparent; cursor: pointer;
+            gap: 6px;
+        }
+        .list-item > span:first-child {
+            flex: 1; min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .list-item > div:last-child {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
         .list-item.active { border-color: var(--accent); background: #3a3a40; }
         
         .profile-item { background: #2d2d30; padding: 10px; border-radius: 4px; font-size: 0.85em; display: flex; flex-direction: column; gap: 8px; border: 1px solid #444; margin-bottom: 8px; cursor: pointer; }
         .profile-item.active { border-color: var(--accent); background: #333337; }
-        .profile-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1em; }
+        .profile-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: bold; font-size: 1.1em;
+            gap: 6px;
+        }
+        /* The name (first child) takes whatever room is left and truncates with
+           ellipsis if the row is narrower than the full name. Without min-width:0
+           a flex item refuses to shrink past its content's intrinsic width, which
+           is why long names were forcing the icon group to wrap to a second line. */
+        .profile-header > span:first-child {
+            flex: 1; min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* The icon group (second child) is a fixed-width row of buttons. Never
+           shrinks, never wraps. */
+        .profile-header > div {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
         
         .icon-btn { background: none; border: none; color: #aaa; cursor: pointer; padding: 4px; border-radius: 3px; font-size: 1.1em; line-height: 1; }
         .icon-btn:hover { color: white; background: rgba(255,255,255,0.1); }
@@ -382,9 +490,22 @@
             html, body {
                 background: white; color: black;
                 margin: 0; padding: 0;
-                width: 100%; height: 100%;
+                width: 100%;
                 display: block;
+            }
+            /* Layout print: single page. Body is clipped to viewport so the
+               floor plan SVG never spills onto a second page. */
+            body.layout-only, body.layout-only > html {
+                height: 100%;
                 overflow: hidden;
+            }
+            /* Summary/report prints: body flows naturally to as many pages as
+               needed. We undo the height/overflow constraints so long tables,
+               shift schedules, key item reports can paginate. */
+            body.summary-only {
+                height: auto;
+                min-height: 100%;
+                overflow: visible;
             }
             #top-ribbon, #properties-sidebar, #viewport, #tool-rail { display: none !important; }
 
@@ -444,41 +565,40 @@
             table { width: 100%; border-collapse: collapse; margin-top: 20px; color: black; }
             th, td { border: 1px solid #333; padding: 8px; text-align: left; vertical-align: middle; }
             th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            /* Multi-page report flow: keep individual rows intact across page
+               breaks, and have the table header re-print at the top of each
+               continued page so the columns are always labeled. */
+            .summary-only thead { display: table-header-group; }
+            .summary-only tfoot { display: table-footer-group; }
+            .summary-only tr { page-break-inside: avoid; break-inside: avoid; }
+            /* Headings like h2/h3 in long reports shouldn't be orphaned at the
+               very bottom of a page just above a content section. */
+            .summary-only h1, .summary-only h2, .summary-only h3 {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
         }
         /* =======================================================
-           RESPONSIVE FIX FOR 150% SCALING & SMALL SCREENS
+           RESPONSIVE FIX FOR SMALL SCREENS
+
+           Ribbon sizing is handled by the JavaScript auto-scale system
+           (see fitAppToViewport() near the bottom of the script). When the
+           viewport gets narrower than the app's natural layout, the entire
+           app container shrinks proportionally — like the user pressing
+           Ctrl+Minus in the browser.
+
+           This block only handles sidebar and modal patches for small
+           screens, which don't need a CSS scale.
            ======================================================= */
         @media (max-width: 1500px), (max-height: 850px) {
-            /* 1. Keep ribbon single-line but allow horizontal scrolling */
-            #top-ribbon {
-                overflow-x: auto !important;
-                overflow-y: hidden !important;
-                white-space: nowrap !important;
-                padding-bottom: 6px !important; /* Space for the scrollbar */
-                scroll-behavior: smooth;
-            }
-            
-            /* Style the horizontal scrollbar so it fits the dark theme */
-            #top-ribbon::-webkit-scrollbar { height: 8px; }
-            #top-ribbon::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-            #top-ribbon::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-            
-            /* Prevent ribbon buttons from getting squished together */
-            .ribbon-group-wrapper, .ribbon-group {
-                flex-shrink: 0 !important;
-            }
-
-            /* 2. Fix sidebar cut-offs by making the whole panel scroll naturally */
             .panel-content.active {
-                display: block !important; /* Removes flex constraints that trap height */
+                display: block !important;
                 overflow-y: auto !important;
             }
             .panel-tools, .panel-list-container {
                 flex-shrink: 0 !important;
             }
-            
-            /* 3. Unlock nested list heights so everything flows in one scrollable page */
-            .profile-scroll, 
+            .profile-scroll,
             .grow-section > .collapse-body:not(.collapsed),
             #placed-sign-section > .collapse-body:not(.collapsed) {
                 max-height: none !important;
@@ -486,8 +606,6 @@
                 height: auto !important;
                 display: block !important;
             }
-            
-            /* 4. Make sure modals fit on small scaled screens */
             .modal-card, .modal-card.wide {
                 max-height: 85vh !important;
                 overflow-y: auto !important;
@@ -576,6 +694,36 @@
             <button id="unsaved-save-btn" style="width: 100%;" data-i18n="modal.unsaved.save_then_open">💾 Save, then open</button>
             <button id="unsaved-discard-btn" class="secondary" style="width: 100%; background: #c0392b;" data-i18n="modal.unsaved.discard">⚠️ Discard changes and open</button>
             <button onclick="hideUnsavedModal()" class="secondary" style="width: 100%;" data-i18n="modal.unsaved.cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Merge: save-first warning. Locks merging behind an explicit "I saved" check
+     so users don't accidentally lose work if they don't like the result. -->
+<div id="merge-save-first-modal" class="modal-overlay" onclick="if(event.target===this) hideMergeSaveFirstModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="merge-savefirst-title">
+        <div class="modal-icon">💾</div>
+        <h2 id="merge-savefirst-title" data-i18n="modal.merge.savefirst.title">Save First</h2>
+        <p data-i18n="modal.merge.savefirst.body">Merging another file modifies your current project. Save first so you can always go back if you don't like the result.</p>
+        <div class="modal-actions" style="flex-direction: column; gap: 8px;">
+            <button id="merge-savefirst-save-btn" style="width: 100%;" data-i18n="modal.merge.savefirst.save">💾 Save now, then merge</button>
+            <button id="merge-savefirst-continue-btn" class="secondary" style="width: 100%;" data-i18n="modal.merge.savefirst.continue">I've already saved — continue</button>
+            <button onclick="hideMergeSaveFirstModal()" class="secondary" style="width: 100%;" data-i18n="modal.merge.savefirst.cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Merge preview & conflict resolution modal. Shows summary + per-conflict
+     decision UI; user clicks Apply to commit or Cancel to abandon. -->
+<div id="merge-preview-modal" class="modal-overlay" onclick="if(event.target===this) hideMergePreviewModal()">
+    <div class="modal-card wide" role="dialog" aria-labelledby="merge-preview-title" style="max-width: 720px;">
+        <h2 id="merge-preview-title" data-i18n="modal.merge.preview.title">Merge Preview</h2>
+        <p data-i18n="modal.merge.preview.intro" style="color: #aaa;">Review what will be added and resolve any conflicts before applying.</p>
+        <div id="merge-preview-summary" style="margin: 12px 0; padding: 10px; background: #2a2a2a; border-radius: 4px; font-size: 0.9em;"></div>
+        <div id="merge-preview-conflicts" style="max-height: 50vh; overflow-y: auto; margin-bottom: 12px;"></div>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button onclick="hideMergePreviewModal()" class="secondary" data-i18n="modal.merge.preview.cancel">Cancel</button>
+            <button id="merge-apply-btn" onclick="applyMergeFromModal()" data-i18n="modal.merge.preview.apply">Apply Merge</button>
         </div>
     </div>
 </div>
@@ -669,6 +817,11 @@
     </div>
 </div>
 
+<!-- app-root: wraps the primary UI (ribbon + workspace) so the auto-scale
+     system can shrink everything together when the viewport is narrow.
+     Modals stay OUTSIDE this wrapper because they use position:fixed,
+     which a CSS transform ancestor would interfere with. -->
+<div id="app-root">
 <div id="top-ribbon">
     <div style="display: flex; align-items: center; gap: 12px; margin-right: 20px;">
         <div id="brand-logo" style="width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
@@ -682,8 +835,8 @@
 
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group">
-            <button class="ribbon-btn action" onclick="saveProject()" data-i18n="btn.save">💾 Save</button>
-            <button class="ribbon-btn action" onclick="tryOpenProject()" data-i18n="btn.open">📁 Open</button>
+            <button class="ribbon-btn action" onclick="saveProject()" data-i18n="btn.save" title="Save the current project to a .json file">💾 Save</button>
+            <button class="ribbon-btn action" onclick="tryOpenProject()" data-i18n="btn.open" title="Open a saved project file">📁 Open</button>
             <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadProject(this)">
             <select id="print-type-select" style="width: 140px; margin-left: 10px; padding: 4px; font-size: 0.8em; background: #222; color: white;">
                 <option value="summary" data-i18n="print.summary">Summary</option>
@@ -691,7 +844,7 @@
                 <option value="signs" data-i18n="print.signs">Key Item Report</option>
                 <option value="schedule" data-i18n="print.schedule">Shift Schedule</option>
             </select>
-            <button class="ribbon-btn action" onclick="printReport(document.getElementById('print-type-select').value)" style="background: var(--accent); border-color: var(--accent);" data-i18n="btn.print">🖨️ Print</button>
+            <button class="ribbon-btn action" onclick="printReport(document.getElementById('print-type-select').value)" style="background: var(--accent); border-color: var(--accent);" data-i18n="btn.print" title="Print the current project">🖨️ Print</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.system">System</div>
     </div>
@@ -706,14 +859,14 @@
 
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group">
-            <button class="ribbon-btn tab-btn active" id="tab-project" onclick="setTab('project')" data-i18n="tab.project">⚙️ Project</button>
-            <button class="ribbon-btn tab-btn" id="tab-area" onclick="setTab('area')" data-i18n="tab.area">🪑 Seating</button>
-            <button class="ribbon-btn tab-btn" id="tab-obs" onclick="setTab('obs')" data-i18n="tab.obs">✂️ Cutouts</button>
-            <button class="ribbon-btn tab-btn" id="tab-screen" onclick="setTab('screen')" data-i18n="tab.screen">🖥️ Screens</button>
-            <button class="ribbon-btn tab-btn" id="tab-sign" onclick="setTab('sign')" data-i18n="tab.sign">📍 Key Items</button>
-            <button class="ribbon-btn tab-btn" id="tab-annotate" onclick="setTab('annotate')" data-i18n="tab.annotate">📏 Annotate</button>
-            <button class="ribbon-btn tab-btn" id="tab-attendants" onclick="setTab('attendants')" data-i18n="tab.attendants">🧍 Attendants</button>
-            <button class="ribbon-btn tab-btn" id="tab-layers" onclick="setTab('layers')" data-i18n="tab.layers">👁️ Layers</button>
+            <button class="ribbon-btn tab-btn active" id="tab-project" onclick="setTab('project')" data-i18n="tab.project" title="Project settings — title, units, blueprint, scale">⚙️ Project</button>
+            <button class="ribbon-btn tab-btn" id="tab-area" onclick="setTab('area')" data-i18n="tab.area" title="Seating areas and chair profiles">🪑 Seating</button>
+            <button class="ribbon-btn tab-btn" id="tab-obs" onclick="setTab('obs')" data-i18n="tab.obs" title="Obstacles and aisles">✂️ Cutouts</button>
+            <button class="ribbon-btn tab-btn" id="tab-screen" onclick="setTab('screen')" data-i18n="tab.screen" title="A/V screens and sightline cones">🖥️ Screens</button>
+            <button class="ribbon-btn tab-btn" id="tab-sign" onclick="setTab('sign')" data-i18n="tab.sign" title="Point markers and polymeasures">📍 Key Items</button>
+            <button class="ribbon-btn tab-btn" id="tab-annotate" onclick="setTab('annotate')" data-i18n="tab.annotate" title="Dimensions, lines, polylines, and text labels">📏 Annotate</button>
+            <button class="ribbon-btn tab-btn" id="tab-attendants" onclick="setTab('attendants')" data-i18n="tab.attendants" title="Attendant posts, shifts, and schedule">🧍 Attendants</button>
+            <button class="ribbon-btn tab-btn" id="tab-layers" onclick="setTab('layers')" data-i18n="tab.layers" title="Show/hide layers of the plan">👁️ Layers</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.tools">Tools & Filters</div>
     </div>
@@ -722,16 +875,24 @@
 
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group">
-            <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" title="About & Help — manuals, announcements, and more" data-i18n="btn.tutorials">ℹ Help</button>
+            <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
     </div>
 
-    <div style="margin-right: 15px;">
-        <select id="lang-select" onchange="setLanguage(this.value)" title="Language / Idioma" style="background: #222; color: white; border: 1px solid #555; padding: 6px 8px; border-radius: 4px; outline: none; font-size: 0.85em; cursor: pointer;">
-            <option value="en">🇺🇸 English</option>
-            <option value="es">🇪🇸 Español</option>
-        </select>
+    <div id="lang-picker" style="margin-right: 10px; position: relative;">
+        <button id="lang-toggle"
+                onclick="toggleLangMenu(event)"
+                title="Language: English. Click to switch."
+                style="background: #222; color: white; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; outline: none; font-size: 0.85em; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0;">
+            <span>🌐</span><span id="lang-toggle-label">EN</span><span style="opacity:0.6; font-size:0.75em;">▾</span>
+        </button>
+        <!-- Dropdown menu — hidden until the button is clicked.
+             To add another language: append an LANGUAGES entry in the JS and
+             this menu rebuilds automatically. -->
+        <div id="lang-menu" style="display:none; position:absolute; right:0; top:100%; margin-top:4px; background:#2a2a2a; border:1px solid #555; border-radius:4px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,0.4); z-index:200; overflow:hidden;">
+            <!-- Items injected by buildLangMenu() at runtime -->
+        </div>
     </div>
 </div>
 
@@ -811,6 +972,17 @@
                     <div style="font-size: 0.75em; color: #888; margin-top: 8px; font-style: italic;" data-i18n="project.logo.note">
                         Logo is saved with this project's .json file.
                     </div>
+                </div>
+                <div class="collapse-header collapsed" data-collapse-target="merge-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
+                    <span class="title" data-i18n="project.merge.header">🔀 Merge from File</span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div id="merge-body" class="collapse-body collapsed">
+                    <p style="font-size: 0.8em; color: #aaa; margin: 8px 0;" data-i18n="project.merge.description">
+                        Combine another project file with this one. Profiles match by name; placed items append. Useful for collaborative workflows.
+                    </p>
+                    <button class="btn-full btn-primary" style="margin-top: 6px;" onclick="startMergeProject()" data-i18n="project.merge.start">📥 Choose File to Merge</button>
+                    <input type="file" id="merge-file-input" accept=".json,application/json" onchange="handleMergeFileSelected(this)" style="display:none;">
                 </div>
             </div>
         </div>
@@ -950,23 +1122,20 @@
 
         <div id="panel-attendants" class="panel-content">
             <div class="panel-tools">
-                <!-- Active shift dropdown — most-used control sits at top -->
-                <div class="input-group" style="margin-bottom: 8px;">
-                    <label data-i18n="att.active_shift.label">Active Shift</label>
-                    <select id="att-active-shift" onchange="setActiveShift(this.value)" style="width:100%;">
+                <!-- Compact inline-labeled pickers. Each row: small label on the
+                     left, dropdown filling the rest. Saves ~50px vs. the previous
+                     stacked layout with all-caps headers. -->
+                <div class="att-inline-row">
+                    <span class="att-inline-label" data-i18n="att.active_shift.short">Shift</span>
+                    <select id="att-active-shift" onchange="setActiveShift(this.value)">
                         <option value="" data-i18n="att.active_shift.none">— No shift selected —</option>
                     </select>
                 </div>
-
-                <!-- Active style picker — dropdown showing current style. Profile editing
-                     happens in the collapsible "Manage Style Profiles" below. -->
-                <div class="input-group" style="margin-bottom: 10px;">
-                    <label data-i18n="att.active_style.picker_label">Post Style</label>
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <select id="att-active-style-select" onchange="setActiveAttendantType(parseInt(this.value))" style="flex:1;">
-                        </select>
-                        <span id="att-active-style-swatch" style="width:18px; height:18px; border-radius:50%; border:1px solid #555; flex-shrink:0;"></span>
-                    </div>
+                <div class="att-inline-row" style="margin-bottom: 10px;">
+                    <span class="att-inline-label" data-i18n="att.active_style.short">Style</span>
+                    <select id="att-active-style-select" onchange="setActiveAttendantType(parseInt(this.value))">
+                    </select>
+                    <span id="att-active-style-swatch" class="att-style-swatch"></span>
                 </div>
 
                 <!-- Action toolbar — Schedule and Roster open modals where their CSV
@@ -1081,6 +1250,7 @@
         </div>
     </div>
 </div>
+</div><!-- /app-root -->
 
 <div id="print-layout-container">
     <div class="print-header">
@@ -1212,8 +1382,10 @@ const I18N_STRINGS = {
         "ann.field.size": "Size",
         "att.view_schedule": "📋 View Full Schedule",
         "att.active_shift.label": "Active Shift",
+        "att.active_shift.short": "Shift",
         "att.active_shift.none": "— No shift selected —",
         "att.active_style.picker_label": "Post Style",
+        "att.active_style.short": "Style",
         "att.toolbar.schedule": "📋 Schedule",
         "att.toolbar.schedule.title": "View full shift schedule",
         "att.toolbar.roster": "👥 Roster",
@@ -1313,6 +1485,39 @@ const I18N_STRINGS = {
         "modal.unsaved.save_then_open": "💾 Save, then open",
         "modal.unsaved.discard": "⚠️ Discard changes and open",
         "modal.unsaved.cancel": "Cancel",
+        "project.merge.header": "🔀 Merge from File",
+        "project.merge.description": "Combine another project file with this one. Profiles match by name; placed items append. Useful for collaborative workflows.",
+        "project.merge.start": "📥 Choose File to Merge",
+        "modal.merge.savefirst.title": "Save First",
+        "modal.merge.savefirst.body": "Merging another file modifies your current project. Save first so you can always go back if you don't like the result.",
+        "modal.merge.savefirst.save": "💾 Save now, then merge",
+        "modal.merge.savefirst.continue": "I've already saved — continue",
+        "modal.merge.savefirst.cancel": "Cancel",
+        "modal.merge.preview.title": "Merge Preview",
+        "modal.merge.preview.intro": "Review what will be added and resolve any conflicts before applying.",
+        "modal.merge.preview.cancel": "Cancel",
+        "modal.merge.preview.apply": "Apply Merge",
+        "modal.merge.summary.added": "Will add:",
+        "modal.merge.summary.appended": "Will append:",
+        "modal.merge.summary.conflicts": "Conflicts to resolve:",
+        "modal.merge.summary.new_pages": "New pages:",
+        "modal.merge.page.tag.blueprint": "with blueprint",
+        "modal.merge.page.tag.scale": "calibrated",
+        "modal.merge.summary.nothing": "Nothing to merge — the incoming file is empty or identical.",
+        "modal.merge.conflict.keep_local": "Keep local",
+        "modal.merge.conflict.use_incoming": "Use incoming",
+        "modal.merge.conflict.add_both": "Add both",
+        "modal.merge.section.conflicts": "Conflicts",
+        "modal.merge.section.items": "Items to merge",
+        "modal.merge.total_label": "total",
+        "modal.merge.duplicates_label": "duplicates",
+        "modal.merge.duplicate_tag": "duplicate",
+        "modal.merge.bulk.all": "All",
+        "modal.merge.bulk.none": "None",
+        "modal.merge.bulk.non_dupes": "New only",
+        "toast.merge.applied": "Merge applied. Added: {a}; appended: {b}.",
+        "toast.merge.nothing": "Nothing new to merge — file is empty or identical.",
+        "toast.merge.error": "Could not read the file: {message}",
         "modal.schedule.title": "📋 Shift Schedule",
         "modal.schedule.print": "🖨️ Print This View",
         "modal.schedule.close": "Close",
@@ -1560,8 +1765,10 @@ const I18N_STRINGS = {
         "ann.field.size": "Tamaño",
         "att.view_schedule": "📋 Ver Horario Completo",
         "att.active_shift.label": "Turno Activo",
+        "att.active_shift.short": "Turno",
         "att.active_shift.none": "— Ningún Turno Seleccionado —",
         "att.active_style.picker_label": "Estilo de Puesto",
+        "att.active_style.short": "Estilo",
         "att.toolbar.schedule": "📋 Horario",
         "att.toolbar.schedule.title": "Ver horario completo de turnos",
         "att.toolbar.roster": "👥 Lista",
@@ -1661,6 +1868,39 @@ const I18N_STRINGS = {
         "modal.unsaved.save_then_open": "💾 Guardar y Luego Abrir",
         "modal.unsaved.discard": "⚠️ Descartar Cambios y Abrir",
         "modal.unsaved.cancel": "Cancelar",
+        "project.merge.header": "🔀 Fusionar desde Archivo",
+        "project.merge.description": "Combina otro archivo de proyecto con éste. Los perfiles coinciden por nombre; los elementos colocados se añaden al final. Útil para flujos colaborativos.",
+        "project.merge.start": "📥 Elegir Archivo para Fusionar",
+        "modal.merge.savefirst.title": "Guarda Primero",
+        "modal.merge.savefirst.body": "Fusionar otro archivo modifica tu proyecto actual. Guarda primero para poder volver atrás si no te gusta el resultado.",
+        "modal.merge.savefirst.save": "💾 Guardar ahora y fusionar",
+        "modal.merge.savefirst.continue": "Ya guardé — continuar",
+        "modal.merge.savefirst.cancel": "Cancelar",
+        "modal.merge.preview.title": "Vista Previa de Fusión",
+        "modal.merge.preview.intro": "Revisa qué se añadirá y resuelve los conflictos antes de aplicar.",
+        "modal.merge.preview.cancel": "Cancelar",
+        "modal.merge.preview.apply": "Aplicar Fusión",
+        "modal.merge.summary.added": "Se añadirán:",
+        "modal.merge.summary.appended": "Se anexarán:",
+        "modal.merge.summary.conflicts": "Conflictos a resolver:",
+        "modal.merge.summary.new_pages": "Nuevas páginas:",
+        "modal.merge.page.tag.blueprint": "con plano",
+        "modal.merge.page.tag.scale": "calibrada",
+        "modal.merge.summary.nothing": "Nada que fusionar — el archivo entrante está vacío o es idéntico.",
+        "modal.merge.conflict.keep_local": "Mantener local",
+        "modal.merge.conflict.use_incoming": "Usar entrante",
+        "modal.merge.conflict.add_both": "Añadir ambos",
+        "modal.merge.section.conflicts": "Conflictos",
+        "modal.merge.section.items": "Elementos a fusionar",
+        "modal.merge.total_label": "total",
+        "modal.merge.duplicates_label": "duplicados",
+        "modal.merge.duplicate_tag": "duplicado",
+        "modal.merge.bulk.all": "Todos",
+        "modal.merge.bulk.none": "Ninguno",
+        "modal.merge.bulk.non_dupes": "Solo nuevos",
+        "toast.merge.applied": "Fusión aplicada. Añadido: {a}; anexado: {b}.",
+        "toast.merge.nothing": "Nada nuevo que fusionar — archivo vacío o idéntico.",
+        "toast.merge.error": "No se pudo leer el archivo: {message}",
         "modal.schedule.title": "📄 Horario de Turnos",
         "modal.schedule.print": "🖨️ Imprimir Esta Vista",
         "modal.schedule.close": "Cerrar",
@@ -1894,13 +2134,84 @@ const I18N_STRINGS = {
         applyStaticTranslations();
         if (typeof updateUI === 'function') updateUI();
         if (typeof render === 'function') render();
-        // Refresh language selector visual state
-        const sel = document.getElementById('lang-select');
-        if (sel) sel.value = lang;
+        // Refresh language toggle button visual state and tooltip
+        const btn = document.getElementById('lang-toggle');
+        const btnLabel = document.getElementById('lang-toggle-label');
+        if (btn && btnLabel) {
+            const active = (typeof LANGUAGES !== 'undefined')
+                ? LANGUAGES.find(l => l.code === lang)
+                : null;
+            btnLabel.textContent = active ? active.label : lang.toUpperCase();
+            // Tooltip is in the currently-active language so a user can read it.
+            btn.title = (lang === 'es')
+                ? 'Idioma: Español. Haz clic para cambiar.'
+                : 'Language: English. Click to switch.';
+        }
         // Re-check the announcement — if user hasn't seen it in this language yet,
         // it'll pop up. (Per-language tracking lives inside showAnnouncementIfNew.)
         if (typeof showAnnouncementIfNew === 'function') showAnnouncementIfNew();
     }
+
+    // ─── Language picker dropdown ───────────────────────────────────────────────
+    // The registry is the single source of truth for which languages exist.
+    // To add a new language: add an entry here AND add the matching i18n
+    // dictionary in I18N_STRINGS. The menu rebuilds itself from this list.
+    const LANGUAGES = [
+        { code: 'en', label: 'EN', name: 'English' },
+        { code: 'es', label: 'ES', name: 'Español' },
+        // Future: { code: 'fr', label: 'FR', name: 'Français' }, etc.
+    ];
+
+    // Builds the dropdown menu items from LANGUAGES, marking the active one.
+    function buildLangMenu() {
+        const menu = document.getElementById('lang-menu');
+        if (!menu) return;
+        menu.innerHTML = LANGUAGES.map(l => {
+            const isActive = l.code === currentLang;
+            const check = isActive ? '✓' : '';
+            const bg = isActive ? 'background:#1a3a52;' : '';
+            return `<div class="lang-menu-item" data-lang="${l.code}"
+                         style="padding:8px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px; ${bg}"
+                         onmouseover="this.style.background='#3a3a3a'"
+                         onmouseout="this.style.background='${isActive ? '#1a3a52' : ''}'"
+                         onclick="pickLanguage('${l.code}')">
+                <span><strong style="color:#9bc;">${l.label}</strong> &mdash; ${l.name}</span>
+                <span style="color:#4caf50;">${check}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleLangMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('lang-menu');
+        if (!menu) return;
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            buildLangMenu();
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    }
+
+    function pickLanguage(code) {
+        setLanguage(code);
+        const menu = document.getElementById('lang-menu');
+        if (menu) menu.style.display = 'none';
+    }
+
+    // Close the menu when clicking anywhere outside it (or pressing Escape).
+    document.addEventListener('click', (e) => {
+        const picker = document.getElementById('lang-picker');
+        const menu = document.getElementById('lang-menu');
+        if (!picker || !menu) return;
+        if (!picker.contains(e.target)) menu.style.display = 'none';
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const menu = document.getElementById('lang-menu');
+            if (menu) menu.style.display = 'none';
+        }
+    });
 
     // applyStaticTranslations() — walks every element with a data-i18n attribute
     // and rewrites its text/placeholder/title to the current language. The HTML
@@ -2564,6 +2875,7 @@ const I18N_STRINGS = {
 
         // Style profiles
         const typesEl = document.getElementById('att-type-list'); typesEl.innerHTML = '';
+        const typesTotal = project.attendantTypes.length;
         project.attendantTypes.forEach((at, i) => {
             const isAct = (i === project.attendants.activeAttendantType);
             const activeMarker = isAct ? `<span style="color: var(--success); font-weight: bold; margin-left: 8px;">${escapeHTML(t('att.types.active_marker'))}</span>` : '';
@@ -2572,6 +2884,7 @@ const I18N_STRINGS = {
                 <div class="profile-header">
                     <span style="color:${escapeHTML(at.dotColor)};">● ${escapeHTML(at.name)}${activeMarker}</span>
                     <div>
+                        ${reorderArrowsHTML('moveAttendantType', i, typesTotal)}
                         <button class="icon-btn" onclick="event.stopPropagation(); editAttendantTypeName(${i})" title="Rename">✎</button>
                         <button class="icon-btn" onclick="event.stopPropagation(); deleteAttendantType(${i})" title="Delete">✕</button>
                     </div>
@@ -2595,11 +2908,13 @@ const I18N_STRINGS = {
 
         // Shifts list
         const shiftEl = document.getElementById('att-shift-list'); shiftEl.innerHTML = '';
-        project.attendants.shifts.forEach(s => {
+        const shiftTotal = project.attendants.shifts.length;
+        project.attendants.shifts.forEach((s, i) => {
             const isAct = project.attendants.activeShiftId === s.id;
             shiftEl.innerHTML += `<li class="list-item ${isAct ? 'active' : ''}" onclick="setActiveShift('${s.id}')">
                 <span style="font-size:0.85em;"><strong>#${escapeHTML(s.number)}</strong> ${escapeHTML(s.description || '')}</span>
                 <div>
+                    ${reorderArrowsHTML('moveShift', i, shiftTotal)}
                     <button class="icon-btn" onclick="event.stopPropagation(); editShift('${s.id}')" title="Edit">✎</button>
                     <button class="icon-btn" onclick="event.stopPropagation(); deleteShift('${s.id}')" title="Delete">✕</button>
                 </div>
@@ -2624,6 +2939,16 @@ const I18N_STRINGS = {
             const assignedName = getAssignedName(p);
             const scopeLabel = p.scope === 'persistent' ? '📌' : '🕒';
 
+            // Visibility predicate must match movePost's. Used to decide whether
+            // each arrow is enabled (only relevant within the visible subset).
+            const isVisible = (q) => {
+                if ((q.pageIndex ?? 0) !== project.activePageIndex) return false;
+                if (q.scope === 'persistent') return true;
+                if (q.scope === 'shift' && q.shiftId === activeShiftId) return true;
+                return false;
+            };
+            const { hasPrev, hasNext } = filteredNeighbors(project.attendants.posts, realIdx, isVisible);
+
             // Show what each effective value is (with [override] indicator if customized)
             const baseStyle = project.attendantTypes[p.typeIndex ?? 0] || project.attendantTypes[0];
             const isOverridden = (p.dotColor !== undefined || p.dotSize !== undefined || p.labelColor !== undefined || p.labelSize !== undefined);
@@ -2632,9 +2957,10 @@ const I18N_STRINGS = {
             let profileOpts = project.attendantTypes.map((typ, ti) => `<option value="${ti}" ${(p.typeIndex ?? 0) === ti ? 'selected' : ''}>${escapeHTML(typ.name)}</option>`).join('');
 
             return `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(at.dotColor)}; ${isSel ? 'border: 1px solid white;' : ''}" onclick="selectedAttendantIndex=${realIdx}; clearSelectionsExcept('attendant'); activeTab='attendants'; updateUI(); render();">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size: 0.85em;">${scopeLabel} <strong>${escapeHTML(p.number || '?')}</strong> — ${escapeHTML(p.description || t('att.post.no_description'))}${isOverridden ? ' <span style="color:#f1c40f; font-size:0.8em;" title="This post has style overrides">⚙</span>' : ''}</span>
-                    <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                    <span style="font-size: 0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${scopeLabel} <strong>${escapeHTML(p.number || '?')}</strong> — ${escapeHTML(p.description || t('att.post.no_description'))}${isOverridden ? ' <span style="color:#f1c40f; font-size:0.8em;" title="This post has style overrides">⚙</span>' : ''}</span>
+                    <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                        ${reorderArrowsHTMLEx('movePost', realIdx, hasPrev, hasNext)}
                         <button class="icon-btn" onclick="event.stopPropagation(); editAttendantPostMeta(${realIdx})" title="Edit number/description">✎</button>
                         <button class="icon-btn" onclick="event.stopPropagation(); deleteAttendantPost(${realIdx})" title="Delete post">✕</button>
                     </div>
@@ -2966,16 +3292,18 @@ const I18N_STRINGS = {
             el.innerHTML = `<li style="color:#888; font-style:italic; padding:8px; text-align:center;">${escapeHTML(t('att.roster.empty'))}</li>`;
             return;
         }
-        project.attendants.roster.forEach(r => {
+        const rosterTotal = project.attendants.roster.length;
+        project.attendants.roster.forEach((r, i) => {
             // Count how many shifts have this name assigned
             let assignmentCount = 0;
             Object.values(project.attendants.assignments).forEach(m => {
                 Object.values(m).forEach(n => { if (n === r.name) assignmentCount++; });
             });
             el.innerHTML += `<li class="list-item" style="flex-direction:column; align-items:stretch;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.9em;"><strong>${escapeHTML(r.name)}</strong>${assignmentCount > 0 ? ` <span style="color:#888; font-size:0.8em;">(${escapeHTML(tn('att.roster.assignment', assignmentCount, { n: fmtNum(assignmentCount) }))})</span>` : ''}</span>
-                    <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                    <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${escapeHTML(r.name)}</strong>${assignmentCount > 0 ? ` <span style="color:#888; font-size:0.8em;">(${escapeHTML(tn('att.roster.assignment', assignmentCount, { n: fmtNum(assignmentCount) }))})</span>` : ''}</span>
+                    <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                        ${reorderArrowsHTML('moveRoster', i, rosterTotal)}
                         <button class="icon-btn" onclick="editRosterEntry('${r.id}')" title="Edit">✎</button>
                         <button class="icon-btn" onclick="deleteRosterEntry('${r.id}')" title="Remove">✕</button>
                     </div>
@@ -3241,7 +3569,84 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "1.1.0";
+    const APP_VERSION = "1.3.0";
+
+    // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
+    // When the viewport is narrower than the app's natural layout, shrink the
+    // whole app proportionally — equivalent to the user pressing Ctrl+Minus in
+    // the browser. The ribbon, sidebar, and canvas all scale together so the
+    // layout stays correct; only the visible size changes.
+    //
+    // The scale floor is 0.7 — below that, we let the browser fall back to
+    // horizontal scroll so the UI never gets unreadably small.
+    //
+    // Mouse coordinates are scale-aware (see getMousePos and the canvas
+    // click handler) so clicks still land where the user expects.
+    // ────────────────────────────────────────────────────────────────────────────
+    const MIN_APP_SCALE = 0.7;
+    const APP_NATURAL_WIDTH = 1600;  // width below which we start scaling
+    let _currentAppScale = 1;
+
+    function fitAppToViewport() {
+        const root = document.getElementById('app-root');
+        if (!root) return;
+        const viewportW = window.innerWidth;
+        const viewportH = window.innerHeight;
+        // Naively, scale = viewportW / APP_NATURAL_WIDTH. But we floor it at
+        // MIN_APP_SCALE so the UI never becomes unreadably small. If the floor
+        // takes effect AND the viewport is genuinely too narrow even at min
+        // scale, we'll fall back to horizontal scrolling below.
+        let scale = 1;
+        let needsHScroll = false;
+        if (viewportW < APP_NATURAL_WIDTH) {
+            const idealScale = viewportW / APP_NATURAL_WIDTH;
+            if (idealScale < MIN_APP_SCALE) {
+                scale = MIN_APP_SCALE;
+                needsHScroll = true;
+            } else {
+                scale = idealScale;
+            }
+        }
+        _currentAppScale = scale;
+        if (scale === 1) {
+            root.style.transform = '';
+            root.style.transformOrigin = '';
+            root.style.width = '';
+            root.style.height = '';
+        } else {
+            // transform-origin: top left so the app shrinks from the top-left
+            // corner of the viewport. Compensate the container size in PIXELS
+            // (not vw/vh) so it always fills exactly the viewport after the
+            // scale transform — no gaps below or to the right. vw/vh can give
+            // off-by-one errors due to flex parent and scrollbar accounting.
+            root.style.transform = `scale(${scale})`;
+            root.style.transformOrigin = 'top left';
+            // Use ceil to avoid rounding gaps where the scaled size falls just
+            // short of the viewport.
+            root.style.width  = Math.ceil(viewportW / scale) + 'px';
+            root.style.height = Math.ceil(viewportH / scale) + 'px';
+        }
+        // Horizontal scroll fallback: when even minimum scale doesn't fit,
+        // unlock the body's overflow so the user can scroll to reach the
+        // hidden portion. Otherwise keep overflow:hidden (the app's normal
+        // canvas-friendly mode).
+        document.body.style.overflowX = needsHScroll ? 'auto' : '';
+        // render is cheap; refresh so canvas pixel-buffer matches new layout.
+        if (typeof render === 'function') render();
+    }
+
+    // Throttle resize via requestAnimationFrame to avoid recomputing on every
+    // pixel of a drag-resize.
+    let _resizePending = false;
+    function _onWindowResize() {
+        if (_resizePending) return;
+        _resizePending = true;
+        requestAnimationFrame(() => {
+            _resizePending = false;
+            fitAppToViewport();
+        });
+    }
+    window.addEventListener('resize', _onWindowResize);
 
     // ─── UNITS ──────────────────────────────────────────────────────────────────
     // The app stores ALL measurements in feet internally. The user can choose to
@@ -3321,38 +3726,58 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2026-05-10";
+    const ANNOUNCEMENT_VERSION = "2026-05-12";
 
     const ANNOUNCEMENT_EN = `
         <h3 style="margin-top:0;">📣 What's New</h3>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🌐 New site address</p>
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🔀 New: Merge from File</p>
+        <p style="font-size: 0.9em;">You can now combine another project file with the current one. Useful when a team is collaborating — one person can build a template (profiles, pages, shifts), share it, and merge everyone's contributions back together later.</p>
+        <p style="font-size: 0.9em;">Find it in the <strong>Project</strong> tab under <strong>🔀 Merge from File</strong>. The preview shows what will be added, flags duplicates, and lets you pick which items to include before applying.</p>
+
+        <p style="font-size: 0.9em; margin-top: 10px;"><strong style="color:#ddd;">Also new:</strong> ▲▼ reorder arrows on every sidebar list (profiles, pages, shifts, posts, and more) so you can put things in the order that makes sense for your project.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">🌐 New site address</p>
         <p>Convention Planner now has a permanent home at:</p>
         <p style="text-align:center; margin: 10px 0;">
             <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.05em;">app.conventionplanner.org</a>
         </p>
         <p style="font-size: 0.9em;">Please update your bookmarks and share the new address with your team.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 New: Feet or Millimeters</p>
-        <p style="font-size: 0.9em;">You can now switch all measurements between feet and millimeters. Find the toggle at the top of the <strong>Project</strong> tab.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 Feet or Millimeters</p>
+        <p style="font-size: 0.9em;">You can switch all measurements between feet and millimeters. Find the toggle at the top of the <strong>Project</strong> tab.</p>
 
         <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">All your saved project files will continue to work — measurements are stored consistently and convert automatically based on your preference.</p>
+
+        <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
+            🐛 Found a bug or have a suggestion? Email <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
+        </p>
     `;
 
     const ANNOUNCEMENT_ES = `
         <h3 style="margin-top:0;">📣 Novedades</h3>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🌐 Nueva dirección del sitio</p>
+        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">🔀 Nuevo: Fusionar desde Archivo</p>
+        <p style="font-size: 0.9em;">Ahora puedes combinar otro archivo de proyecto con el actual. Útil cuando un equipo colabora — una persona puede crear una plantilla (perfiles, páginas, turnos), compartirla, y fusionar las contribuciones de todos al final.</p>
+        <p style="font-size: 0.9em;">Lo encuentras en la pestaña <strong>Proyecto</strong> bajo <strong>🔀 Fusionar desde Archivo</strong>. La vista previa muestra qué se añadirá, marca duplicados, y te permite elegir qué elementos incluir antes de aplicar.</p>
+
+        <p style="font-size: 0.9em; margin-top: 10px;"><strong style="color:#ddd;">También nuevo:</strong> flechas ▲▼ para reordenar en todas las listas del panel lateral (perfiles, páginas, turnos, puestos y más) para que puedas organizar las cosas en el orden que tenga sentido para tu proyecto.</p>
+
+        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">🌐 Nueva dirección del sitio</p>
         <p>Convention Planner ahora tiene un hogar permanente en:</p>
         <p style="text-align:center; margin: 10px 0;">
             <a href="https://app.conventionplanner.org/" target="_blank" rel="noopener" style="color: var(--accent); font-weight: bold; font-size: 1.05em;">app.conventionplanner.org</a>
         </p>
         <p style="font-size: 0.9em;">Por favor actualiza tus marcadores y comparte la nueva dirección con tu equipo.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 Nuevo: Pies o Milímetros</p>
-        <p style="font-size: 0.9em;">Ahora puedes cambiar todas las medidas entre pies y milímetros. Encuentra el selector en la parte superior de la pestaña <strong>Proyecto</strong>.</p>
+        <p style="font-weight: bold; color: #ddd; margin-top: 18px; margin-bottom: 4px;">📐 Pies o Milímetros</p>
+        <p style="font-size: 0.9em;">Puedes cambiar todas las medidas entre pies y milímetros. Encuentra el selector en la parte superior de la pestaña <strong>Proyecto</strong>.</p>
 
         <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Todos tus archivos de proyecto guardados seguirán funcionando — las medidas se almacenan de forma uniforme y se convierten automáticamente según tu preferencia.</p>
+
+        <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
+            🐛 ¿Encontraste un error o tienes una sugerencia? Escribe a <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
+        </p>
     `;
     // ─── END ANNOUNCEMENTS ──────────────────────────────────────────────────────
 
@@ -3577,7 +4002,15 @@ const I18N_STRINGS = {
     function updateSignPanelBadges() { updateAllBadges(); }
 
     // ─── UI LOGIC ────────────────────────────────────────────────────────────────
-    function setTab(t) { if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle'); activeTab = t; updateUI(); }
+    function setTab(t) {
+        if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle');
+        activeTab = t;
+        updateUI();
+        // The bottom-stats block is tab-scoped (visible only on Seating).
+        // updateCache runs lazily, but tab switching alone doesn't trigger it,
+        // so explicitly refresh the totals visibility here.
+        if (typeof updateTotalsUI === 'function') updateTotalsUI();
+    }
     function setMode(m) { mode = m; currentPoints = []; calPoint = null; _dblClickPending = false; if (m !== 'idle') { clearSelections(); } updateUI(); render(); }
     function getActivePage() { return project.pages[project.activePageIndex]; }
 
@@ -3698,16 +4131,27 @@ const I18N_STRINGS = {
     // ─── LIST BUILDERS ───────────────────────────────────────────────────────────
     function buildPagesList() {
         const el = document.getElementById('page-list'); el.innerHTML = '';
-        project.pages.forEach((p, i) => { el.innerHTML += `<li class="list-item ${i === project.activePageIndex ? 'active' : ''}" onclick="switchPage(${i})"><span style="pointer-events: none;">${escapeHTML(p.name)}</span>${i === project.activePageIndex ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}</li>`; });
+        const total = project.pages.length;
+        project.pages.forEach((p, i) => {
+            const isActive = i === project.activePageIndex;
+            el.innerHTML += `<li class="list-item ${isActive ? 'active' : ''}" onclick="switchPage(${i})">
+                <span style="pointer-events: none;">${escapeHTML(p.name)}</span>
+                <div>
+                    ${reorderArrowsHTML('movePage', i, total)}
+                    ${isActive ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}
+                </div>
+            </li>`;
+        });
     }
 
     function buildSeatProfiles() {
         const el = document.getElementById('seat-type-list'); el.innerHTML = '';
+        const total = project.seatTypes.length;
         project.seatTypes.forEach((st, i) => {
             const isAct = (i === project.activeSeatType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-area');
             let safeHex = st.stroke && st.stroke.length >= 7 ? st.stroke.substring(0, 7) : '#2ecc71';
             el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSeatType=${i}; updateUI();">
-                <div class="profile-header"><span style="color:${escapeHTML(st.stroke)};">■ ${escapeHTML(st.name)}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>
+                <div class="profile-header"><span style="color:${escapeHTML(st.stroke)};">■ ${escapeHTML(st.name)}</span><div>${reorderArrowsHTML('moveSeatProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('seat', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('seat', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
                         <label>Color</label>
@@ -3724,10 +4168,11 @@ const I18N_STRINGS = {
 
     function buildSignProfiles() {
         const el = document.getElementById('sign-type-list'); el.innerHTML = '';
+        const total = project.signTypes.length;
         project.signTypes.forEach((st, i) => {
             const isAct = (i === project.activeSignType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-sign');
             el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeSignType=${i}; updateUI();">
-                <div class="profile-header"><span style="color:${escapeHTML(st.color)};">● ${escapeHTML(st.name)}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>
+                <div class="profile-header"><span style="color:${escapeHTML(st.color)};">● ${escapeHTML(st.name)}</span><div>${reorderArrowsHTML('moveSignProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('sign', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('sign', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
                         <label>Color</label>
@@ -3745,10 +4190,11 @@ const I18N_STRINGS = {
     function buildMeasureProfiles() {
         const el = document.getElementById('measure-type-list'); el.innerHTML = '';
         if(!project.measureTypes) project.measureTypes = [];
+        const total = project.measureTypes.length;
         project.measureTypes.forEach((mt, i) => {
             const isAct = (i === project.activeMeasureType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-measure');
             el.innerHTML += `<li class="profile-item ${isAct}" style="${isDrawing ? 'border: 1px solid white;' : ''}" onclick="project.activeMeasureType=${i}; updateUI();">
-                <div class="profile-header"><span style="color:${escapeHTML(mt.color)};">〰️ ${escapeHTML(mt.name)}</span><div><button class="icon-btn" onclick="event.stopPropagation(); editProfile('measure', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('measure', ${i})">✕</button></div></div>
+                <div class="profile-header"><span style="color:${escapeHTML(mt.color)};">〰️ ${escapeHTML(mt.name)}</span><div>${reorderArrowsHTML('moveMeasureProfile', i, total)}<button class="icon-btn" onclick="event.stopPropagation(); editProfile('measure', ${i})">✎</button><button class="icon-btn" onclick="event.stopPropagation(); deleteProfile('measure', ${i})">✕</button></div></div>
                 ${isAct ? `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:4px;" onclick="event.stopPropagation();">
                     <div>
                         <label>Color</label>
@@ -3764,36 +4210,46 @@ const I18N_STRINGS = {
 
     function buildAreaList() {
         const el = document.getElementById('area-list'); el.innerHTML = '';
-        getActivePage().shapes.forEach((s, i) => {
+        const shapes = getActivePage().shapes;
+        const isArea = (s) => s.type === 'area';
+        shapes.forEach((s, i) => {
             if (s.type === 'area') {
+                const { hasPrev, hasNext } = filteredNeighbors(shapes, i, isArea);
                 const sTypeIdx = s.seatTypeIndex ?? 0; const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
                 let typeOptions = project.seatTypes.map((st, idx) => `<option value="${idx}" ${sTypeIdx === idx ? 'selected' : ''}>${escapeHTML(st.name)}</option>`).join('');
-                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(strokeColor)}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
+                el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(strokeColor)}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveAreaShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px;"><div><label>Rotation</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Profile</label><select onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].seatTypeIndex=parseInt(this.value); markSeatCachesDirty(); updateUI(); triggerUpdate();">${typeOptions}</select></div></div></li>`;
             }
         });
     }
 
     function buildObsList() {
         const el = document.getElementById('obs-list'); el.innerHTML = '';
-        getActivePage().shapes.forEach((s, i) => { 
-            if (s.type === 'obs' || s.type === 'aisle') { 
+        const shapes = getActivePage().shapes;
+        const isObs = (s) => s.type === 'obs' || s.type === 'aisle';
+        shapes.forEach((s, i) => {
+            if (s.type === 'obs' || s.type === 'aisle') {
+                const { hasPrev, hasNext } = filteredNeighbors(shapes, i, isObs);
                 let color = s.type === 'obs' ? 'var(--danger)' : '#f1c40f';
                 let icon = s.type === 'obs' ? '🧱' : '✂️';
-                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px;">${icon}</span><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteShape(${i})">✕</button></li>`; 
-            } 
+                el.innerHTML += `<li class="list-item" style="border-left: 4px solid ${color}; ${i === selectedShapeIndex ? 'border-top:1px solid white; border-bottom:1px solid white; border-right:1px solid white;' : ''}"><span style="font-size:1.2em; margin-right:8px; flex-shrink:0;">${icon}</span><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTMLEx('moveObsShape', i, hasPrev, hasNext)}<button class="icon-btn" onclick="deleteShape(${i})">✕</button></div></li>`;
+            }
         });
     }
     
     function buildPlacedSignsList() {
         const el = document.getElementById('placed-sign-list'); el.innerHTML = '';
         if (getActivePage().signs) { 
+            const signsTotal = getActivePage().signs.length;
             getActivePage().signs.forEach((s, i) => { 
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; 
                 let activeSize = s.size || st.size;
                 el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(st.color)}; ${i === selectedSignIndex ? 'border: 1px solid white;' : ''}">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size: 0.9em;">📍 ${escapeHTML(st.name)}</span>
-                        <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                        <span style="font-size: 0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📍 ${escapeHTML(st.name)}</span>
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                            ${reorderArrowsHTML('movePlacedSign', i, signsTotal)}
+                            <button class="icon-btn" onclick="deleteSign(${i})">✕</button>
+                        </div>
                     </div>
                     ${i === selectedSignIndex ? `<div style="display:grid; grid-template-columns: 1fr; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
                         <div><label>Override Instance Size</label><input type="number" value="${activeSize}" onchange="updatePlacedSignProp(${i}, 'size', this.value)"></div>
@@ -3802,6 +4258,7 @@ const I18N_STRINGS = {
             }); 
         }
         if (getActivePage().measures) {
+            const measuresTotal = getActivePage().measures.length;
             getActivePage().measures.forEach((m, i) => {
                 const mt = project.measureTypes[m.typeIndex ?? 0] || project.measureTypes[0];
                 let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y);
@@ -3824,9 +4281,10 @@ const I18N_STRINGS = {
                 }
 
                 el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(mt.color)}; ${i === selectedMeasureIndex ? 'border: 1px solid white;' : ''}" onclick="selectedMeasureIndex=${i}; clearSelectionsExcept('measure'); activeTab='sign'; updateUI(); render();">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:0.9em;">〰️ ${escapeHTML(mt.name)} (${lenFt})</span>
-                        <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                        <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">〰️ ${escapeHTML(mt.name)} (${lenFt})</span>
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                            ${reorderArrowsHTML('movePlacedMeasure', i, measuresTotal)}
                             <button class="icon-btn" title="${eyeTitle}" onclick="event.stopPropagation(); toggleMeasureLabel(${i})">${eyeIcon}</button>
                             <button class="icon-btn" onclick="event.stopPropagation(); deleteMeasure(${i})">✕</button>
                         </div>
@@ -3840,24 +4298,29 @@ const I18N_STRINGS = {
     function buildScreenList() {
         const el = document.getElementById('screen-list'); el.innerHTML = ''; const currentScreens = getActivePage().screens;
         document.getElementById('no-screens-msg').style.display = currentScreens.length === 0 ? 'block' : 'none';
+        const screenTotal = currentScreens.length;
         currentScreens.forEach((s, i) => {
             let beamVal = s.beamAngle !== undefined ? s.beamAngle : 120;
             const distDisplay  = feetToDisplay(s.radius).toFixed(getUnits() === 'mm' ? 0 : 1);
             const widthDisplay = feetToDisplay(s.width || 16).toFixed(getUnits() === 'mm' ? 0 : 1);
             const stepAttr = getUnits() === 'mm' ? '1' : '0.1';
-            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; margin-right: 8px;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();"><button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.dist', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${distDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseLength(this.value)||10; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${widthDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].width=parseLength(this.value)||16; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
+            el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid var(--screen);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;"><input type="checkbox" ${s.active?'checked':''} onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].active=this.checked; markSeatCachesDirty(); triggerUpdate();" style="width: auto; flex-shrink:0;"><input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;"><div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">${reorderArrowsHTML('moveScreen', i, screenTotal)}<button class="icon-btn" onclick="deleteScreen(${i})">✕</button></div></div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px;"><div><label>Angle (°)</label><input type="number" value="${s.rot}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].rot=parseFloat(this.value)??0; markSeatCachesDirty(); triggerUpdate();"></div><div><label>Beam (°)</label><input type="number" value="${beamVal}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].beamAngle=parseFloat(this.value)??120; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.dist', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${distDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].radius=parseLength(this.value)||10; markSeatCachesDirty(); triggerUpdate();"></div><div><label>${escapeHTML(t('screen.field.width', { unit: getUnitLabel() }))}</label><input type="number" step="${stepAttr}" value="${widthDisplay}" onchange="saveState(); project.pages[${project.activePageIndex}].screens[${i}].width=parseLength(this.value)||16; markSeatCachesDirty(); triggerUpdate();"></div></div></li>`;
         });
     }
 
     function buildLinesList() {
         const el = document.getElementById('line-list'); el.innerHTML = '';
         if (getActivePage().lines) {
+            const linesTotal = getActivePage().lines.length;
             getActivePage().lines.forEach((l, i) => {
                 let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
                 el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(activeColor)}; ${i === selectedLineIndex ? 'border: 1px solid white;' : ''}">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <input type="text" class="text-input-dark" value="${escapeHTML(l.name || l.type)}" onchange="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();">
-                        <button class="icon-btn" onclick="deleteLine(${i})">✕</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                        <input type="text" class="text-input-dark" value="${escapeHTML(l.name || l.type)}" onchange="saveState(); project.pages[${project.activePageIndex}].lines[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                            ${reorderArrowsHTML('moveLine', i, linesTotal)}
+                            <button class="icon-btn" onclick="deleteLine(${i})">✕</button>
+                        </div>
                     </div>
                     ${i === selectedLineIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
                         <div>
@@ -3875,12 +4338,16 @@ const I18N_STRINGS = {
     function buildTextList() {
         const el = document.getElementById('text-list'); el.innerHTML = '';
         if (getActivePage().texts) {
+            const textsTotal = getActivePage().texts.length;
             getActivePage().texts.forEach((t, i) => {
                 let activeColor = t.color || '#000000'; let activeSize = t.size || 24;
                 el.innerHTML += `<li class="list-item" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(activeColor)}; ${i === selectedTextIndex ? 'border: 1px solid white;' : ''}">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <input type="text" class="text-input-dark" value="${escapeHTML(t.text)}" onchange="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();">
-                        <button class="icon-btn" onclick="deleteText(${i})">✕</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                        <input type="text" class="text-input-dark" value="${escapeHTML(t.text)}" onchange="saveState(); project.pages[${project.activePageIndex}].texts[${i}].text=this.value; triggerUpdate();" style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                            ${reorderArrowsHTML('moveText', i, textsTotal)}
+                            <button class="icon-btn" onclick="deleteText(${i})">✕</button>
+                        </div>
                     </div>
                     ${i === selectedTextIndex ? `<div style="display:flex; gap:5px; margin-top:8px; padding-top:8px; border-top:1px solid #444;" onclick="event.stopPropagation();">
                         <div>
@@ -4022,18 +4489,32 @@ const I18N_STRINGS = {
 
     function init() {
         window.onresize = resize; resize();
-        // Wire the language selector to its persisted/default state, then
-        // apply static translations BEFORE the first updateUI so the panel
-        // title strings get translated on first render.
-        const langSel = document.getElementById('lang-select');
-        if (langSel) langSel.value = currentLang;
+        // Apply static translations BEFORE the first updateUI so the panel
+        // title strings get translated on first render. The language picker
+        // button updates its own visual state when setLanguage runs.
         document.documentElement.lang = currentLang;
         document.title = t('brand.title') + ' | Professional UI';
         applyStaticTranslations();
+        // Sync the language toggle button to the currently-active language.
+        // (Normally setLanguage handles this, but at init time we haven't called
+        // it — we're already in currentLang from the cookie/default.)
+        const btnLabel = document.getElementById('lang-toggle-label');
+        const btn = document.getElementById('lang-toggle');
+        if (btnLabel) {
+            const active = LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
+            btnLabel.textContent = active.label;
+        }
+        if (btn) {
+            btn.title = (currentLang === 'es')
+                ? 'Idioma: Español. Haz clic para cambiar.'
+                : 'Language: English. Click to switch.';
+        }
         updateUI(); setMode('idle'); applyLogo();
         // Show first-visit announcement (or new version of it) — runs after a
         // brief delay handled inside the function so the page settles first.
         showAnnouncementIfNew();
+        // Apply auto-scale once the layout is settled.
+        fitAppToViewport();
     }
     function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; render(); }
 
@@ -4130,7 +4611,19 @@ const I18N_STRINGS = {
 
     // ─── GEOMETRY & HIT TESTING ─────────────────────────────────────────────────
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
-    function getMousePos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+    function getMousePos(e) {
+        // Convert clientX/Y (viewport pixels) to canvas-internal pixels.
+        // canvas.width is the canvas's internal resolution; rect.width is its
+        // displayed (post-transform) size. The ratio recovers the true canvas
+        // coordinate even when the app is scaled via the auto-scale system.
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
 
     function sqr(x) { return x * x; }
     function dist2(v, w) { return sqr(v.x - w.x) + sqr(v.y - w.y); }
@@ -4261,9 +4754,12 @@ const I18N_STRINGS = {
     // handler runs. Without this, the crosshair appears glued to the result of
     // the previous frame's hit tests on dense scenes.
     document.getElementById('viewport').addEventListener('mousemove', (e) => {
+        // Scale-aware: convert visible viewport pixels to canvas-internal pixels.
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
         updateCrosshair(x, y);
 
         // ─── Fast path: handle panning in this lightweight listener so it
@@ -4646,6 +5142,307 @@ const I18N_STRINGS = {
     }
 
     // ─── FIX #9: markSeatCachesDirty only dirties the active page ───────────────
+    // ─── REORDER HELPERS ────────────────────────────────────────────────────────
+    // Lists displayed in the sidebar can be reordered with up/down arrows.
+    // For lists where instances reference items by integer index (seat profiles,
+    // post styles, etc.), references must also be updated when the order changes.
+    //
+    // moveInArray swaps two adjacent (or any two) elements. The reindexCb gets
+    // the two affected indices and is responsible for walking every reference
+    // in the project state to swap one index for the other.
+    function moveInArray(arr, fromIdx, toIdx, reindexCb) {
+        if (fromIdx === toIdx) return false;
+        if (fromIdx < 0 || fromIdx >= arr.length) return false;
+        if (toIdx   < 0 || toIdx   >= arr.length) return false;
+        [arr[fromIdx], arr[toIdx]] = [arr[toIdx], arr[fromIdx]];
+        if (reindexCb) reindexCb(fromIdx, toIdx);
+        return true;
+    }
+
+    // Swap two values in an "indexed reference" field across many objects.
+    // Used by the reindex callbacks below.
+    function swapIndexRefs(items, field, idxA, idxB) {
+        items.forEach(item => {
+            const cur = item[field] ?? 0;
+            if (cur === idxA) item[field] = idxB;
+            else if (cur === idxB) item[field] = idxA;
+        });
+    }
+
+    // ─── Per-list reorder functions. Each takes a "direction" of -1 (up) or +1 (down). ───
+
+    function moveSeatProfile(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= project.seatTypes.length) return;
+        saveState();
+        moveInArray(project.seatTypes, i, j, (a, b) => {
+            // Every shape on every page references its profile by index
+            project.pages.forEach(pg => {
+                if (pg.shapes) swapIndexRefs(pg.shapes, 'seatTypeIndex', a, b);
+            });
+            // The "active" profile pointer also moves
+            if (project.activeSeatType === a) project.activeSeatType = b;
+            else if (project.activeSeatType === b) project.activeSeatType = a;
+        });
+        markSeatCachesDirty();
+        updateUI(); triggerUpdate();
+    }
+
+    function moveSignProfile(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= project.signTypes.length) return;
+        saveState();
+        moveInArray(project.signTypes, i, j, (a, b) => {
+            project.pages.forEach(pg => {
+                if (pg.signs) swapIndexRefs(pg.signs, 'typeIndex', a, b);
+            });
+            if (project.activeSignType === a) project.activeSignType = b;
+            else if (project.activeSignType === b) project.activeSignType = a;
+            // hiddenSignTypes also stores indices — update them
+            if (uiState.hiddenSignTypes) {
+                uiState.hiddenSignTypes = uiState.hiddenSignTypes.map(idx =>
+                    idx === a ? b : idx === b ? a : idx);
+            }
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function moveMeasureProfile(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= project.measureTypes.length) return;
+        saveState();
+        moveInArray(project.measureTypes, i, j, (a, b) => {
+            project.pages.forEach(pg => {
+                if (pg.measures) swapIndexRefs(pg.measures, 'typeIndex', a, b);
+            });
+            if (project.activeMeasureType === a) project.activeMeasureType = b;
+            else if (project.activeMeasureType === b) project.activeMeasureType = a;
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function moveAttendantType(i, dir) {
+        ensureAttendants();
+        const j = i + dir;
+        if (j < 0 || j >= project.attendantTypes.length) return;
+        saveState();
+        moveInArray(project.attendantTypes, i, j, (a, b) => {
+            // Posts on every page reference attendant types by typeIndex
+            project.pages.forEach(pg => {
+                if (pg.attendants && pg.attendants.posts)
+                    swapIndexRefs(pg.attendants.posts, 'typeIndex', a, b);
+            });
+            // Also project-level posts (some schemas store on project, some on page)
+            if (project.attendants && project.attendants.posts)
+                swapIndexRefs(project.attendants.posts, 'typeIndex', a, b);
+            // Active type pointer
+            const cur = project.attendants.activeAttendantType ?? 0;
+            if (cur === a) project.attendants.activeAttendantType = b;
+            else if (cur === b) project.attendants.activeAttendantType = a;
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function moveShift(i, dir) {
+        ensureAttendants();
+        const j = i + dir;
+        if (j < 0 || j >= project.attendants.shifts.length) return;
+        saveState();
+        // Shifts are referenced by their .id (a string), not by array position —
+        // so we don't need to fix up references; just reorder the array.
+        moveInArray(project.attendants.shifts, i, j);
+        updateUI(); triggerUpdate();
+    }
+
+    function movePage(i, dir) {
+        const j = i + dir;
+        if (j < 0 || j >= project.pages.length) return;
+        saveState();
+        moveInArray(project.pages, i, j, (a, b) => {
+            // Posts (and any other per-page-by-index references) need fixup.
+            // Note: most things scoped to a page travel WITH the page (they
+            // live inside the page object), so swapping array positions
+            // naturally moves them. The only thing that holds page-index
+            // separately is shift posts in project-level storage.
+            if (project.attendants && project.attendants.posts)
+                swapIndexRefs(project.attendants.posts, 'pageIndex', a, b);
+            // Active page pointer
+            if (project.activePageIndex === a) project.activePageIndex = b;
+            else if (project.activePageIndex === b) project.activePageIndex = a;
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    // ─── HTML helper for the up/down arrow pair shown on each row ────────────
+    // First parameter: the JS function name that handles the move (as a string).
+    // Second: the index of this row within its array.
+    // Third: the total length of the array (so we know when to disable arrows).
+    // Returns an HTML snippet to splice into a list-item template.
+    function reorderArrowsHTML(funcName, idx, total) {
+        const upDisabled = idx <= 0;
+        const downDisabled = idx >= total - 1;
+        return `<button class="reorder-arrow" onclick="event.stopPropagation(); ${funcName}(${idx}, -1);" title="Move up" ${upDisabled ? 'disabled' : ''}>▲</button>` +
+               `<button class="reorder-arrow" onclick="event.stopPropagation(); ${funcName}(${idx}, 1);" title="Move down" ${downDisabled ? 'disabled' : ''}>▼</button>`;
+    }
+
+    // ─── Filter-aware reorder for placed items ──────────────────────────────────
+    // Some lists (Drawn Areas, Cutouts, Posts) render only a subset of a larger
+    // array based on a filter. When the user clicks ▲/▼ on such a row, the swap
+    // should happen WITHIN the filtered subset — moving up should swap with the
+    // previous *visible* item, not whatever happens to come immediately before
+    // in the unfiltered array.
+    function moveFilteredItem(arr, globalIdx, dir, predicate, onAfter) {
+        if (!arr || globalIdx < 0 || globalIdx >= arr.length) return;
+        let targetIdx = -1;
+        for (let k = globalIdx + dir; k >= 0 && k < arr.length; k += dir) {
+            if (predicate(arr[k], k)) { targetIdx = k; break; }
+        }
+        if (targetIdx === -1) return;
+        saveState();
+        moveInArray(arr, globalIdx, targetIdx);
+        if (onAfter) onAfter(globalIdx, targetIdx);
+        updateUI(); triggerUpdate();
+    }
+
+    // Returns {hasPrev, hasNext} for a filtered list at globalIdx.
+    function filteredNeighbors(arr, globalIdx, predicate) {
+        let hasPrev = false, hasNext = false;
+        for (let k = globalIdx - 1; k >= 0; k--) if (predicate(arr[k], k)) { hasPrev = true; break; }
+        for (let k = globalIdx + 1; k < arr.length; k++) if (predicate(arr[k], k)) { hasNext = true; break; }
+        return { hasPrev, hasNext };
+    }
+
+    // Arrows variant that takes explicit hasPrev/hasNext rather than computing
+    // them from a contiguous index/total.
+    function reorderArrowsHTMLEx(funcName, globalIdx, hasPrev, hasNext) {
+        return `<button class="reorder-arrow" onclick="event.stopPropagation(); ${funcName}(${globalIdx}, -1);" title="Move up" ${hasPrev ? '' : 'disabled'}>▲</button>` +
+               `<button class="reorder-arrow" onclick="event.stopPropagation(); ${funcName}(${globalIdx}, 1);" title="Move down" ${hasNext ? '' : 'disabled'}>▼</button>`;
+    }
+
+    // ─── Per-list movers for placed items ───────────────────────────────────────
+
+    function moveAreaShape(globalIdx, dir) {
+        const shapes = getActivePage().shapes;
+        moveFilteredItem(shapes, globalIdx, dir,
+            (s) => s.type === 'area',
+            (a, b) => {
+                if (selectedShapeIndex === a) selectedShapeIndex = b;
+                else if (selectedShapeIndex === b) selectedShapeIndex = a;
+                markSeatCachesDirty();
+            });
+    }
+    function moveObsShape(globalIdx, dir) {
+        const shapes = getActivePage().shapes;
+        moveFilteredItem(shapes, globalIdx, dir,
+            (s) => s.type === 'obs' || s.type === 'aisle',
+            (a, b) => {
+                if (selectedShapeIndex === a) selectedShapeIndex = b;
+                else if (selectedShapeIndex === b) selectedShapeIndex = a;
+                markSeatCachesDirty();
+            });
+    }
+
+    function moveScreen(i, dir) {
+        const screens = getActivePage().screens;
+        const j = i + dir;
+        if (j < 0 || j >= screens.length) return;
+        saveState();
+        moveInArray(screens, i, j, (a, b) => {
+            if (typeof selectedScreenIndex !== 'undefined') {
+                if (selectedScreenIndex === a) selectedScreenIndex = b;
+                else if (selectedScreenIndex === b) selectedScreenIndex = a;
+            }
+            markSeatCachesDirty();
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function movePlacedSign(i, dir) {
+        const signs = getActivePage().signs;
+        if (!signs) return;
+        const j = i + dir;
+        if (j < 0 || j >= signs.length) return;
+        saveState();
+        moveInArray(signs, i, j, (a, b) => {
+            if (typeof selectedSignIndex !== 'undefined') {
+                if (selectedSignIndex === a) selectedSignIndex = b;
+                else if (selectedSignIndex === b) selectedSignIndex = a;
+            }
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function movePlacedMeasure(i, dir) {
+        const measures = getActivePage().measures;
+        if (!measures) return;
+        const j = i + dir;
+        if (j < 0 || j >= measures.length) return;
+        saveState();
+        moveInArray(measures, i, j, (a, b) => {
+            if (typeof selectedMeasureIndex !== 'undefined') {
+                if (selectedMeasureIndex === a) selectedMeasureIndex = b;
+                else if (selectedMeasureIndex === b) selectedMeasureIndex = a;
+            }
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function moveLine(i, dir) {
+        const lines = getActivePage().lines || [];
+        const j = i + dir;
+        if (j < 0 || j >= lines.length) return;
+        saveState();
+        moveInArray(lines, i, j, (a, b) => {
+            if (typeof selectedLineIndex !== 'undefined') {
+                if (selectedLineIndex === a) selectedLineIndex = b;
+                else if (selectedLineIndex === b) selectedLineIndex = a;
+            }
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function moveText(i, dir) {
+        const texts = getActivePage().texts || [];
+        const j = i + dir;
+        if (j < 0 || j >= texts.length) return;
+        saveState();
+        moveInArray(texts, i, j, (a, b) => {
+            if (typeof selectedTextIndex !== 'undefined') {
+                if (selectedTextIndex === a) selectedTextIndex = b;
+                else if (selectedTextIndex === b) selectedTextIndex = a;
+            }
+        });
+        updateUI(); triggerUpdate();
+    }
+
+    function movePost(globalIdx, dir) {
+        ensureAttendants();
+        const posts = project.attendants.posts;
+        const activeShiftId = project.attendants.activeShiftId;
+        const currentPageIdx = project.activePageIndex;
+        const isVisible = (p) => {
+            if ((p.pageIndex ?? 0) !== currentPageIdx) return false;
+            if (p.scope === 'persistent') return true;
+            if (p.scope === 'shift' && p.shiftId === activeShiftId) return true;
+            return false;
+        };
+        moveFilteredItem(posts, globalIdx, dir, isVisible, (a, b) => {
+            if (selectedAttendantIndex === a) selectedAttendantIndex = b;
+            else if (selectedAttendantIndex === b) selectedAttendantIndex = a;
+        });
+    }
+
+    function moveRoster(i, dir) {
+        ensureAttendants();
+        const roster = project.attendants.roster;
+        if (!roster) return;
+        const j = i + dir;
+        if (j < 0 || j >= roster.length) return;
+        saveState();
+        moveInArray(roster, i, j);
+        updateUI(); triggerUpdate();
+    }
+
     function markSeatCachesDirty() {
         getActivePage().shapes.forEach(s => s.cacheDirty = true);
     }
@@ -4720,12 +5517,28 @@ const I18N_STRINGS = {
 
     // ─── FIX #10: updateTotalsUI decoupled — called explicitly after updateCache ─
     function updateTotalsUI() {
+        const container = document.getElementById('page-totals-container');
+        if (!container) return;
+        // Show the seat-count breakdown only on the Seating tab. On every other
+        // tab the chair info isn't actionable — hide the whole block so the
+        // sidebar has more room for what matters. (Scale info stays visible
+        // because it applies to all canvas work, not just seating.)
+        if (activeTab !== 'area') {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = '';
+
         let totalsHTML = '';
         project.seatTypes.forEach((st, i) => {
-            if (globalTypeTotals[i] > 0 || i === project.activeSeatType) {
+            // Show only types that actually have chairs on this page. Types with
+            // zero chairs add clutter without conveying information — the user
+            // can see all defined types in the Seat Profiles list above.
+            if (globalTypeTotals[i] > 0) {
                 totalsHTML += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <span style="font-size:0.9em; color:#ccc;">${escapeHTML(st.name)}:</span>
-                    <span style="font-weight:bold; color:${escapeHTML(st.stroke)};">${fmtNum(globalTypeTotals[i])}</span>
+                    <span style="font-size:0.9em; color:#ccc; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(st.name)}:</span>
+                    <span style="font-weight:bold; color:${escapeHTML(st.stroke)}; flex-shrink:0; margin-left:6px;">${fmtNum(globalTypeTotals[i])}</span>
                 </div>`;
             }
         });
@@ -4733,7 +5546,7 @@ const I18N_STRINGS = {
             <span style="font-size:0.9em; color:white; font-weight:bold;">${escapeHTML(t('stats.total_seats'))}</span>
             <span style="font-size:1.1em; font-weight:bold; color:var(--success);">${fmtNum(globalPageTotal)}</span>
         </div>`;
-        document.getElementById('page-totals-container').innerHTML = totalsHTML;
+        container.innerHTML = totalsHTML;
     }
 
     // ─── FIX #8: updateCache does NOT touch the DOM — totals UI updated separately
@@ -5309,6 +6122,677 @@ const I18N_STRINGS = {
         });
 
         return raw;
+    }
+
+    // ─── PROJECT MERGE ──────────────────────────────────────────────────────────
+    // Merge another project file into the current one. Designed for team workflows
+    // where one person maintains a template (profiles, pages, shifts) and others
+    // work on placed items (areas, posts, signs). The merge:
+    //
+    //   • Keeps the current project's title, scale, units, calibration, and
+    //     background images (these are local context, not shareable).
+    //   • Matches profiles/shifts/pages by name. Skips identical ones, adds new
+    //     ones, flags conflicts for the user to resolve.
+    //   • Appends placed items to their corresponding pages.
+    //   • Remaps profile indices so placed items keep their correct references
+    //     even when the local registry has the profile at a different position.
+    //
+    // The flow is: analyzeMerge() builds a diff → user resolves conflicts in the
+    // modal → applyMerge() carries out the merge with the user's resolutions.
+    // ────────────────────────────────────────────────────────────────────────────
+
+    // Compare two simple objects shallowly on a fixed set of fields.
+    // Returns null if they match, or a list of "field: A vs B" strings otherwise.
+    function diffFields(a, b, fields) {
+        const diffs = [];
+        fields.forEach(f => {
+            const va = a[f], vb = b[f];
+            if (va !== vb) diffs.push(`${f}: ${JSON.stringify(va)} vs ${JSON.stringify(vb)}`);
+        });
+        return diffs.length ? diffs : null;
+    }
+
+    // Build a name-keyed index of an array, so we can look up "is there an
+    // existing item named X?" in O(1). Names are compared case-insensitively
+    // and trimmed to forgive small differences.
+    function nameIndex(arr) {
+        const m = new Map();
+        arr.forEach((item, idx) => {
+            const k = (item.name || '').trim().toLowerCase();
+            if (k) m.set(k, idx);
+        });
+        return m;
+    }
+
+    // For each category of profile, the set of fields whose differences count
+    // as a "conflict." Other fields (like derived/cached values) are ignored.
+    const PROFILE_DIFF_FIELDS = {
+        seatTypes:     ['w', 'd', 'stroke'],
+        signTypes:     ['color', 'size', 'label'],
+        measureTypes:  ['color', 'thickness'],
+        attendantTypes:['dotColor', 'dotSize', 'labelColor', 'labelSize'],
+    };
+
+    // ─── Fingerprint helpers for duplicate detection ───────────────────────────
+    // Each placed-item type gets a content-based "signature" so we can detect
+    // when an incoming item is structurally the same as one we already have.
+    // Two items with matching signatures are flagged as likely duplicates; the
+    // user sees them unchecked-by-default in the preview and can decide whether
+    // to include them.
+    //
+    // Coordinates are rounded to integer pixels to absorb minor floating-point
+    // drift across save/load cycles. Names are normalized.
+    function _norm(s) { return (s == null ? '' : String(s)).trim().toLowerCase(); }
+    function _pt(p) { return p ? `${Math.round(p.x)},${Math.round(p.y)}` : ''; }
+
+    const FINGERPRINT = {
+        shape: (s) => {
+            const pts = s.points || [];
+            const first = _pt(pts[0]);
+            const last  = _pt(pts[pts.length - 1]);
+            return `${s.type}|${_norm(s.name)}|${pts.length}|${first}|${last}`;
+        },
+        screen: (s) => `${_norm(s.name)}|${Math.round(s.x||0)},${Math.round(s.y||0)}|r${s.radius}|w${s.width||0}|rot${s.rot||0}`,
+        sign:   (s) => `${s.typeIndex??0}|${Math.round(s.x||0)},${Math.round(s.y||0)}|${_norm(s.label)}|sz${s.size||0}`,
+        measure:(m) => {
+            const pts = m.points || [];
+            return `${m.typeIndex??0}|${pts.length}|${_pt(pts[0])}|${_pt(pts[pts.length-1])}`;
+        },
+        line:   (l) => {
+            const pts = l.points || [];
+            return `${l.type}|${pts.length}|${_pt(pts[0])}|${_pt(pts[pts.length-1])}|${_norm(l.name)}`;
+        },
+        text:   (t) => `${Math.round(t.x||0)},${Math.round(t.y||0)}|${_norm(t.text)}|sz${t.size||0}`,
+        post:   (p) => p.id || `${p.scope}|${_norm(p.number)}|${_norm(p.description)}|pg${p.pageIndex??0}`,
+    };
+
+    // Build a Set of fingerprints for every item of a given kind on a page.
+    function _buildFingerprintSet(items, kind) {
+        const set = new Set();
+        (items || []).forEach(it => set.add(FINGERPRINT[kind](it)));
+        return set;
+    }
+
+    // Human-readable label for an item, used in the checkbox list.
+    function _itemLabel(item, kind) {
+        switch (kind) {
+            case 'shape':   return item.name || (item.type === 'area' ? 'Seating Area' : item.type === 'obs' ? 'Obstacle' : 'Cutout');
+            case 'screen':  return item.name || 'Screen';
+            case 'sign':    return (item.label ? item.label + ' — ' : '') + 'Key Item';
+            case 'measure': return 'Polymeasure (' + ((item.points || []).length - 1) + ' segments)';
+            case 'line':    return item.name || item.type || 'Line';
+            case 'text':    return item.text ? item.text.slice(0, 40) : 'Text';
+            case 'post':    return (item.number ? '#' + item.number + ' — ' : '') + (item.description || 'Post');
+            default:        return 'Item';
+        }
+    }
+
+    function analyzeMerge(incoming) {
+        // Result skeleton. items[] is the new per-item plan, replacing the
+        // old "append everything" behavior. Each entry tracks include/duplicate
+        // state and where the source/destination are.
+        const result = {
+            source: incoming,
+            addedCounts: { seatTypes: 0, signTypes: 0, measureTypes: 0,
+                           attendantTypes: 0, pages: 0, shifts: 0, roster: 0 },
+            items: [],   // [{ kind, srcPageIdx, srcItemIdx, destPageIdx, label, isDuplicate, include }]
+            conflicts: [],
+            indexRemap: {
+                seatTypes: {}, signTypes: {}, measureTypes: {},
+                attendantTypes: {}, pages: {}
+            },
+            shiftIdRemap: {},
+            newPages: [],
+            // Helpers for the preview UI to summarize per-category counts.
+            itemTotals: {},
+            itemDupes:  {},
+        };
+
+        // ─── Profile-style merges (seatTypes, signTypes, measureTypes, attendantTypes) ───
+        ['seatTypes', 'signTypes', 'measureTypes', 'attendantTypes'].forEach(cat => {
+            const localArr = project[cat] || [];
+            const incomingArr = incoming[cat] || [];
+            const localByName = nameIndex(localArr);
+            const diffFieldsList = PROFILE_DIFF_FIELDS[cat];
+            incomingArr.forEach((item, inIdx) => {
+                const key = (item.name || '').trim().toLowerCase();
+                const localIdx = key ? localByName.get(key) : undefined;
+                if (localIdx === undefined) {
+                    result.indexRemap[cat][inIdx] = localArr.length + result.addedCounts[cat];
+                    result.addedCounts[cat]++;
+                } else {
+                    const diffs = diffFields(localArr[localIdx], item, diffFieldsList);
+                    if (diffs) {
+                        result.conflicts.push({
+                            category: cat,
+                            localIdx, incomingIdx: inIdx,
+                            localName: localArr[localIdx].name,
+                            incomingName: item.name,
+                            differences: diffs,
+                            resolution: 'keep-local',
+                        });
+                    }
+                    result.indexRemap[cat][inIdx] = localIdx;
+                }
+            });
+        });
+
+        // ─── Pages — analyze each page; build per-item entries for placed items. ─
+        const localPagesByName = nameIndex(project.pages || []);
+        (incoming.pages || []).forEach((p, inIdx) => {
+            const key = (p.name || '').trim().toLowerCase();
+            const localIdx = key ? localPagesByName.get(key) : undefined;
+            let destPageIdx, localPage;
+            if (localIdx === undefined) {
+                // Whole new page. The page object itself comes in (with its
+                // background/calibration); items inside still go through the
+                // per-item plan so the user can opt-out individually.
+                destPageIdx = project.pages.length + result.addedCounts.pages;
+                result.indexRemap.pages[inIdx] = destPageIdx;
+                result.addedCounts.pages++;
+                result.newPages.push({
+                    name: p.name || '(unnamed)',
+                    hasBlueprint: !!p.imgData,
+                    hasScale: !!p.pixelsPerFoot,
+                });
+                // For new pages, no local page to compare against — no items
+                // can be duplicates. (You can't have duplicates of something
+                // that doesn't exist locally yet.)
+                localPage = null;
+            } else {
+                destPageIdx = localIdx;
+                result.indexRemap.pages[inIdx] = localIdx;
+                localPage = project.pages[localIdx];
+            }
+
+            // Build duplicate-detection sets from the local page (if any).
+            const dupeSets = {
+                shape:   _buildFingerprintSet(localPage ? localPage.shapes   : [], 'shape'),
+                screen:  _buildFingerprintSet(localPage ? localPage.screens  : [], 'screen'),
+                sign:    _buildFingerprintSet(localPage ? localPage.signs    : [], 'sign'),
+                measure: _buildFingerprintSet(localPage ? localPage.measures : [], 'measure'),
+                line:    _buildFingerprintSet(localPage ? localPage.lines    : [], 'line'),
+                text:    _buildFingerprintSet(localPage ? localPage.texts    : [], 'text'),
+            };
+
+            // For each item kind, build per-item entries with duplicate flags.
+            const kinds = [
+                ['shape',   p.shapes   || []],
+                ['screen',  p.screens  || []],
+                ['sign',    p.signs    || []],
+                ['measure', p.measures || []],
+                ['line',    p.lines    || []],
+                ['text',    p.texts    || []],
+            ];
+            kinds.forEach(([kind, arr]) => {
+                arr.forEach((item, idx) => {
+                    const fp = FINGERPRINT[kind](item);
+                    const isDup = dupeSets[kind].has(fp);
+                    result.items.push({
+                        kind, srcPageIdx: inIdx, srcItemIdx: idx, destPageIdx,
+                        label: _itemLabel(item, kind),
+                        pageName: p.name || '(unnamed)',
+                        isDuplicate: isDup,
+                        include: !isDup,  // duplicates default OFF; new items default ON
+                    });
+                    result.itemTotals[kind] = (result.itemTotals[kind] || 0) + 1;
+                    if (isDup) result.itemDupes[kind] = (result.itemDupes[kind] || 0) + 1;
+                });
+            });
+        });
+
+        // ─── Shifts ─────────────────────────────────────────────────────────────
+        ensureAttendants();
+        const localShifts = project.attendants.shifts || [];
+        const localShiftsById = new Map(localShifts.map((s, i) => [s.id, i]));
+        const incomingShifts = (incoming.attendants && incoming.attendants.shifts) || [];
+        incomingShifts.forEach(s => {
+            if (localShiftsById.has(s.id)) {
+                result.shiftIdRemap[s.id] = s.id;
+            } else {
+                result.shiftIdRemap[s.id] = s.id;
+                result.addedCounts.shifts++;
+            }
+        });
+
+        // ─── Roster ─────────────────────────────────────────────────────────────
+        const localRoster = (project.attendants.roster) || [];
+        const localRosterByName = new Map(localRoster.map((r) => [r.name.toLowerCase(), r]));
+        const incomingRoster = (incoming.attendants && incoming.attendants.roster) || [];
+        incomingRoster.forEach(r => {
+            if (!localRosterByName.has((r.name || '').toLowerCase())) {
+                result.addedCounts.roster++;
+            }
+        });
+
+        // ─── Posts ─ also a per-item kind so user can opt-out individually. ────
+        const incomingPosts = (incoming.attendants && incoming.attendants.posts) || [];
+        const localPostFps = _buildFingerprintSet(project.attendants.posts || [], 'post');
+        incomingPosts.forEach((p, idx) => {
+            const fp = FINGERPRINT.post(p);
+            const isDup = localPostFps.has(fp);
+            result.items.push({
+                kind: 'post', srcPageIdx: -1, srcItemIdx: idx, destPageIdx: -1,
+                label: _itemLabel(p, 'post'),
+                pageName: '',
+                isDuplicate: isDup,
+                include: !isDup,
+            });
+            result.itemTotals.post = (result.itemTotals.post || 0) + 1;
+            if (isDup) result.itemDupes.post = (result.itemDupes.post || 0) + 1;
+        });
+
+        return result;
+    }
+
+    // Apply the merge using the analysis + the user's conflict resolutions.
+    // Modifies the global `project` in place. Caller is responsible for
+    // saveState() before and triggerUpdate() after.
+    function applyMerge(analysis) {
+        const incoming = analysis.source;
+
+        // ─── Conflict resolution: apply "use-incoming" overrides BEFORE
+        //     copying placed items, so the resulting profile data is the
+        //     version the user wants. ───
+        analysis.conflicts.forEach(c => {
+            if (c.resolution === 'use-incoming') {
+                project[c.category][c.localIdx] = JSON.parse(JSON.stringify(incoming[c.category][c.incomingIdx]));
+            } else if (c.resolution === 'add-both') {
+                // Add incoming as a separate entry with " (imported)" suffix.
+                const copy = JSON.parse(JSON.stringify(incoming[c.category][c.incomingIdx]));
+                copy.name = (copy.name || '') + ' (imported)';
+                project[c.category].push(copy);
+                // The remap now points to the new slot, not the matched local one.
+                analysis.indexRemap[c.category][c.incomingIdx] = project[c.category].length - 1;
+            }
+            // 'keep-local' (default) needs no action.
+        });
+
+        // ─── Add new profiles for items not matched by name. ───
+        ['seatTypes', 'signTypes', 'measureTypes', 'attendantTypes'].forEach(cat => {
+            const localByName = nameIndex(project[cat]);
+            (incoming[cat] || []).forEach((item, inIdx) => {
+                const key = (item.name || '').trim().toLowerCase();
+                if (key && !localByName.has(key)) {
+                    const copy = JSON.parse(JSON.stringify(item));
+                    project[cat].push(copy);
+                    // The remap should already point here from analyze, but
+                    // recompute to be safe in case add-both shifted things.
+                    analysis.indexRemap[cat][inIdx] = project[cat].length - 1;
+                    localByName.set(key, project[cat].length - 1);
+                }
+            });
+        });
+
+        // ─── Add new shifts ───
+        const localShiftsById = new Set(project.attendants.shifts.map(s => s.id));
+        (incoming.attendants && incoming.attendants.shifts || []).forEach(s => {
+            if (!localShiftsById.has(s.id)) {
+                project.attendants.shifts.push(JSON.parse(JSON.stringify(s)));
+            }
+        });
+
+        // ─── Merge pages using the per-item plan ───
+        // For each incoming page: if no local match, add the page object (with
+        // its blueprint/calibration intact) but EMPTY of placed items. Items
+        // then come in only if their corresponding plan entry has include=true.
+        const localPagesByName = nameIndex(project.pages);
+        const remapTypeIndex = (val, cat) => {
+            if (val === undefined || val === null) return val;
+            const mapped = analysis.indexRemap[cat][val];
+            return mapped !== undefined ? mapped : val;
+        };
+
+        // First pass: ensure destination pages exist. For new pages, we add
+        // the page wrapper (name + imgData + pixelsPerFoot + legend positions)
+        // but with empty item arrays; items get added in the per-item pass.
+        (incoming.pages || []).forEach((p, inIdx) => {
+            const key = (p.name || '').trim().toLowerCase();
+            const existing = key ? localPagesByName.get(key) : undefined;
+            if (existing === undefined) {
+                // Build a fresh page wrapper. Clone metadata but reset item arrays.
+                const np = {
+                    name: p.name,
+                    imgData: p.imgData || null,
+                    pixelsPerFoot: p.pixelsPerFoot || 0,
+                    shapes: [],
+                    screens: [],
+                    signs: [],
+                    measures: [],
+                    lines: [],
+                    texts: [],
+                    legend: p.legend ? JSON.parse(JSON.stringify(p.legend)) : { show: true, x: 40, y: 40, scale: 1 },
+                    seatLegend: p.seatLegend ? JSON.parse(JSON.stringify(p.seatLegend)) : { show: false, x: 40, y: 150, scale: 1 },
+                    attLegend: p.attLegend ? JSON.parse(JSON.stringify(p.attLegend)) : { show: false, x: 40, y: 280, scale: 1 },
+                };
+                project.pages.push(np);
+                localPagesByName.set(key, project.pages.length - 1);
+            }
+        });
+
+        // Second pass: per-item plan. For each entry the user kept checked,
+        // copy the item into its destination page (with profile-index remap).
+        const kindToArrayName = {
+            shape:   'shapes',
+            screen:  'screens',
+            sign:    'signs',
+            measure: 'measures',
+            line:    'lines',
+            text:    'texts',
+        };
+        const refField = {
+            shape:   { field: 'seatTypeIndex', cat: 'seatTypes'   },
+            sign:    { field: 'typeIndex',     cat: 'signTypes'   },
+            measure: { field: 'typeIndex',     cat: 'measureTypes'},
+        };
+
+        (analysis.items || []).forEach(entry => {
+            if (!entry.include) return;  // user opted out
+            if (entry.kind === 'post') return;  // handled below
+
+            const srcPage = (incoming.pages || [])[entry.srcPageIdx];
+            if (!srcPage) return;
+            const srcArr = srcPage[kindToArrayName[entry.kind]] || [];
+            const srcItem = srcArr[entry.srcItemIdx];
+            if (!srcItem) return;
+            const destPage = project.pages[entry.destPageIdx];
+            if (!destPage) return;
+
+            const copy = JSON.parse(JSON.stringify(srcItem));
+            // Remap profile reference if applicable
+            const ref = refField[entry.kind];
+            if (ref && copy[ref.field] !== undefined) {
+                copy[ref.field] = remapTypeIndex(copy[ref.field], ref.cat);
+            }
+            // Append to destination page
+            const destArrName = kindToArrayName[entry.kind];
+            destPage[destArrName] = destPage[destArrName] || [];
+            destPage[destArrName].push(copy);
+        });
+
+        // ─── Merge attendant posts using the per-item plan ───
+        const incomingPosts = (incoming.attendants && incoming.attendants.posts) || [];
+        (analysis.items || []).forEach(entry => {
+            if (entry.kind !== 'post') return;
+            if (!entry.include) return;
+            const src = incomingPosts[entry.srcItemIdx];
+            if (!src) return;
+            const copy = JSON.parse(JSON.stringify(src));
+            if (copy.pageIndex !== undefined)
+                copy.pageIndex = remapTypeIndex(copy.pageIndex, 'pages');
+            if (copy.typeIndex !== undefined)
+                copy.typeIndex = remapTypeIndex(copy.typeIndex, 'attendantTypes');
+            project.attendants.posts.push(copy);
+        });
+
+        // ─── Merge roster ───
+        const localRosterByName = new Set(
+            (project.attendants.roster || []).map(r => (r.name || '').toLowerCase())
+        );
+        const incomingRoster = (incoming.attendants && incoming.attendants.roster) || [];
+        incomingRoster.forEach(r => {
+            if (!localRosterByName.has((r.name || '').toLowerCase())) {
+                (project.attendants.roster = project.attendants.roster || []).push(JSON.parse(JSON.stringify(r)));
+            }
+        });
+
+        // ─── Merge assignments ───
+        if (incoming.attendants && incoming.attendants.assignments) {
+            const validPostIds = new Set(project.attendants.posts.map(p => p.id));
+            project.attendants.assignments = project.attendants.assignments || {};
+            Object.entries(incoming.attendants.assignments).forEach(([shiftId, postMap]) => {
+                project.attendants.assignments[shiftId] = project.attendants.assignments[shiftId] || {};
+                Object.entries(postMap).forEach(([postId, name]) => {
+                    if (validPostIds.has(postId)) {
+                        project.attendants.assignments[shiftId][postId] = name;
+                    }
+                });
+            });
+        }
+    }
+
+    // ─── MERGE FLOW: from button click through to applied merge ─────────────────
+    // State held between modal phases (file pending, analyzing, previewing).
+    let _pendingMergeAnalysis = null;
+
+    // Step 1 — user clicked the Merge button. Show save-first warning.
+    function startMergeProject() {
+        const modal = document.getElementById('merge-save-first-modal');
+        const saveBtn = document.getElementById('merge-savefirst-save-btn');
+        const continueBtn = document.getElementById('merge-savefirst-continue-btn');
+        saveBtn.onclick = () => {
+            hideMergeSaveFirstModal();
+            saveProject();  // user saves first
+            setTimeout(() => document.getElementById('merge-file-input').click(), 100);
+        };
+        continueBtn.onclick = () => {
+            hideMergeSaveFirstModal();
+            document.getElementById('merge-file-input').click();
+        };
+        modal.classList.add('show');
+    }
+    function hideMergeSaveFirstModal() {
+        document.getElementById('merge-save-first-modal').classList.remove('show');
+    }
+
+    // Step 2 — file is selected. Parse and analyze.
+    function handleMergeFileSelected(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const incoming = JSON.parse(e.target.result);
+                const analysis = analyzeMerge(incoming);
+                _pendingMergeAnalysis = analysis;
+                showMergePreviewModal(analysis);
+            } catch (err) {
+                showToast(t('toast.merge.error', { message: err.message }));
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    // Step 3 — preview & conflict resolution.
+    // Display labels for item kinds in the items list (keep these short).
+    const ITEM_KIND_LABELS = {
+        shape:   'Shapes (areas/cutouts)',
+        screen:  'A/V Screens',
+        sign:    'Key Items',
+        measure: 'Polymeasures',
+        line:    'Annotations',
+        text:    'Text labels',
+        post:    'Attendant Posts',
+    };
+
+    function showMergePreviewModal(analysis) {
+        const modal = document.getElementById('merge-preview-modal');
+        const summaryEl = document.getElementById('merge-preview-summary');
+        const conflictsEl = document.getElementById('merge-preview-conflicts');
+
+        // Build the top summary (registry-level adds + new page list).
+        const addedParts = [];
+        const cnames = {
+            seatTypes: 'seat profiles', signTypes: 'point profiles',
+            measureTypes: 'measure profiles', attendantTypes: 'post styles',
+            pages: 'pages', shifts: 'shifts', roster: 'roster names'
+        };
+        Object.entries(analysis.addedCounts).forEach(([k, n]) => {
+            if (n > 0) addedParts.push(`${n} ${cnames[k]}`);
+        });
+
+        const totalConflicts = analysis.conflicts.length;
+        const totalItems = (analysis.items || []).length;
+
+        const nothing = (addedParts.length === 0) && (totalItems === 0) && (totalConflicts === 0);
+
+        if (nothing) {
+            summaryEl.innerHTML = `<em>${escapeHTML(t('modal.merge.summary.nothing'))}</em>`;
+            conflictsEl.innerHTML = '';
+            document.getElementById('merge-apply-btn').disabled = true;
+            modal.classList.add('show');
+            return;
+        }
+
+        let summaryHtml = '';
+        if (addedParts.length > 0) {
+            summaryHtml += `<div><strong>${escapeHTML(t('modal.merge.summary.added'))}</strong> ${escapeHTML(addedParts.join(', '))}</div>`;
+        }
+        if (analysis.newPages && analysis.newPages.length > 0) {
+            const pagesDetail = analysis.newPages.map(np => {
+                const tags = [];
+                if (np.hasBlueprint) tags.push(t('modal.merge.page.tag.blueprint'));
+                if (np.hasScale)     tags.push(t('modal.merge.page.tag.scale'));
+                const tagText = tags.length ? ` <span style="color:#aaa; font-size:0.85em;">(${tags.join(', ')})</span>` : '';
+                return `<li style="margin-left: 16px;">${escapeHTML(np.name)}${tagText}</li>`;
+            }).join('');
+            summaryHtml += `<div style="margin-top:6px;"><strong>${escapeHTML(t('modal.merge.summary.new_pages'))}</strong><ul style="margin:4px 0; padding-left: 0; list-style: none;">${pagesDetail}</ul></div>`;
+        }
+        if (totalConflicts > 0)
+            summaryHtml += `<div style="margin-top:4px; color: #f1c40f;"><strong>${escapeHTML(t('modal.merge.summary.conflicts'))}</strong> ${totalConflicts}</div>`;
+        summaryEl.innerHTML = summaryHtml;
+        document.getElementById('merge-apply-btn').disabled = false;
+
+        // ─── Build the items section: grouped by kind, collapsible. ───
+        // Group items by kind for display.
+        const byKind = {};
+        (analysis.items || []).forEach((entry, globalIdx) => {
+            byKind[entry.kind] = byKind[entry.kind] || [];
+            entry._globalIdx = globalIdx;  // remember position for input id
+            byKind[entry.kind].push(entry);
+        });
+
+        let itemsHtml = '';
+
+        // Conflicts first (most important to resolve).
+        if (totalConflicts > 0) {
+            itemsHtml += '<h3 style="margin-top:14px; margin-bottom:6px; font-size:0.95em; color:#f1c40f;">⚠ ' + escapeHTML(t('modal.merge.section.conflicts')) + '</h3>';
+            itemsHtml += analysis.conflicts.map((c, i) => `
+                <div style="border: 1px solid #444; border-radius: 4px; padding: 10px; margin-bottom: 8px; background: #2c2c2c;">
+                    <div style="font-weight: bold; margin-bottom: 4px;">${escapeHTML(cnames[c.category] || c.category)} — "${escapeHTML(c.localName)}"</div>
+                    <div style="font-size: 0.85em; color: #aaa; margin-bottom: 8px;">
+                        ${c.differences.map(d => `<div style="font-family: monospace;">${escapeHTML(d)}</div>`).join('')}
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; padding: 4px 8px; background:#3a3a3a; border-radius:3px;">
+                            <input type="radio" name="merge-conflict-${i}" value="keep-local" checked
+                                   onchange="_pendingMergeAnalysis.conflicts[${i}].resolution='keep-local'">
+                            <span>${escapeHTML(t('modal.merge.conflict.keep_local'))}</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; padding: 4px 8px; background:#3a3a3a; border-radius:3px;">
+                            <input type="radio" name="merge-conflict-${i}" value="use-incoming"
+                                   onchange="_pendingMergeAnalysis.conflicts[${i}].resolution='use-incoming'">
+                            <span>${escapeHTML(t('modal.merge.conflict.use_incoming'))}</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; padding: 4px 8px; background:#3a3a3a; border-radius:3px;">
+                            <input type="radio" name="merge-conflict-${i}" value="add-both"
+                                   onchange="_pendingMergeAnalysis.conflicts[${i}].resolution='add-both'">
+                            <span>${escapeHTML(t('modal.merge.conflict.add_both'))}</span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Item groups
+        if (totalItems > 0) {
+            itemsHtml += '<h3 style="margin-top:14px; margin-bottom:6px; font-size:0.95em;">' + escapeHTML(t('modal.merge.section.items')) + '</h3>';
+            const kinds = ['shape', 'screen', 'sign', 'measure', 'line', 'text', 'post'];
+            kinds.forEach(kind => {
+                const entries = byKind[kind] || [];
+                if (entries.length === 0) return;
+                const total = entries.length;
+                const dupes = entries.filter(e => e.isDuplicate).length;
+                const dupeBadge = dupes > 0 ? ` <span style="color:#f1c40f; font-size:0.85em;">(${dupes} ${escapeHTML(t('modal.merge.duplicates_label'))})</span>` : '';
+                itemsHtml += `
+                    <div class="merge-group" style="border: 1px solid #444; border-radius: 4px; margin-bottom: 6px; background: #2a2a2a;">
+                        <div class="merge-group-header" style="display:flex; justify-content:space-between; align-items:center; padding: 8px 10px; cursor: pointer;" onclick="this.parentElement.querySelector('.merge-group-body').style.display = this.parentElement.querySelector('.merge-group-body').style.display==='none' ? 'block' : 'none'; this.querySelector('.merge-group-chev').textContent = this.parentElement.querySelector('.merge-group-body').style.display==='none' ? '▶' : '▼';">
+                            <div>
+                                <span class="merge-group-chev" style="display:inline-block; width:14px;">▶</span>
+                                <strong>${escapeHTML(ITEM_KIND_LABELS[kind] || kind)}</strong>
+                                <span style="color:#aaa; font-size: 0.9em;"> — ${total} ${escapeHTML(t('modal.merge.total_label'))}${dupeBadge}</span>
+                            </div>
+                            <div style="display:flex; gap:4px;" onclick="event.stopPropagation();">
+                                <button class="reorder-arrow" style="font-size:0.75em; padding:2px 6px;" onclick="mergeBulkSelect('${kind}', 'all')">${escapeHTML(t('modal.merge.bulk.all'))}</button>
+                                <button class="reorder-arrow" style="font-size:0.75em; padding:2px 6px;" onclick="mergeBulkSelect('${kind}', 'none')">${escapeHTML(t('modal.merge.bulk.none'))}</button>
+                                <button class="reorder-arrow" style="font-size:0.75em; padding:2px 6px;" onclick="mergeBulkSelect('${kind}', 'non-dupes')">${escapeHTML(t('modal.merge.bulk.non_dupes'))}</button>
+                            </div>
+                        </div>
+                        <div class="merge-group-body" style="display: none; padding: 0 10px 8px 10px; max-height: 240px; overflow-y: auto;">
+                            ${entries.map(entry => {
+                                const gi = entry._globalIdx;
+                                const dupTag = entry.isDuplicate
+                                    ? '<span style="color:#f1c40f; font-size:0.8em; margin-left:6px;">⚠ ' + escapeHTML(t('modal.merge.duplicate_tag')) + '</span>'
+                                    : '';
+                                const pageNote = entry.pageName
+                                    ? ` <span style="color:#888; font-size:0.85em;">— ${escapeHTML(entry.pageName)}</span>`
+                                    : '';
+                                return `
+                                    <label class="merge-item-row" style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer;">
+                                        <input type="checkbox" data-merge-kind="${kind}" data-merge-globalidx="${gi}"
+                                               ${entry.include ? 'checked' : ''}
+                                               onchange="_pendingMergeAnalysis.items[${gi}].include = this.checked;">
+                                        <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.9em;">${escapeHTML(entry.label)}${pageNote}${dupTag}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        conflictsEl.innerHTML = itemsHtml;
+        modal.classList.add('show');
+    }
+
+    // Bulk-select toggler for the item groups. Selects all / none / only the
+    // non-duplicate entries of a given kind, updating both the model and the
+    // visible checkboxes.
+    function mergeBulkSelect(kind, mode) {
+        if (!_pendingMergeAnalysis) return;
+        _pendingMergeAnalysis.items.forEach((entry, gi) => {
+            if (entry.kind !== kind) return;
+            const newVal = (mode === 'all') ? true
+                         : (mode === 'none') ? false
+                         : (mode === 'non-dupes') ? !entry.isDuplicate
+                         : entry.include;
+            entry.include = newVal;
+            const cb = document.querySelector(`input[type="checkbox"][data-merge-globalidx="${gi}"]`);
+            if (cb) cb.checked = newVal;
+        });
+    }
+
+    function hideMergePreviewModal() {
+        document.getElementById('merge-preview-modal').classList.remove('show');
+        _pendingMergeAnalysis = null;
+    }
+
+    // Step 4 — user clicked Apply. Carry out the merge.
+    function applyMergeFromModal() {
+        if (!_pendingMergeAnalysis) return;
+        saveState();  // for Ctrl+Z
+        try {
+            applyMerge(_pendingMergeAnalysis);
+            const ana = _pendingMergeAnalysis;
+            const totalAdded = Object.values(ana.addedCounts).reduce((s, n) => s + n, 0);
+            // The "appended" count is now the number of placed items the user
+            // actually kept checked. Filtered items aren't counted.
+            const totalAppended = (ana.items || []).filter(e => e.include).length;
+            hideMergePreviewModal();
+            markSeatCachesDirty();
+            updateUI();
+            triggerUpdate();
+            hasUnsavedChanges = true;
+            if (totalAdded === 0 && totalAppended === 0) {
+                showToast(t('toast.merge.nothing'));
+            } else {
+                showToast(t('toast.merge.applied', { a: totalAdded, b: totalAppended }));
+            }
+        } catch (err) {
+            showToast(t('toast.merge.error', { message: err.message }));
+        }
     }
 
     function loadProject(input) {
