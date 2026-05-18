@@ -632,8 +632,8 @@
         <div class="schedule-viewer-header">
             <h2 id="schedule-viewer-title" data-i18n="modal.schedule.title">📋 Shift Schedule</h2>
             <div>
-                <button class="secondary" onclick="exportAttendantsCSV()" title="Export full schedule as CSV" data-i18n-title="modal.schedule.export.title" data-i18n="modal.schedule.export">📤 Export</button>
-                <button class="secondary" onclick="document.getElementById('att-csv-import').click()" title="Import schedule from CSV (overwrites assignments)" data-i18n-title="modal.schedule.import.title" data-i18n="modal.schedule.import">📥 Import</button>
+                <button class="secondary" onclick="exportAttendantsSchedule()" title="Export full schedule as Excel" data-i18n-title="modal.schedule.export.title" data-i18n="modal.schedule.export">📤 Export</button>
+                <button class="secondary" onclick="document.getElementById('att-csv-import').click()" title="Import schedule from Excel or CSV (overwrites assignments)" data-i18n-title="modal.schedule.import.title" data-i18n="modal.schedule.import">📥 Import</button>
                 <button class="secondary" onclick="printScheduleFromViewer()" title="Print this view (with current filters applied)" data-i18n="modal.schedule.print">🖨️ Print This View</button>
                 <button onclick="hideScheduleViewer()" data-i18n="modal.schedule.close">Close</button>
             </div>
@@ -666,25 +666,77 @@
 <!-- Attendant Roster modal — for managing the pool of names that appear in
      post-assignment dropdowns. Same styling as the schedule viewer. -->
 <div id="roster-modal" class="modal-overlay" onclick="if(event.target===this) hideRosterModal()">
-    <div class="modal-card wide" role="dialog" aria-labelledby="roster-modal-title" style="max-width: 640px;">
-        <div class="schedule-viewer-header">
+    <div class="modal-card wide" role="dialog" aria-labelledby="roster-modal-title"
+         style="max-width: 640px; max-height: calc(100vh - 60px); display: flex; flex-direction: column;">
+        <div class="schedule-viewer-header" style="flex-shrink: 0;">
             <h2 id="roster-modal-title" data-i18n="modal.roster.title">👥 Attendant Roster</h2>
             <div>
-                <button class="secondary" onclick="exportRosterCSV()" title="Export roster as CSV" data-i18n="modal.roster.export">📤 Export</button>
-                <button class="secondary" onclick="document.getElementById('att-roster-import').click()" title="Import roster from CSV" data-i18n="modal.roster.import">📥 Import</button>
+                <button class="secondary" onclick="exportRoster()" title="Export roster as Excel" data-i18n="modal.roster.export">📤 Export</button>
+                <button class="secondary" onclick="document.getElementById('att-roster-import').click()" title="Import roster from Excel or CSV" data-i18n="modal.roster.import">📥 Import</button>
                 <button onclick="hideRosterModal()" data-i18n="modal.roster.close">Close</button>
             </div>
         </div>
-        <input type="file" id="att-roster-import" accept=".csv,text/csv" onchange="importRosterCSV(this)" style="display:none;">
-        <div style="font-size: 0.85em; color: #aaa; padding: 12px 0; line-height: 1.4;" data-i18n="modal.roster.help">
+        <input type="file" id="att-roster-import" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onchange="importRosterFile(this)" style="display:none;">
+        <div style="font-size: 0.85em; color: #aaa; padding: 12px 0; line-height: 1.4; flex-shrink: 0;" data-i18n="modal.roster.help">
             Names appear in the assignment dropdown when filling posts. New typed names are added to this list automatically.
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <!-- Manage Roles: editable list of role names used for both project and
+             shift roles. Defaults are seeded by ensureAttendants(). -->
+        <div class="collapse-header collapsed" data-collapse-target="roster-roles-body" onclick="toggleCollapse(this)" style="margin-bottom: 8px; flex-shrink: 0;">
+            <span class="title" data-i18n="att.roles.manage.header">Manage Role Options</span>
+            <span class="chevron">▼</span>
+        </div>
+        <div id="roster-roles-body" class="collapse-body collapsed" style="flex-shrink: 0;">
+            <p style="font-size: 0.8em; color:#aaa; margin: 6px 0;" data-i18n="att.roles.manage.help">
+                Edit the list of role names available to assign as project or shift roles. Renames cascade to roster entries and shift roles.
+            </p>
+            <ul id="att-roles-list" class="item-list" style="margin-bottom: 8px; max-height: 180px; overflow-y: auto;"></ul>
+            <button onclick="addAttendantRole()" data-i18n="att.roles.manage.add"
+                style="background:#27ae60; color:white; border:none; padding:4px 10px; border-radius:3px; font-size:0.85em; cursor:pointer;">+ Add Role</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-shrink: 0;">
             <span style="font-weight: bold;"><span id="att-roster-badge" class="badge">0</span> <span data-i18n="modal.roster.count">names</span></span>
             <button class="btn-primary" style="margin-left: auto;" onclick="addRosterEntry()" data-i18n="modal.roster.add">+ Add Name</button>
         </div>
-        <div class="schedule-viewer-body" style="max-height: 60vh; overflow-y: auto;">
+        <!-- Names list: grows to fill remaining space, scrolls internally. -->
+        <div class="schedule-viewer-body" style="flex: 1 1 auto; min-height: 0; overflow-y: auto;">
             <ul class="item-list" id="att-roster-list" style="margin-bottom: 0;"></ul>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options modal: shown when the user clicks "Export" on the roster
+     or schedule. Lets them check which optional columns to include in the
+     Excel output. Name is always included. -->
+<div id="export-options-modal" class="modal-overlay" onclick="if(event.target===this) hideExportOptionsModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="export-options-modal-title" style="max-width: 420px;">
+        <h2 id="export-options-modal-title" data-i18n="modal.export_options.title">Export Options</h2>
+        <p data-i18n="modal.export_options.help" style="font-size: 0.9em; color: #ccc;">Choose which columns to include. Name is always included.</p>
+        <div id="export-options-checkboxes" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0;">
+            <!-- Filled by openExportOptionsModal() -->
+        </div>
+        <div class="modal-actions">
+            <button onclick="hideExportOptionsModal()" class="secondary" data-i18n="modal.export_options.cancel">Cancel</button>
+            <button id="export-options-confirm" data-i18n="modal.export_options.confirm">Export</button>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Import Preview modal: shown after the user selects a file to
+     import. Lists every group of changes (additions, overwrites) with a
+     checkbox per group. Each group can be expanded to see exact changes.
+     Cancel discards everything; Apply mutates project with only the checked
+     groups. Built fresh each open. -->
+<div id="schedule-import-preview-modal" class="modal-overlay" onclick="if(event.target===this) hideScheduleImportPreview()">
+    <div class="modal-card wide" role="dialog" aria-labelledby="schedule-import-preview-title"
+         style="max-width: 720px; max-height: calc(100vh - 60px); display: flex; flex-direction: column;">
+        <h2 id="schedule-import-preview-title" data-i18n="modal.schedule.import.preview.title" style="flex-shrink: 0;">Schedule Import Preview</h2>
+        <p style="font-size: 0.9em; color: #ccc; margin: 4px 0 12px; flex-shrink: 0;" data-i18n="modal.schedule.import.preview.help">Review the changes below. Uncheck any group you don't want applied. Click "Details" to inspect specific values.</p>
+        <div id="schedule-import-preview-warnings" style="flex-shrink: 0;"></div>
+        <div id="schedule-import-preview-groups" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px;"></div>
+        <div class="modal-actions" style="margin-top: 12px; flex-shrink: 0;">
+            <button class="secondary" onclick="hideScheduleImportPreview()" data-i18n="modal.schedule.import.preview.cancel">Cancel</button>
+            <button id="schedule-import-preview-apply" data-i18n="modal.schedule.import.preview.apply">Apply Selected</button>
         </div>
     </div>
 </div>
@@ -1192,7 +1244,7 @@
                     <button class="att-toolbar-btn" onclick="showScheduleViewer()" title="View full shift schedule" data-i18n-title="att.toolbar.schedule.title" data-i18n="att.toolbar.schedule">📋 Schedule</button>
                     <button class="att-toolbar-btn" onclick="showRosterModal()" title="Manage attendant names" data-i18n-title="att.toolbar.roster.title" data-i18n="att.toolbar.roster">👥 Roster</button>
                 </div>
-                <input type="file" id="att-csv-import" accept=".csv,text/csv" onchange="importAttendantsCSV(this)" style="display:none;">
+                <input type="file" id="att-csv-import" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onchange="importAttendantsFile(this)" style="display:none;">
 
                 <!-- Add post buttons — compact, single row, smaller font. Tooltips carry the longer description. -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom: 10px;">
@@ -1336,6 +1388,10 @@
         </div>
         <span id="rpt-date-print" style="font-weight: bold; font-size: 11pt;"></span>
     </div>
+    <!-- Non-tabular content rendered BEFORE the table. Used for things like
+         the schedule's Project Roles block so column headers don't appear
+         above it. Always cleared by each print invocation. -->
+    <div id="rpt-prebody-print"></div>
     <table>
         <thead><tr id="rpt-table-header"><th>Section Name</th><th>Count / Length</th></tr></thead>
         <tbody id="rpt-body"></tbody>
@@ -1468,9 +1524,9 @@ const I18N_STRINGS = {
         "att.add_shift": "🕒 + Shift Post",
         "att.add_shift.title": "Add a post visible only on the active shift",
         "modal.schedule.export": "📤 Export",
-        "modal.schedule.export.title": "Export full schedule as CSV",
+        "modal.schedule.export.title": "Export full schedule as Excel",
         "modal.schedule.import": "📥 Import",
-        "modal.schedule.import.title": "Import schedule from CSV (overwrites assignments)",
+        "modal.schedule.import.title": "Import schedule from Excel or CSV (overwrites assignments)",
         "modal.roster.title": "👥 Attendant Roster",
         "modal.roster.help": "Names appear in the assignment dropdown when filling posts. New typed names are added to this list automatically.",
         "modal.roster.count": "names",
@@ -1496,10 +1552,14 @@ const I18N_STRINGS = {
         "att.roster.empty": "No attendants added yet.",
         "att.roster.assignment.singular": "{n} assignment",
         "att.roster.assignment.plural": "{n} assignments",
-        "att.csv.header": "Schedule CSV Import / Export",
-        "att.csv.help": "Export your full schedule to edit in Excel or Sheets, then re-import to update assignments. Matching uses shift number + post number.",
-        "att.csv.export": "📤 Export Schedule CSV",
-        "att.csv.import.label": "Import CSV (overwrites assignments)",
+        "att.csv.header": "Schedule Import / Export",
+        "att.csv.help": "Export your full schedule to edit in Excel or Sheets, then re-import to update assignments. Matching uses shift number + post number. Both .xlsx and .csv files can be imported.",
+        "att.csv.export": "📤 Export Schedule (Excel)",
+        "att.csv.import.label": "Import Excel or CSV (overwrites assignments)",
+        "att.xlsx.sheet.schedule": "Schedule",
+        "att.xlsx.sheet.roster": "Roster",
+        "att.import.error.xlsx_unavailable": "Excel reader library not loaded. Check your connection and reload.",
+        "att.import.error.no_sheets": "The workbook contains no sheets.",
         "att.active_style.label": "Style for new posts:",
         "att.posts.header": "Placed Posts",
         "att.posts.empty.no_posts": "No posts placed yet on this page.",
@@ -1535,8 +1595,8 @@ const I18N_STRINGS = {
         "stats.total_seats": "Total Seats:",
         "modal.tutorials.title": "🎓 Tutorials &amp; Announcements",
         "modal.tutorials.intro": "Choose a resource:",
-        "modal.tutorials.announcement.title": "Latest Announcement",
-        "modal.tutorials.announcement.desc": "Read the latest news from Convention Planner.",
+        "modal.tutorials.announcement.title": "Release Notes",
+        "modal.tutorials.announcement.desc": "What's new in this version, with history back to 1.6.",
         "modal.tutorials.announcement.none.title": "No Current Announcement",
         "modal.tutorials.announcement.none.desc": "There's no announcement at this time.",
         "modal.tutorials.view": "View",
@@ -1719,10 +1779,40 @@ const I18N_STRINGS = {
         "att.post.number.prompt": "Post number (1-3 chars, displayed in dot):",
         "att.post.desc.prompt": "Post description:",
         "att.post.confirm_delete": "Delete post {number}? This removes it from all shifts.",
-        "att.roster.add.name.prompt": "Attendant name:",
-        "att.roster.add.notes.prompt": "Notes (optional, e.g. 'phone: 555-1234'):",
-        "att.roster.edit.name.prompt": "Name:",
-        "att.roster.edit.notes.prompt": "Notes:",
+        "att.roster.field.name.placeholder": "Attendant name…",
+        "att.roster.field.notes.placeholder": "Notes…",
+        "att.roster.field.phone.placeholder": "Phone (optional)…",
+        "att.roster.field.role.label": "Project role:",
+        "att.roster.field.role.none": "— none —",
+        "att.roles.manage.header": "Manage Role Options",
+        "att.roles.manage.help": "Edit the list of role names available to assign as project or shift roles. Renames cascade to roster entries and shift roles.",
+        "att.roles.manage.add": "+ Add Role",
+        "att.roles.add.prompt": "New role name:",
+        "att.roles.duplicate": "That role already exists.",
+        "att.roles.empty": "Role name cannot be empty.",
+        "att.roles.empty_list": "No roles defined.",
+        "att.roles.delete.title": "Remove this role",
+        "att.roles.confirm_delete.in_use": "\"{name}\" is currently used by {n} attendant(s) or shift assignment(s). Remove the role and clear those references?",
+        "att.roles.confirm_delete.unused": "Remove role \"{name}\"?",
+        "modal.schedule.shift_roles.title": "Shift Roles",
+        "modal.schedule.shift_roles.help": "Assign a role to each person serving this shift. Roles are independent of post assignments.",
+        "modal.schedule.shift_roles.no_post": "no post",
+        "modal.schedule.shift_roles.remove": "Remove from shift roles",
+        "modal.schedule.shift_roles.additional": "Add additional personnel (not assigned to a post):",
+        "modal.schedule.shift_roles.add.name.placeholder": "Name…",
+        "modal.schedule.shift_roles.add.button": "Add",
+        "modal.schedule.shift_roles.role_required": "Pick a role before adding.",
+        "modal.export_options.title": "Export Options",
+        "modal.export_options.help": "Choose which columns to include. Name is always included.",
+        "modal.export_options.confirm": "Export",
+        "modal.export_options.cancel": "Cancel",
+        "att.export.field.phone": "Phone number",
+        "att.export.field.notes": "Notes",
+        "att.export.field.project_role": "Project role",
+        "att.export.field.shift_role": "Shift role",
+        "att.export.field.shift_description": "Shift description",
+        "att.export.field.post_description": "Post description",
+        "att.export.field.post_scope": "Post scope (persistent/shift)",
         "att.roster.error.empty_name": "Name cannot be empty.",
         "att.roster.confirm_delete.in_use.singular": "\"{name}\" is currently assigned to {n} post. Delete from the roster anyway? (Existing assignments will keep the name as plain text.)",
         "att.roster.confirm_delete.in_use.plural": "\"{name}\" is currently assigned to {n} posts. Delete from the roster anyway? (Existing assignments will keep the name as plain text.)",
@@ -1733,10 +1823,29 @@ const I18N_STRINGS = {
         "att.roster.toast.import_result": "Roster: {added} added, {skipped} skipped.",
         "att.csv.error.no_shifts": "Add at least one shift before exporting.",
         "att.csv.error.no_posts": "Add at least one post before exporting.",
-        "att.csv.toast.exported": "CSV exported.",
-        "att.csv.error.import": "CSV import failed: {message}",
-        "att.csv.confirm_import": "Import {n} rows? Name assignments will be overwritten for matching shift/post combinations. New shifts and posts referenced in the CSV will be skipped (add them in the app first).",
+        "att.csv.toast.exported": "File exported.",
+        "att.csv.error.import": "Import failed: {message}",
+        "att.csv.confirm_import": "Import {n} rows? Name assignments will be overwritten for matching shift/post combinations. New shifts and posts referenced in the file will be skipped (add them in the app first).",
         "att.csv.toast.import_result": "Imported {updated} assignments. {skipped} rows skipped.",
+        "att.csv.toast.import_result_with_roster": "Imported {updated} assignments. {skipped} rows skipped. {added} new name(s) added to the roster.",
+        "att.csv.toast.import_applied": "Import applied.",
+        "modal.schedule.import.preview.title": "Schedule Import Preview",
+        "modal.schedule.import.preview.help": "Review the changes below. Uncheck any group you don't want applied. Click \"Details\" to inspect specific values.",
+        "modal.schedule.import.preview.cancel": "Cancel",
+        "modal.schedule.import.preview.apply": "Apply Selected",
+        "modal.schedule.import.preview.details": "Details",
+        "modal.schedule.import.preview.nothing": "No changes would be applied.",
+        "modal.schedule.import.preview.summary.unchanged": "{n} assignment(s) already match",
+        "modal.schedule.import.preview.summary.skipped": "{n} row(s) skipped (unknown shift or post)",
+        "modal.schedule.import.preview.warning_inconsistent": "{n} attendant(s) had inconsistent values across rows. Last value will be used.",
+        "modal.schedule.import.preview.group.assignment_adds": "Add {n} new assignment(s)",
+        "modal.schedule.import.preview.group.assignment_updates": "Change {n} existing assignment(s)",
+        "modal.schedule.import.preview.group.assignment_clears": "Clear {n} assignment(s)",
+        "modal.schedule.import.preview.group.shift_roles": "Update {n} shift role(s)",
+        "modal.schedule.import.preview.group.new_names": "Add {n} name(s) to the roster",
+        "modal.schedule.import.preview.group.phone_updates": "Update {n} phone number(s)",
+        "modal.schedule.import.preview.group.project_role_updates": "Update {n} project role(s)",
+        "modal.schedule.import.preview.group.notes_updates": "Update {n} note(s)",
         "legend.seat.title": "SEAT LEGEND",
         "legend.seat.total": "TOTAL",
         "legend.key.title": "KEY ITEM LEGEND",
@@ -1779,7 +1888,15 @@ const I18N_STRINGS = {
         "print.schedule.empty_project": "No shifts have been added to this project.",
         "print.schedule.empty_shift": "No posts assigned to this shift.",
         "print.schedule.empty_filter": "No posts match the current filters.",
-        "print.schedule.footer": "ASSIGNED / UNASSIGNED"
+        "print.schedule.footer": "ASSIGNED / UNASSIGNED",
+        "print.schedule.project_roles.header": "PROJECT ROLES",
+        "print.schedule.shift_roles.header": "Shift Roles",
+        "print.schedule.shift_roles.no_post": "no post",
+        "print.schedule.post_assignments.header": "Post Assignments",
+        "modal.schedule.print.options.project_roles": "Project roles header",
+        "modal.schedule.print.options.shift_roles": "Shift roles section per shift",
+        "modal.schedule.print.options.phone": "Phone numbers",
+        "modal.schedule.print.options.unassigned": "Include unassigned posts"
     },
     es: {
         "btn.save": "💾 Guardar",
@@ -1900,9 +2017,9 @@ const I18N_STRINGS = {
         "att.add_shift": "🕒 + de Turno",
         "att.add_shift.title": "Añadir un puesto visible solo en el turno activo",
         "modal.schedule.export": "📤 Exportar",
-        "modal.schedule.export.title": "Exportar horario completo como CSV",
+        "modal.schedule.export.title": "Exportar horario completo como Excel",
         "modal.schedule.import": "📥 Importar",
-        "modal.schedule.import.title": "Importar horario desde CSV (sobrescribe asignaciones)",
+        "modal.schedule.import.title": "Importar horario desde Excel o CSV (sobrescribe asignaciones)",
         "modal.roster.title": "👥 Lista de Acomodadores",
         "modal.roster.help": "Los nombres aparecen en el menú desplegable al asignar puestos. Los nombres nuevos escritos se añaden automáticamente a esta lista.",
         "modal.roster.count": "nombres",
@@ -1928,10 +2045,14 @@ const I18N_STRINGS = {
         "att.roster.empty": "Aún No se Han Añadido Acomodadores.",
         "att.roster.assignment.singular": "{n} Asignación",
         "att.roster.assignment.plural": "{n} Asignaciones",
-        "att.csv.header": "Importar / Exportar Horario CSV",
-        "att.csv.help": "Exporta tu horario completo para editarlo en Excel o Sheets, y vuelve a importarlo para actualizar las asignaciones. La coincidencia utiliza el número de turno + número de puesto.",
-        "att.csv.export": "📤 Exportar Horario CSV",
-        "att.csv.import.label": "Importar CSV (Sobrescribe Asignaciones)",
+        "att.csv.header": "Importar / Exportar Horario",
+        "att.csv.help": "Exporta tu horario completo para editarlo en Excel o Sheets, y vuelve a importarlo para actualizar las asignaciones. La coincidencia utiliza el número de turno + número de puesto. Se pueden importar archivos .xlsx y .csv.",
+        "att.csv.export": "📤 Exportar Horario (Excel)",
+        "att.csv.import.label": "Importar Excel o CSV (Sobrescribe Asignaciones)",
+        "att.xlsx.sheet.schedule": "Horario",
+        "att.xlsx.sheet.roster": "Lista",
+        "att.import.error.xlsx_unavailable": "Biblioteca de lectura de Excel no cargada. Comprueba tu conexión y recarga.",
+        "att.import.error.no_sheets": "El libro de trabajo no contiene hojas.",
         "att.active_style.label": "Estilo para Nuevos Puestos:",
         "att.posts.header": "Puestos Colocados",
         "att.posts.empty.no_posts": "Aún No Hay Puestos Colocados en Esta Página.",
@@ -1967,8 +2088,8 @@ const I18N_STRINGS = {
         "stats.total_seats": "Total de Asientos:",
         "modal.tutorials.title": "🎓 Tutoriales y Avisos",
         "modal.tutorials.intro": "Elige un recurso:",
-        "modal.tutorials.announcement.title": "Aviso Reciente",
-        "modal.tutorials.announcement.desc": "Lee las últimas noticias de Convention Planner.",
+        "modal.tutorials.announcement.title": "Notas de Versión",
+        "modal.tutorials.announcement.desc": "Novedades de esta versión, con historial hasta la 1.6.",
         "modal.tutorials.announcement.none.title": "No Hay Avisos Actuales",
         "modal.tutorials.announcement.none.desc": "No hay avisos en este momento.",
         "modal.tutorials.view": "Ver",
@@ -2151,10 +2272,40 @@ const I18N_STRINGS = {
         "att.post.number.prompt": "Número de Puesto (1-3 caracteres, mostrados en el punto):",
         "att.post.desc.prompt": "Descripción del Puesto:",
         "att.post.confirm_delete": "¿Eliminar el puesto {number}? Esto lo elimina de todos los turnos.",
-        "att.roster.add.name.prompt": "Nombre del Acomodador:",
-        "att.roster.add.notes.prompt": "Notas (opcional, ej. 'teléfono: 555-1234'):",
-        "att.roster.edit.name.prompt": "Nombre:",
-        "att.roster.edit.notes.prompt": "Notas:",
+        "att.roster.field.name.placeholder": "Nombre del acomodador…",
+        "att.roster.field.notes.placeholder": "Notas…",
+        "att.roster.field.phone.placeholder": "Teléfono (opcional)…",
+        "att.roster.field.role.label": "Rol del proyecto:",
+        "att.roster.field.role.none": "— ninguno —",
+        "att.roles.manage.header": "Gestionar Opciones de Rol",
+        "att.roles.manage.help": "Edita la lista de roles disponibles para asignar como rol del proyecto o rol del turno. Los cambios de nombre se propagan a las entradas de la lista y a los roles de turno.",
+        "att.roles.manage.add": "+ Añadir Rol",
+        "att.roles.add.prompt": "Nombre del nuevo rol:",
+        "att.roles.duplicate": "Ese rol ya existe.",
+        "att.roles.empty": "El nombre del rol no puede estar vacío.",
+        "att.roles.empty_list": "No hay roles definidos.",
+        "att.roles.delete.title": "Eliminar este rol",
+        "att.roles.confirm_delete.in_use": "\"{name}\" está actualmente en uso por {n} acomodador(es) o asignación(es) de turno. ¿Eliminar el rol y borrar esas referencias?",
+        "att.roles.confirm_delete.unused": "¿Eliminar el rol \"{name}\"?",
+        "modal.schedule.shift_roles.title": "Roles del Turno",
+        "modal.schedule.shift_roles.help": "Asigna un rol a cada persona que sirve en este turno. Los roles son independientes de las asignaciones de puestos.",
+        "modal.schedule.shift_roles.no_post": "sin puesto",
+        "modal.schedule.shift_roles.remove": "Quitar de los roles del turno",
+        "modal.schedule.shift_roles.additional": "Añadir personal adicional (sin asignación de puesto):",
+        "modal.schedule.shift_roles.add.name.placeholder": "Nombre…",
+        "modal.schedule.shift_roles.add.button": "Añadir",
+        "modal.schedule.shift_roles.role_required": "Elige un rol antes de añadir.",
+        "modal.export_options.title": "Opciones de Exportación",
+        "modal.export_options.help": "Elige qué columnas incluir. El nombre siempre se incluye.",
+        "modal.export_options.confirm": "Exportar",
+        "modal.export_options.cancel": "Cancelar",
+        "att.export.field.phone": "Número de teléfono",
+        "att.export.field.notes": "Notas",
+        "att.export.field.project_role": "Rol del proyecto",
+        "att.export.field.shift_role": "Rol del turno",
+        "att.export.field.shift_description": "Descripción del turno",
+        "att.export.field.post_description": "Descripción del puesto",
+        "att.export.field.post_scope": "Alcance del puesto (persistente/turno)",
         "att.roster.error.empty_name": "El nombre no puede estar vacío.",
         "att.roster.confirm_delete.in_use.singular": "\"{name}\" está actualmente asignado a {n} puesto. ¿Eliminar de la lista de todos modos? (Las asignaciones existentes mantendrán el nombre como texto sin formato.)",
         "att.roster.confirm_delete.in_use.plural": "\"{name}\" está actualmente asignado a {n} puestos. ¿Eliminar de la lista de todos modos? (Las asignaciones existentes mantendrán el nombre como texto sin formato.)",
@@ -2165,10 +2316,29 @@ const I18N_STRINGS = {
         "att.roster.toast.import_result": "Lista: {added} añadidos, {skipped} omitidos.",
         "att.csv.error.no_shifts": "Añade al menos un turno antes de exportar.",
         "att.csv.error.no_posts": "Añade al menos un puesto antes de exportar.",
-        "att.csv.toast.exported": "CSV exportado.",
-        "att.csv.error.import": "Error al importar CSV: {message}",
-        "att.csv.confirm_import": "¿Importar {n} filas? Las asignaciones de nombres se sobrescribirán para las combinaciones coincidentes de turno/puesto. Los turnos y puestos nuevos referenciados en el CSV se omitirán (añádelos primero en la aplicación).",
+        "att.csv.toast.exported": "Archivo exportado.",
+        "att.csv.error.import": "Error al importar: {message}",
+        "att.csv.confirm_import": "¿Importar {n} filas? Las asignaciones de nombres se sobrescribirán para las combinaciones coincidentes de turno/puesto. Los turnos y puestos nuevos referenciados en el archivo se omitirán (añádelos primero en la aplicación).",
         "att.csv.toast.import_result": "{updated} asignaciones importadas. {skipped} filas omitidas.",
+        "att.csv.toast.import_result_with_roster": "{updated} asignaciones importadas. {skipped} filas omitidas. {added} nombre(s) nuevo(s) añadido(s) a la lista.",
+        "att.csv.toast.import_applied": "Importación aplicada.",
+        "modal.schedule.import.preview.title": "Vista Previa de Importación",
+        "modal.schedule.import.preview.help": "Revisa los cambios a continuación. Desmarca cualquier grupo que no quieras aplicar. Pulsa \"Detalles\" para ver valores específicos.",
+        "modal.schedule.import.preview.cancel": "Cancelar",
+        "modal.schedule.import.preview.apply": "Aplicar Seleccionados",
+        "modal.schedule.import.preview.details": "Detalles",
+        "modal.schedule.import.preview.nothing": "No se aplicarían cambios.",
+        "modal.schedule.import.preview.summary.unchanged": "{n} asignación(es) ya coinciden",
+        "modal.schedule.import.preview.summary.skipped": "{n} fila(s) omitida(s) (turno o puesto desconocido)",
+        "modal.schedule.import.preview.warning_inconsistent": "{n} acomodador(es) tenían valores inconsistentes entre filas. Se usará el último valor.",
+        "modal.schedule.import.preview.group.assignment_adds": "Añadir {n} asignación(es) nueva(s)",
+        "modal.schedule.import.preview.group.assignment_updates": "Cambiar {n} asignación(es) existente(s)",
+        "modal.schedule.import.preview.group.assignment_clears": "Borrar {n} asignación(es)",
+        "modal.schedule.import.preview.group.shift_roles": "Actualizar {n} rol(es) de turno",
+        "modal.schedule.import.preview.group.new_names": "Añadir {n} nombre(s) a la lista",
+        "modal.schedule.import.preview.group.phone_updates": "Actualizar {n} teléfono(s)",
+        "modal.schedule.import.preview.group.project_role_updates": "Actualizar {n} rol(es) del proyecto",
+        "modal.schedule.import.preview.group.notes_updates": "Actualizar {n} nota(s)",
         "legend.seat.title": "LEYENDA DE ASIENTOS",
         "legend.seat.total": "TOTAL",
         "legend.key.title": "LEYENDA DE ARTÍCULOS CLAVES",
@@ -2211,7 +2381,15 @@ const I18N_STRINGS = {
         "print.schedule.empty_project": "No se han añadido turnos a este proyecto.",
         "print.schedule.empty_shift": "No hay puestos asignados a este turno.",
         "print.schedule.empty_filter": "Ningún puesto coincide con los filtros actuales.",
-        "print.schedule.footer": "ASIGNADOS / NO ASIGNADOS"
+        "print.schedule.footer": "ASIGNADOS / NO ASIGNADOS",
+        "print.schedule.project_roles.header": "ROLES DEL PROYECTO",
+        "print.schedule.shift_roles.header": "Roles del Turno",
+        "print.schedule.shift_roles.no_post": "sin puesto",
+        "print.schedule.post_assignments.header": "Asignaciones de Puestos",
+        "modal.schedule.print.options.project_roles": "Cabecera de roles del proyecto",
+        "modal.schedule.print.options.shift_roles": "Sección de roles por turno",
+        "modal.schedule.print.options.phone": "Números de teléfono",
+        "modal.schedule.print.options.unassigned": "Incluir puestos sin asignar"
     }
 };
 
@@ -2803,9 +2981,29 @@ const I18N_STRINGS = {
         if (!Array.isArray(project.attendants.shifts)) project.attendants.shifts = [];
         if (!Array.isArray(project.attendants.roster)) project.attendants.roster = [];
         if (!project.attendants.assignments || typeof project.attendants.assignments !== 'object') project.attendants.assignments = {};
+        // New in 1.8: per-shift roles. Map of shiftId -> { personName -> role }.
+        // Keyed by person NAME (not roster id) so it survives names typed
+        // directly into post-assignment fields without going through the roster.
+        if (!project.attendants.shiftRoles || typeof project.attendants.shiftRoles !== 'object') {
+            project.attendants.shiftRoles = {};
+        }
         if (!Array.isArray(project.attendantTypes) || project.attendantTypes.length === 0) {
             project.attendantTypes = [{ name: "Standard Post", dotColor: '#3498db', dotSize: 18, labelColor: '#222', labelSize: 14 }];
         }
+        // Editable list of role names used for both project roles and shift roles.
+        // Ships with four English defaults; the user can rename them or add
+        // their own via the roster modal's "Manage Roles" section. We don't
+        // localize defaults because (a) custom roles can't be auto-translated,
+        // so a mixed-language list would be inconsistent, and (b) the user can
+        // freely rename them to their preferred language.
+        if (!Array.isArray(project.attendantRoles) || project.attendantRoles.length === 0) {
+            project.attendantRoles = ["Keyman", "Captain", "Assistant", "Overseer"];
+        }
+        // Migrate roster entries: add phone and projectRole if missing.
+        project.attendants.roster.forEach(r => {
+            if (typeof r.phone !== 'string') r.phone = '';
+            if (typeof r.projectRole !== 'string') r.projectRole = '';
+        });
     }
 
     function genId(prefix) { return prefix + "_" + Math.random().toString(36).slice(2, 9); }
@@ -2840,6 +3038,15 @@ const I18N_STRINGS = {
     }
     function hideRosterModal() {
         document.getElementById('roster-modal').classList.remove('show');
+        // Clean up any blank entries the user may have left behind from
+        // clicking "+ Add" but not typing a name. Notes-only entries are
+        // dropped too — they're meaningless without a name.
+        ensureAttendants();
+        const before = project.attendants.roster.length;
+        project.attendants.roster = project.attendants.roster.filter(r => (r.name || '').trim() !== '');
+        if (project.attendants.roster.length !== before) {
+            triggerUpdate(); updateUI();
+        }
     }
 
     function getAttendantTypeFor(post) {
@@ -3400,30 +3607,75 @@ const I18N_STRINGS = {
         return s;
     }
 
-    function exportAttendantsCSV() {
+    function exportAttendantsSchedule() {
         ensureAttendants();
         if (project.attendants.shifts.length === 0) { alert(t('att.csv.error.no_shifts')); return; }
         if (project.attendants.posts.length === 0) { alert(t('att.csv.error.no_posts')); return; }
+        if (typeof XLSX === 'undefined') {
+            showToast(t('project.export_excel.toast.unavailable'));
+            return;
+        }
+        // Ask which optional columns to include. Shift number/post number/name
+        // are always included.
+        openExportOptionsModal([
+            { field: 'shiftDescription', label: t('att.export.field.shift_description'), default: true  },
+            { field: 'postDescription',  label: t('att.export.field.post_description'),  default: true  },
+            { field: 'postScope',        label: t('att.export.field.post_scope'),        default: false },
+            { field: 'shiftRole',        label: t('att.export.field.shift_role'),        default: true  },
+            { field: 'projectRole',      label: t('att.export.field.project_role'),      default: false },
+            { field: 'phone',            label: t('att.export.field.phone'),              default: false },
+        ], (sel) => doExportSchedule(sel));
+    }
 
-        // Human-readable columns only. Internal IDs are not exported because the
-        // importer matches by (shift_number + post_number) and ignored them anyway.
-        const header = ["shift_number", "shift_description", "post_number", "post_description", "post_scope", "attendant_name"];
+    function doExportSchedule(opts) {
+        // Build header dynamically. shift_number / post_number / attendant_name
+        // are required for round-trip import; everything else is opt-in.
+        const header = ['shift_number'];
+        if (opts.shiftDescription) header.push('shift_description');
+        header.push('post_number');
+        if (opts.postDescription)  header.push('post_description');
+        if (opts.postScope)        header.push('post_scope');
+        header.push('attendant_name');
+        if (opts.shiftRole)        header.push('shift_role');
+        if (opts.projectRole)      header.push('project_role');
+        if (opts.phone)            header.push('phone');
+
         const rows = [header];
-        // For every shift, list every post that should appear (persistent always; shift-specific only its own)
+        // For every shift, list every post that should appear.
         project.attendants.shifts.forEach(shift => {
+            const shiftRoleMap = project.attendants.shiftRoles[shift.id] || {};
             project.attendants.posts.forEach(post => {
                 if (post.scope === 'shift' && post.shiftId !== shift.id) return;
                 const name = (project.attendants.assignments[shift.id] || {})[post.id] || '';
-                rows.push([shift.number, shift.description || '', post.number || '', post.description || '', post.scope, name]);
+                const rosterEntry = name ? project.attendants.roster.find(r => r.name === name) : null;
+                const row = [shift.number];
+                if (opts.shiftDescription) row.push(shift.description || '');
+                row.push(post.number || '');
+                if (opts.postDescription)  row.push(post.description || '');
+                if (opts.postScope)        row.push(post.scope || '');
+                row.push(name);
+                if (opts.shiftRole)        row.push(name ? (shiftRoleMap[name] || '') : '');
+                if (opts.projectRole)      row.push(rosterEntry ? (rosterEntry.projectRole || '') : '');
+                if (opts.phone)            row.push(rosterEntry ? (rosterEntry.phone || '') : '');
+                rows.push(row);
             });
         });
 
-        const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = (project.title || 'project') + '_schedule.csv';
-        a.click();
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        // Column widths: tailored per column name.
+        ws['!cols'] = header.map(h => {
+            if (h.endsWith('_description'))         return { wch: 28 };
+            if (h === 'attendant_name')             return { wch: 24 };
+            if (h === 'phone')                      return { wch: 18 };
+            if (h.endsWith('_role'))                return { wch: 14 };
+            return { wch: 12 };
+        });
+        ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+        XLSX.utils.book_append_sheet(wb, ws, t('att.xlsx.sheet.schedule'));
+
+        const safeName = (project.title || 'project').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim() || 'project';
+        XLSX.writeFile(wb, `${safeName}_schedule.xlsx`);
         showToast(t('att.csv.toast.exported'));
     }
 
@@ -3452,43 +3704,284 @@ const I18N_STRINGS = {
         return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ''));
     }
 
+    // Read a tabular file (CSV or Excel) and return rows as arrays of strings.
+    // Detects format by extension. The result is the same shape regardless of
+    // source, so importers can be written against one row format.
+    //
+    // Calls `onLoad(rows)` with the parsed 2D array, or `onError(err)` on failure.
+    // Strips a UTF-8 BOM from CSV files if present (Excel emits one). For Excel
+    // files, takes the first sheet and converts every cell to a string so the
+    // shift_number/post_number columns survive whether the user typed "01" or 1.
+    function readSpreadsheet(file, onLoad, onError) {
+        const ext = (file.name || '').toLowerCase().split('.').pop();
+        const isExcel = (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm');
+        const reader = new FileReader();
+        if (isExcel) {
+            if (typeof XLSX === 'undefined') {
+                onError(new Error(t('att.import.error.xlsx_unavailable')));
+                return;
+            }
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    if (!wb.SheetNames.length) throw new Error(t('att.import.error.no_sheets'));
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    // raw:false converts everything to strings the way the cell
+                    // is displayed in Excel, preserving "01" as text. defval:''
+                    // ensures empty cells appear as empty strings (not undefined)
+                    // so column index lookups stay aligned.
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+                    // Drop fully-empty trailing rows (Excel sometimes emits them).
+                    while (rows.length && rows[rows.length - 1].every(c => c === '' || c == null)) {
+                        rows.pop();
+                    }
+                    onLoad(rows);
+                } catch (err) { onError(err); }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.onload = (e) => {
+                try {
+                    let text = e.target.result;
+                    // Strip UTF-8 BOM if present.
+                    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+                    const rows = parseCSV(text);
+                    onLoad(rows);
+                } catch (err) { onError(err); }
+            };
+            reader.readAsText(file);
+        }
+    }
+
     // ─── Roster (pool of attendant names) ─────────────────────────────────────
     function addRosterEntry() {
         ensureAttendants();
-        const name = prompt(t('att.roster.add.name.prompt'));
-        if (name === null) return;
-        if (!name.trim()) { showToast(t('error.empty_name')); return; }
-        const notes = prompt(t('att.roster.add.notes.prompt'), '');
-        if (notes === null) return;
         saveState();
-        project.attendants.roster.push({ id: genId('att'), name: name.trim(), notes: (notes || '').trim() });
-        // Sort alphabetically for predictable dropdown order
-        project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
+        // Add a blank entry, focus its name input. The user types directly in
+        // the modal — no chained popups. The empty placeholder row stays in
+        // the list and is cleaned up if the user closes the modal without
+        // filling in a name (see ensureAttendants() guard at next list rebuild).
+        const newEntry = { id: genId('att'), name: '', notes: '' };
+        project.attendants.roster.push(newEntry);
+        triggerUpdate(); updateUI();
+        // After the list re-renders, focus the name input for the new row.
+        setTimeout(() => {
+            const inp = document.querySelector(`input[data-roster-id="${newEntry.id}"][data-roster-field="name"]`);
+            if (inp) { inp.focus(); inp.select(); }
+        }, 0);
+    }
+
+    // Add a non-post-assigned person to a shift's role list. Reads the name
+    // and role from the matching input fields, validates, and calls
+    // updateShiftRole to persist.
+    function addShiftRoleEntry(shiftId, nameInputId, roleSelectId) {
+        const nameInput = document.getElementById(nameInputId);
+        const roleSelect = document.getElementById(roleSelectId);
+        if (!nameInput || !roleSelect) return;
+        const name = (nameInput.value || '').trim();
+        const role = (roleSelect.value || '').trim();
+        if (!name) {
+            showToast(t('error.empty_name'));
+            nameInput.focus();
+            return;
+        }
+        if (!role) {
+            showToast(t('modal.schedule.shift_roles.role_required'));
+            roleSelect.focus();
+            return;
+        }
+        // If the typed name isn't on the roster yet, auto-add it (matches the
+        // post-assignment field's behavior). Roster needs the new entry so the
+        // datalist suggests it next time and so the person is findable.
+        ensureAttendants();
+        if (!project.attendants.roster.some(r => r.name === name)) {
+            saveState();
+            project.attendants.roster.push({ id: genId('att'), name, notes: '', phone: '', projectRole: '' });
+            project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        // Set the shift role (which itself triggers re-render).
+        updateShiftRole(shiftId, name, role);
+        // Clear inputs so the user can add another.
+        nameInput.value = '';
+        roleSelect.value = '';
+    }
+
+    // Set or clear a shift role for a given (shift, person). The map is sparse:
+    // entries with empty role string are deleted to keep the data clean.
+    function updateShiftRole(shiftId, personName, newRole) {
+        ensureAttendants();
+        const role = (newRole || '').trim();
+        if (!project.attendants.shiftRoles[shiftId]) project.attendants.shiftRoles[shiftId] = {};
+        const map = project.attendants.shiftRoles[shiftId];
+        if ((map[personName] || '') === role) return;  // no change
+        saveState();
+        if (role === '') {
+            delete map[personName];
+            // Clean up empty shift entries.
+            if (Object.keys(map).length === 0) delete project.attendants.shiftRoles[shiftId];
+        } else {
+            map[personName] = role;
+        }
+        triggerUpdate();
+        // Re-render but preserve which collapsible sections are open. Each
+        // collapse-body that's currently NOT collapsed gets its id recorded,
+        // and the re-render starts with everything collapsed (default), then
+        // we expand the ones that were open.
+        const openIds = Array.from(document.querySelectorAll('#schedule-viewer-body .collapse-body:not(.collapsed)'))
+            .map(el => el.id);
+        renderScheduleViewer();
+        openIds.forEach(id => {
+            const body = document.getElementById(id);
+            if (!body) return;
+            body.classList.remove('collapsed');
+            // Find the header (sibling above) so its chevron rotates correctly.
+            const header = document.querySelector(`[data-collapse-target="${id}"]`);
+            if (header) header.classList.remove('collapsed');
+        });
+    }
+
+    // Save an inline edit to the roster (name, notes, phone, projectRole).
+    // For name changes, the old name cascades into any current assignments AND
+    // any shift roles so neither is orphaned.
+    function updateRosterEntry(id, field, newValue) {
+        ensureAttendants();
+        const r = project.attendants.roster.find(x => x.id === id); if (!r) return;
+        const trimmed = (newValue || '').trim();
+        if (field === 'name') {
+            if (!trimmed) {
+                // Empty names get rejected: revert the input. Toast explains.
+                showToast(t('error.empty_name'));
+                updateUI();
+                return;
+            }
+            if (r.name === trimmed) return;  // no actual change
+            saveState();
+            const oldName = r.name;
+            r.name = trimmed;
+            // Cascade rename into post assignments AND shift roles, so a
+            // renamed person keeps their existing schedule and roles.
+            if (oldName) {
+                Object.keys(project.attendants.assignments).forEach(shiftId => {
+                    const m = project.attendants.assignments[shiftId];
+                    Object.keys(m).forEach(postId => {
+                        if (m[postId] === oldName) m[postId] = trimmed;
+                    });
+                });
+                Object.keys(project.attendants.shiftRoles).forEach(shiftId => {
+                    const m = project.attendants.shiftRoles[shiftId];
+                    if (m[oldName] !== undefined) {
+                        m[trimmed] = m[oldName];
+                        delete m[oldName];
+                    }
+                });
+            }
+            project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
+            triggerUpdate(); updateUI();
+            setTimeout(() => {
+                const inp = document.querySelector(`input[data-roster-id="${id}"][data-roster-field="notes"]`);
+                if (inp) inp.focus();
+            }, 0);
+        } else if (field === 'notes' || field === 'phone' || field === 'projectRole') {
+            if (r[field] === trimmed) return;
+            saveState();
+            r[field] = trimmed;
+            triggerUpdate(); updateUI();
+        }
+    }
+
+    // ─── Role list management ────────────────────────────────────────────────
+    // The role list is editable. Renames cascade into roster (project role) and
+    // shiftRoles maps. Removals clear the role from anywhere it was set.
+
+    function addAttendantRole() {
+        ensureAttendants();
+        const newName = (prompt(t('att.roles.add.prompt')) || '').trim();
+        if (!newName) return;
+        if (project.attendantRoles.includes(newName)) {
+            showToast(t('att.roles.duplicate'));
+            return;
+        }
+        saveState();
+        project.attendantRoles.push(newName);
         triggerUpdate(); updateUI();
     }
 
-    function editRosterEntry(id) {
+    function renameAttendantRole(index, newValue) {
         ensureAttendants();
-        const r = project.attendants.roster.find(x => x.id === id); if (!r) return;
-        const newName = prompt(t('att.roster.edit.name.prompt'), r.name); if (newName === null) return;
-        if (!newName.trim()) { showToast(t('error.empty_name')); return; }
-        const newNotes = prompt(t('att.roster.edit.notes.prompt'), r.notes); if (newNotes === null) return;
-        const oldName = r.name;
-        const trimmedNew = newName.trim();
-        saveState();
-        r.name = trimmedNew;
-        r.notes = (newNotes || '').trim();
-        // Cascade rename: update any current assignments using the old name
-        if (oldName !== trimmedNew) {
-            Object.keys(project.attendants.assignments).forEach(shiftId => {
-                const m = project.attendants.assignments[shiftId];
-                Object.keys(m).forEach(postId => {
-                    if (m[postId] === oldName) m[postId] = trimmedNew;
-                });
-            });
+        const newName = (newValue || '').trim();
+        const oldName = project.attendantRoles[index];
+        if (!newName) {
+            showToast(t('att.roles.empty'));
+            updateUI();
+            return;
         }
-        project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
+        if (oldName === newName) return;
+        if (project.attendantRoles.includes(newName)) {
+            showToast(t('att.roles.duplicate'));
+            updateUI();
+            return;
+        }
+        saveState();
+        project.attendantRoles[index] = newName;
+        // Cascade into roster project roles and shift roles.
+        project.attendants.roster.forEach(r => {
+            if (r.projectRole === oldName) r.projectRole = newName;
+        });
+        Object.keys(project.attendants.shiftRoles).forEach(shiftId => {
+            const m = project.attendants.shiftRoles[shiftId];
+            Object.keys(m).forEach(person => {
+                if (m[person] === oldName) m[person] = newName;
+            });
+        });
         triggerUpdate(); updateUI();
+    }
+
+    function deleteAttendantRole(index) {
+        ensureAttendants();
+        const role = project.attendantRoles[index];
+        // Count usage so we can warn the user.
+        let inUse = 0;
+        project.attendants.roster.forEach(r => { if (r.projectRole === role) inUse++; });
+        Object.values(project.attendants.shiftRoles).forEach(m => {
+            Object.values(m).forEach(v => { if (v === role) inUse++; });
+        });
+        const msg = inUse > 0
+            ? t('att.roles.confirm_delete.in_use', { name: role, n: inUse })
+            : t('att.roles.confirm_delete.unused', { name: role });
+        if (!confirm(msg)) return;
+        saveState();
+        // Remove from list AND clear any references.
+        project.attendantRoles.splice(index, 1);
+        project.attendants.roster.forEach(r => {
+            if (r.projectRole === role) r.projectRole = '';
+        });
+        Object.keys(project.attendants.shiftRoles).forEach(shiftId => {
+            const m = project.attendants.shiftRoles[shiftId];
+            Object.keys(m).forEach(person => {
+                if (m[person] === role) delete m[person];
+            });
+        });
+        triggerUpdate(); updateUI();
+    }
+
+    function buildRolesList() {
+        const el = document.getElementById('att-roles-list'); if (!el) return;
+        ensureAttendants();
+        el.innerHTML = '';
+        project.attendantRoles.forEach((role, i) => {
+            el.innerHTML += `<li class="list-item" style="align-items:center; gap:6px;">
+                <input type="text"
+                    class="text-input-dark"
+                    value="${escapeHTML(role)}"
+                    onchange="renameAttendantRole(${i}, this.value)"
+                    style="flex:1; min-width:0;">
+                <button class="icon-btn" onclick="deleteAttendantRole(${i})" title="${escapeHTML(t('att.roles.delete.title'))}">✕</button>
+            </li>`;
+        });
+        if (project.attendantRoles.length === 0) {
+            el.innerHTML = `<li style="color:#888; font-style:italic; padding:8px; text-align:center;">${escapeHTML(t('att.roles.empty_list'))}</li>`;
+        }
     }
 
     function deleteRosterEntry(id) {
@@ -3508,32 +4001,93 @@ const I18N_STRINGS = {
         triggerUpdate(); updateUI();
     }
 
-    function exportRosterCSV() {
+    // ─── Export options modal ───────────────────────────────────────────────────
+    // Shared open/close + filled with the relevant checkboxes per export type.
+
+    function hideExportOptionsModal() {
+        document.getElementById('export-options-modal').classList.remove('show');
+    }
+
+    // Opens the modal. `options` describes the checkboxes; `onConfirm` receives
+    // an object of { fieldName: true/false } based on the user's choices.
+    function openExportOptionsModal(options, onConfirm) {
+        const container = document.getElementById('export-options-checkboxes');
+        container.innerHTML = options.map(o => `
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                <input type="checkbox" data-field="${o.field}" ${o.default ? 'checked' : ''} style="width: auto; margin: 0;">
+                <span>${escapeHTML(o.label)}</span>
+            </label>
+        `).join('');
+        const confirmBtn = document.getElementById('export-options-confirm');
+        // Replace any previous handler by cloning the node (cleanest way to
+        // strip event listeners attached via addEventListener).
+        const newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        newBtn.addEventListener('click', () => {
+            const selections = {};
+            container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                selections[cb.dataset.field] = cb.checked;
+            });
+            hideExportOptionsModal();
+            onConfirm(selections);
+        });
+        document.getElementById('export-options-modal').classList.add('show');
+    }
+
+    function exportRoster() {
         ensureAttendants();
         if (project.attendants.roster.length === 0) { alert(t('att.roster.error.empty_export')); return; }
-        const header = ["name", "notes"];
+        if (typeof XLSX === 'undefined') {
+            showToast(t('project.export_excel.toast.unavailable'));
+            return;
+        }
+        // Ask which optional columns to include. Name is always included.
+        openExportOptionsModal([
+            { field: 'phone',        label: t('att.export.field.phone'),        default: true  },
+            { field: 'projectRole',  label: t('att.export.field.project_role'), default: true  },
+            { field: 'notes',        label: t('att.export.field.notes'),        default: false },
+        ], (sel) => doExportRoster(sel));
+    }
+
+    function doExportRoster(opts) {
+        // Build header row dynamically based on selected columns.
+        const header = ['name'];
+        if (opts.phone)       header.push('phone');
+        if (opts.projectRole) header.push('project_role');
+        if (opts.notes)       header.push('notes');
+
         const rows = [header];
-        project.attendants.roster.forEach(r => rows.push([r.name, r.notes || '']));
-        const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = (project.title || 'project') + '_roster.csv';
-        a.click();
+        project.attendants.roster.forEach(r => {
+            const row = [r.name];
+            if (opts.phone)       row.push(r.phone || '');
+            if (opts.projectRole) row.push(r.projectRole || '');
+            if (opts.notes)       row.push(r.notes || '');
+            rows.push(row);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        // Reasonable widths for any included column.
+        ws['!cols'] = header.map(h => ({ wch: h === 'notes' ? 40 : h === 'name' ? 28 : 22 }));
+        ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+        XLSX.utils.book_append_sheet(wb, ws, t('att.xlsx.sheet.roster'));
+
+        const safeName = (project.title || 'project').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim() || 'project';
+        XLSX.writeFile(wb, `${safeName}_roster.xlsx`);
         showToast(t('att.csv.toast.exported'));
     }
 
-    function importRosterCSV(input) {
+    function importRosterFile(input) {
         const file = input.files && input.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        readSpreadsheet(file, (rows) => {
             try {
-                const rows = parseCSV(e.target.result);
-                if (rows.length < 2) throw new Error("CSV is empty or has no data rows.");
-                const header = rows[0].map(h => h.trim().toLowerCase());
+                if (rows.length < 2) throw new Error("Spreadsheet is empty or has no data rows.");
+                const header = rows[0].map(h => String(h || '').trim().toLowerCase());
                 if (!header.includes('name')) throw new Error("Missing required column: name");
-                const nameIdx = header.indexOf('name');
-                const notesIdx = header.indexOf('notes');
+                const nameIdx        = header.indexOf('name');
+                const notesIdx       = header.indexOf('notes');
+                const phoneIdx       = header.indexOf('phone');
+                const projectRoleIdx = header.indexOf('project_role');
 
                 const mode = confirm(t('att.roster.confirm_import_mode'));
                 ensureAttendants();
@@ -3543,12 +4097,19 @@ const I18N_STRINGS = {
                 let added = 0, skipped = 0;
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i];
-                    const name = (r[nameIdx] || '').trim();
+                    const name = String(r[nameIdx] || '').trim();
                     if (!name) { skipped++; continue; }
                     // Skip if name already exists (merge mode)
                     if (project.attendants.roster.some(x => x.name === name)) { skipped++; continue; }
-                    const notes = (notesIdx >= 0 ? (r[notesIdx] || '') : '').trim();
-                    project.attendants.roster.push({ id: genId('att'), name, notes });
+                    const notes       = String(notesIdx       >= 0 ? (r[notesIdx]       || '') : '').trim();
+                    const phone       = String(phoneIdx       >= 0 ? (r[phoneIdx]       || '') : '').trim();
+                    const projectRole = String(projectRoleIdx >= 0 ? (r[projectRoleIdx] || '') : '').trim();
+                    // If the file specifies a project role we don't know about,
+                    // auto-add it to the role list rather than dropping it.
+                    if (projectRole && !project.attendantRoles.includes(projectRole)) {
+                        project.attendantRoles.push(projectRole);
+                    }
+                    project.attendants.roster.push({ id: genId('att'), name, notes, phone, projectRole });
                     added++;
                 }
                 project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
@@ -3557,13 +4118,17 @@ const I18N_STRINGS = {
             } catch (err) {
                 alert(t('att.roster.error.import', { message: err.message }));
             }
-        };
-        reader.readAsText(file);
+        }, (err) => {
+            alert(t('att.roster.error.import', { message: err.message }));
+        });
         input.value = '';
     }
 
     function buildRosterList() {
         ensureAttendants();
+
+        // Refresh the editable role list if its container exists in the DOM.
+        buildRolesList();
 
         // Build/refresh the global datalist used by post-assignment inputs
         let dl = document.getElementById('att-roster-datalist');
@@ -3589,61 +4154,483 @@ const I18N_STRINGS = {
             Object.values(project.attendants.assignments).forEach(m => {
                 Object.values(m).forEach(n => { if (n === r.name) assignmentCount++; });
             });
-            el.innerHTML += `<li class="list-item" style="flex-direction:column; align-items:stretch;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                    <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${escapeHTML(r.name)}</strong>${assignmentCount > 0 ? ` <span style="color:#888; font-size:0.8em;">(${escapeHTML(tn('att.roster.assignment', assignmentCount, { n: fmtNum(assignmentCount) }))})</span>` : ''}</span>
+            // Build role dropdown options. Empty option ("—") for "no role".
+            const roleOpts = `<option value="">${escapeHTML(t('att.roster.field.role.none'))}</option>` +
+                project.attendantRoles.map(role => `<option value="${escapeHTML(role)}" ${r.projectRole === role ? 'selected' : ''}>${escapeHTML(role)}</option>`).join('');
+            // Inline edit: every field is a control directly in the row.
+            // The data-* attributes let updateRosterEntry refocus the right
+            // field after a re-render.
+            el.innerHTML += `<li class="list-item" style="flex-direction:column; align-items:stretch; gap:4px;">
+                <!-- Row 1: name + role + reorder + delete -->
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <input type="text"
+                        class="text-input-dark"
+                        value="${escapeHTML(r.name)}"
+                        placeholder="${escapeHTML(t('att.roster.field.name.placeholder'))}"
+                        data-roster-id="${r.id}"
+                        data-roster-field="name"
+                        onchange="updateRosterEntry('${r.id}', 'name', this.value)"
+                        style="flex:1; min-width:0; font-weight:bold;">
+                    ${assignmentCount > 0 ? `<span style="color:#888; font-size:0.75em; flex-shrink:0;" title="${escapeHTML(tn('att.roster.assignment', assignmentCount, { n: fmtNum(assignmentCount) }))}">(${assignmentCount})</span>` : ''}
                     <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                         ${reorderArrowsHTML('moveRoster', i, rosterTotal)}
-                        <button class="icon-btn" onclick="editRosterEntry('${r.id}')" title="Edit">✎</button>
                         <button class="icon-btn" onclick="deleteRosterEntry('${r.id}')" title="Remove">✕</button>
                     </div>
                 </div>
-                ${r.notes ? `<div style="font-size:0.75em; color:#aaa; margin-top:2px; font-style:italic;">${escapeHTML(r.notes)}</div>` : ''}
+                <!-- Row 2: project role dropdown (full width) -->
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label style="font-size:0.7em; color:#aaa; flex-shrink:0; min-width:80px;">${escapeHTML(t('att.roster.field.role.label'))}</label>
+                    <select
+                        data-roster-id="${r.id}"
+                        data-roster-field="projectRole"
+                        onchange="updateRosterEntry('${r.id}', 'projectRole', this.value)"
+                        style="flex:1; min-width:0;">${roleOpts}</select>
+                </div>
+                <!-- Row 3: phone -->
+                <input type="text"
+                    class="text-input-dark"
+                    value="${escapeHTML(r.phone || '')}"
+                    placeholder="${escapeHTML(t('att.roster.field.phone.placeholder'))}"
+                    data-roster-id="${r.id}"
+                    data-roster-field="phone"
+                    onchange="updateRosterEntry('${r.id}', 'phone', this.value)"
+                    style="font-size:0.85em;">
+                <!-- Row 4: notes -->
+                <input type="text"
+                    class="text-input-dark"
+                    value="${escapeHTML(r.notes || '')}"
+                    placeholder="${escapeHTML(t('att.roster.field.notes.placeholder'))}"
+                    data-roster-id="${r.id}"
+                    data-roster-field="notes"
+                    onchange="updateRosterEntry('${r.id}', 'notes', this.value)"
+                    style="font-size:0.85em; color:#bbb;">
             </li>`;
         });
     }
 
     // ─── Attendant CSV import / export (existing) ─────────────────────────────
 
-    function importAttendantsCSV(input) {
+    function importAttendantsFile(input) {
         const file = input.files && input.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        readSpreadsheet(file, (rows) => {
             try {
-                const rows = parseCSV(e.target.result);
-                if (rows.length < 2) throw new Error("CSV is empty or has no data rows.");
-                const header = rows[0].map(h => h.trim().toLowerCase());
-                const required = ["shift_number", "post_number", "attendant_name"];
-                for (const r of required) {
-                    if (!header.includes(r)) throw new Error(`Missing required column: ${r}`);
-                }
-                const idx = (k) => header.indexOf(k);
                 ensureAttendants();
-                if (!confirm(t('att.csv.confirm_import', { n: rows.length - 1 }))) return;
-                saveState();
-                let updated = 0, skipped = 0;
-                for (let i = 1; i < rows.length; i++) {
-                    const r = rows[i];
-                    const shiftNum = (r[idx('shift_number')] || '').trim();
-                    const postNum  = (r[idx('post_number')]  || '').trim();
-                    const name     = (r[idx('attendant_name')] || '').trim();
-                    if (!shiftNum || !postNum) { skipped++; continue; }
-                    const shift = project.attendants.shifts.find(s => String(s.number) === shiftNum);
-                    const post  = project.attendants.posts.find(p => String(p.number) === postNum);
-                    if (!shift || !post) { skipped++; continue; }
-                    if (!project.attendants.assignments[shift.id]) project.attendants.assignments[shift.id] = {};
-                    if (name) project.attendants.assignments[shift.id][post.id] = name;
-                    else delete project.attendants.assignments[shift.id][post.id];
-                    updated++;
-                }
-                triggerUpdate(); updateUI();
-                showToast(t('att.csv.toast.import_result', { updated: updated, skipped: skipped }));
+                const diff = analyzeScheduleImport(rows);
+                showScheduleImportPreview(diff);
             } catch (err) {
                 alert(t('att.csv.error.import', { message: err.message }));
             }
-        };
-        reader.readAsText(file);
+        }, (err) => {
+            alert(t('att.csv.error.import', { message: err.message }));
+        });
         input.value = '';
+    }
+
+    // Phase 1: read the rows, compare against current project, return a diff
+    // describing every potential change. No mutations happen here.
+    function analyzeScheduleImport(rows) {
+        if (rows.length < 2) throw new Error("Spreadsheet is empty or has no data rows.");
+        const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+        const required = ["shift_number", "post_number", "attendant_name"];
+        for (const r of required) {
+            if (!header.includes(r)) throw new Error(`Missing required column: ${r}`);
+        }
+        const idx = (k) => header.indexOf(k);
+        const cols = {
+            shiftNum:     idx('shift_number'),
+            postNum:      idx('post_number'),
+            name:         idx('attendant_name'),
+            shiftRole:    idx('shift_role'),     // optional
+            projectRole:  idx('project_role'),   // optional
+            phone:        idx('phone'),          // optional
+            notes:        idx('notes'),          // optional
+        };
+
+        const diff = {
+            // Schedule (per-row) changes
+            assignmentAdds:    [],  // {shiftLabel, postLabel, name}
+            assignmentUpdates: [],  // {shiftLabel, postLabel, oldName, newName}
+            assignmentClears:  [],  // {shiftLabel, postLabel, oldName}
+            assignmentsUnchanged: 0,
+            skippedUnknown:    0,   // unknown shift or post
+
+            shiftRoleAdds:     [],  // {shiftLabel, name, role}
+            shiftRoleUpdates:  [],  // {shiftLabel, name, oldRole, newRole}
+            shiftRoleClears:   [],  // {shiftLabel, name, oldRole}
+
+            // Roster-side changes (aggregated by name — last-write-wins per file row)
+            newNames:          [],  // [names]
+            phoneUpdates:      [],  // {name, oldValue, newValue}
+            projectRoleUpdates:[],  // {name, oldValue, newValue}
+            notesUpdates:      [],  // {name, oldValue, newValue}
+
+            // Roles auto-added
+            newRoles:          [],
+
+            // Warnings — inconsistent values for same person across rows
+            inconsistencies:   [],  // {name, field, values: [v1, v2, ...]}
+
+            // Source rows for replay during apply (we pre-validate here)
+            applicableRows:    [],  // {shiftId, postId, name, shiftRole, file row index}
+        };
+
+        // Track per-name values seen in this file so we can detect inconsistency
+        // and apply last-write-wins.
+        const namesSeen = {};  // name -> { phone:[], projectRole:[], notes:[] }
+        const trackValue = (name, field, value) => {
+            if (!name) return;
+            if (!namesSeen[name]) namesSeen[name] = { phone: [], projectRole: [], notes: [] };
+            const arr = namesSeen[name][field];
+            if (!arr.includes(value)) arr.push(value);
+        };
+
+        for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            const shiftNum = String(r[cols.shiftNum] || '').trim();
+            const postNum  = String(r[cols.postNum]  || '').trim();
+            const name     = String(r[cols.name]     || '').trim();
+            if (!shiftNum || !postNum) { diff.skippedUnknown++; continue; }
+
+            const shift = project.attendants.shifts.find(s => String(s.number) === shiftNum);
+            const post  = project.attendants.posts.find(p => String(p.number) === postNum);
+            if (!shift || !post) { diff.skippedUnknown++; continue; }
+
+            // ── Assignment change ─────────────────────────────────────────
+            const currentAssign = (project.attendants.assignments[shift.id] || {})[post.id] || '';
+            const shiftLabel = `#${shift.number}${shift.description ? ' — ' + shift.description : ''}`;
+            const postLabel  = `#${post.number}${post.description ? ' — ' + post.description : ''}`;
+            if (name === '' && currentAssign !== '') {
+                diff.assignmentClears.push({ shiftLabel, postLabel, oldName: currentAssign });
+            } else if (name !== '' && currentAssign === '') {
+                diff.assignmentAdds.push({ shiftLabel, postLabel, name });
+            } else if (name !== '' && currentAssign !== '' && name !== currentAssign) {
+                diff.assignmentUpdates.push({ shiftLabel, postLabel, oldName: currentAssign, newName: name });
+            } else {
+                diff.assignmentsUnchanged++;
+            }
+
+            // ── Shift role change ─────────────────────────────────────────
+            if (cols.shiftRole >= 0 && name !== '') {
+                const newRole = String(r[cols.shiftRole] || '').trim();
+                const currentRole = (project.attendants.shiftRoles[shift.id] || {})[name] || '';
+                if (newRole === '' && currentRole !== '') {
+                    diff.shiftRoleClears.push({ shiftLabel, name, oldRole: currentRole });
+                } else if (newRole !== '' && currentRole === '') {
+                    diff.shiftRoleAdds.push({ shiftLabel, name, role: newRole });
+                } else if (newRole !== '' && currentRole !== '' && newRole !== currentRole) {
+                    diff.shiftRoleUpdates.push({ shiftLabel, name, oldRole: currentRole, newRole });
+                }
+                // Track unknown roles for auto-add
+                if (newRole && !project.attendantRoles.includes(newRole) && !diff.newRoles.includes(newRole)) {
+                    diff.newRoles.push(newRole);
+                }
+            }
+
+            // ── Roster-side fields (per name, last-write-wins across rows) ─
+            if (name !== '') {
+                if (cols.phone >= 0)       trackValue(name, 'phone',       String(r[cols.phone] || '').trim());
+                if (cols.projectRole >= 0) trackValue(name, 'projectRole', String(r[cols.projectRole] || '').trim());
+                if (cols.notes >= 0)       trackValue(name, 'notes',       String(r[cols.notes] || '').trim());
+            }
+
+            // Stash for apply phase (only validated rows make it here)
+            diff.applicableRows.push({
+                shiftId: shift.id,
+                postId: post.id,
+                name,
+                shiftRole: cols.shiftRole >= 0 ? String(r[cols.shiftRole] || '').trim() : null,
+                phone: cols.phone >= 0 ? String(r[cols.phone] || '').trim() : null,
+                projectRole: cols.projectRole >= 0 ? String(r[cols.projectRole] || '').trim() : null,
+                notes: cols.notes >= 0 ? String(r[cols.notes] || '').trim() : null,
+            });
+        }
+
+        // Build new names + roster updates from namesSeen
+        Object.keys(namesSeen).forEach(name => {
+            const seen = namesSeen[name];
+            const existing = project.attendants.roster.find(x => x.name === name);
+            if (!existing) {
+                diff.newNames.push(name);
+            }
+            // Inconsistency check — multiple distinct non-empty values
+            ['phone', 'projectRole', 'notes'].forEach(field => {
+                const distinctNonEmpty = seen[field].filter(v => v !== '');
+                const unique = [...new Set(distinctNonEmpty)];
+                if (unique.length > 1) {
+                    diff.inconsistencies.push({ name, field, values: unique });
+                }
+            });
+            // Compute the effective new value (last non-empty wins). If only
+            // empty values were seen, treat as no change request.
+            const effectiveValue = (field) => {
+                const vals = seen[field];
+                if (vals.length === 0) return null;
+                // Walk in reverse to find the last value (any, empty or not)
+                for (let i = vals.length - 1; i >= 0; i--) {
+                    return vals[i];
+                }
+                return null;
+            };
+            if (cols.phone >= 0) {
+                const effective = effectiveValue('phone');
+                if (effective !== null) {
+                    const current = existing ? (existing.phone || '') : '';
+                    if (effective !== current) diff.phoneUpdates.push({ name, oldValue: current, newValue: effective });
+                }
+            }
+            if (cols.projectRole >= 0) {
+                const effective = effectiveValue('projectRole');
+                if (effective !== null) {
+                    const current = existing ? (existing.projectRole || '') : '';
+                    if (effective !== current) {
+                        diff.projectRoleUpdates.push({ name, oldValue: current, newValue: effective });
+                        // Auto-add roles seen here too
+                        if (effective && !project.attendantRoles.includes(effective) && !diff.newRoles.includes(effective)) {
+                            diff.newRoles.push(effective);
+                        }
+                    }
+                }
+            }
+            if (cols.notes >= 0) {
+                const effective = effectiveValue('notes');
+                if (effective !== null) {
+                    const current = existing ? (existing.notes || '') : '';
+                    if (effective !== current) diff.notesUpdates.push({ name, oldValue: current, newValue: effective });
+                }
+            }
+        });
+
+        return diff;
+    }
+
+    // The current import preview state. Holds the diff while the modal is
+    // open; the Apply button reads checkbox states from the DOM at click time.
+    let _scheduleImportDiff = null;
+
+    function hideScheduleImportPreview() {
+        document.getElementById('schedule-import-preview-modal').classList.remove('show');
+        _scheduleImportDiff = null;
+    }
+
+    function showScheduleImportPreview(diff) {
+        _scheduleImportDiff = diff;
+        const warnings = document.getElementById('schedule-import-preview-warnings');
+        const groups = document.getElementById('schedule-import-preview-groups');
+        warnings.innerHTML = '';
+        groups.innerHTML = '';
+
+        // ── Warnings panel ─────────────────────────────────────────────────
+        if (diff.inconsistencies.length > 0) {
+            const w = document.createElement('div');
+            w.style.cssText = 'background:#3a2a1a; border-left:4px solid #e67e22; padding:8px 12px; margin-bottom:12px; font-size:0.9em;';
+            const summary = t('modal.schedule.import.preview.warning_inconsistent', { n: diff.inconsistencies.length });
+            const list = diff.inconsistencies.map(inc => {
+                const fieldLabel = t('att.export.field.' + (inc.field === 'projectRole' ? 'project_role' : inc.field));
+                return `<li><strong>${escapeHTML(inc.name)}</strong> — ${escapeHTML(fieldLabel)}: ${inc.values.map(v => '"' + escapeHTML(v) + '"').join(', ')}</li>`;
+            }).join('');
+            w.innerHTML = `<div style="font-weight:bold; color:#f1c40f; margin-bottom:4px;">⚠️ ${escapeHTML(summary)}</div><ul style="margin:4px 0 0 18px; padding:0; color:#ddd;">${list}</ul>`;
+            warnings.appendChild(w);
+        }
+
+        // ── Build groups ───────────────────────────────────────────────────
+        // Each group: checkbox + label + (optional) details expander.
+        // groupKey is read by applyScheduleImport().
+        const addGroup = (key, label, count, defaultChecked, detailsHTML) => {
+            if (count === 0) return;
+            const id = `import-grp-${key}`;
+            const detailsId = `import-grp-details-${key}`;
+            const container = document.createElement('div');
+            container.style.cssText = 'background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:10px 12px; margin-bottom:8px;';
+            container.innerHTML = `
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:normal;">
+                    <input type="checkbox" data-import-group="${key}" ${defaultChecked ? 'checked' : ''} style="width:auto; margin:0;">
+                    <span style="flex:1;">${escapeHTML(label)}</span>
+                    ${detailsHTML ? `<button type="button" class="secondary" style="padding:2px 8px; font-size:0.85em;" onclick="event.preventDefault(); const el=document.getElementById('${detailsId}'); el.style.display = (el.style.display==='block'?'none':'block');">${escapeHTML(t('modal.schedule.import.preview.details'))}</button>` : ''}
+                </label>
+                ${detailsHTML ? `<div id="${detailsId}" style="display:none; margin-top:8px; padding:8px; background:#1e1e1e; border-radius:3px; font-size:0.85em; max-height:200px; overflow-y:auto; color:#ddd;">${detailsHTML}</div>` : ''}
+            `;
+            groups.appendChild(container);
+        };
+
+        // Schedule groups
+        if (diff.assignmentAdds.length > 0) {
+            const details = diff.assignmentAdds.map(a => `<div>${escapeHTML(a.shiftLabel)} / ${escapeHTML(a.postLabel)} ← <strong>${escapeHTML(a.name)}</strong></div>`).join('');
+            addGroup('assignmentAdds', t('modal.schedule.import.preview.group.assignment_adds', { n: diff.assignmentAdds.length }), diff.assignmentAdds.length, true, details);
+        }
+        if (diff.assignmentUpdates.length > 0) {
+            const details = diff.assignmentUpdates.map(a => `<div>${escapeHTML(a.shiftLabel)} / ${escapeHTML(a.postLabel)}: <em style="color:#888;">${escapeHTML(a.oldName)}</em> → <strong>${escapeHTML(a.newName)}</strong></div>`).join('');
+            addGroup('assignmentUpdates', t('modal.schedule.import.preview.group.assignment_updates', { n: diff.assignmentUpdates.length }), diff.assignmentUpdates.length, true, details);
+        }
+        if (diff.assignmentClears.length > 0) {
+            const details = diff.assignmentClears.map(a => `<div>${escapeHTML(a.shiftLabel)} / ${escapeHTML(a.postLabel)}: <em style="color:#888;">${escapeHTML(a.oldName)}</em> → <em>${escapeHTML(t('modal.schedule.unassigned_text'))}</em></div>`).join('');
+            addGroup('assignmentClears', t('modal.schedule.import.preview.group.assignment_clears', { n: diff.assignmentClears.length }), diff.assignmentClears.length, false, details);
+        }
+        if (diff.shiftRoleAdds.length > 0 || diff.shiftRoleUpdates.length > 0 || diff.shiftRoleClears.length > 0) {
+            const allChanges = [
+                ...diff.shiftRoleAdds.map(s => `<div>${escapeHTML(s.shiftLabel)} / ${escapeHTML(s.name)} ← <strong>${escapeHTML(s.role)}</strong></div>`),
+                ...diff.shiftRoleUpdates.map(s => `<div>${escapeHTML(s.shiftLabel)} / ${escapeHTML(s.name)}: <em style="color:#888;">${escapeHTML(s.oldRole)}</em> → <strong>${escapeHTML(s.newRole)}</strong></div>`),
+                ...diff.shiftRoleClears.map(s => `<div>${escapeHTML(s.shiftLabel)} / ${escapeHTML(s.name)}: <em style="color:#888;">${escapeHTML(s.oldRole)}</em> → <em>(${escapeHTML(t('att.roster.field.role.none'))})</em></div>`),
+            ];
+            const total = diff.shiftRoleAdds.length + diff.shiftRoleUpdates.length + diff.shiftRoleClears.length;
+            addGroup('shiftRoles', t('modal.schedule.import.preview.group.shift_roles', { n: total }), total, true, allChanges.join(''));
+        }
+
+        // Roster groups
+        if (diff.newNames.length > 0) {
+            const details = diff.newNames.map(n => `<div>+ <strong>${escapeHTML(n)}</strong></div>`).join('');
+            addGroup('newNames', t('modal.schedule.import.preview.group.new_names', { n: diff.newNames.length }), diff.newNames.length, true, details);
+        }
+        if (diff.phoneUpdates.length > 0) {
+            const details = diff.phoneUpdates.map(u => `<div><strong>${escapeHTML(u.name)}</strong>: <em style="color:#888;">${escapeHTML(u.oldValue) || '(empty)'}</em> → <strong>${escapeHTML(u.newValue) || '(empty)'}</strong></div>`).join('');
+            addGroup('phoneUpdates', t('modal.schedule.import.preview.group.phone_updates', { n: diff.phoneUpdates.length }), diff.phoneUpdates.length, false, details);
+        }
+        if (diff.projectRoleUpdates.length > 0) {
+            const details = diff.projectRoleUpdates.map(u => `<div><strong>${escapeHTML(u.name)}</strong>: <em style="color:#888;">${escapeHTML(u.oldValue) || '(empty)'}</em> → <strong>${escapeHTML(u.newValue) || '(empty)'}</strong></div>`).join('');
+            addGroup('projectRoleUpdates', t('modal.schedule.import.preview.group.project_role_updates', { n: diff.projectRoleUpdates.length }), diff.projectRoleUpdates.length, false, details);
+        }
+        if (diff.notesUpdates.length > 0) {
+            const details = diff.notesUpdates.map(u => `<div><strong>${escapeHTML(u.name)}</strong>: <em style="color:#888;">${escapeHTML(u.oldValue) || '(empty)'}</em> → <strong>${escapeHTML(u.newValue) || '(empty)'}</strong></div>`).join('');
+            addGroup('notesUpdates', t('modal.schedule.import.preview.group.notes_updates', { n: diff.notesUpdates.length }), diff.notesUpdates.length, false, details);
+        }
+
+        // Summary line at the top if we have skipped/unchanged
+        if (diff.skippedUnknown > 0 || diff.assignmentsUnchanged > 0) {
+            const summaryDiv = document.createElement('div');
+            summaryDiv.style.cssText = 'font-size:0.85em; color:#888; margin-bottom:12px;';
+            const parts = [];
+            if (diff.assignmentsUnchanged > 0) parts.push(t('modal.schedule.import.preview.summary.unchanged', { n: diff.assignmentsUnchanged }));
+            if (diff.skippedUnknown > 0) parts.push(t('modal.schedule.import.preview.summary.skipped', { n: diff.skippedUnknown }));
+            summaryDiv.innerText = parts.join(' · ');
+            groups.insertBefore(summaryDiv, groups.firstChild);
+        }
+
+        // Nothing to apply?
+        const totalChanges = diff.assignmentAdds.length + diff.assignmentUpdates.length + diff.assignmentClears.length +
+            diff.shiftRoleAdds.length + diff.shiftRoleUpdates.length + diff.shiftRoleClears.length +
+            diff.newNames.length + diff.phoneUpdates.length + diff.projectRoleUpdates.length + diff.notesUpdates.length;
+        if (totalChanges === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'text-align:center; padding:24px; color:#888; font-style:italic;';
+            empty.innerText = t('modal.schedule.import.preview.nothing');
+            groups.appendChild(empty);
+        }
+
+        // Wire up the Apply button (replace prior handler via cloneNode)
+        const applyBtn = document.getElementById('schedule-import-preview-apply');
+        const newBtn = applyBtn.cloneNode(true);
+        applyBtn.parentNode.replaceChild(newBtn, applyBtn);
+        newBtn.addEventListener('click', () => applyScheduleImport());
+        if (totalChanges === 0) newBtn.disabled = true;
+
+        document.getElementById('schedule-import-preview-modal').classList.add('show');
+    }
+
+    // Phase 2: read which groups the user kept checked, and apply ONLY those.
+    function applyScheduleImport() {
+        const diff = _scheduleImportDiff;
+        if (!diff) return;
+        const isChecked = (key) => {
+            const cb = document.querySelector(`input[data-import-group="${key}"]`);
+            return cb && cb.checked;
+        };
+        saveState();
+
+        // Build a quick lookup so we know which kinds of changes the user accepted.
+        const accept = {
+            assignmentAdds:     isChecked('assignmentAdds'),
+            assignmentUpdates:  isChecked('assignmentUpdates'),
+            assignmentClears:   isChecked('assignmentClears'),
+            shiftRoles:         isChecked('shiftRoles'),
+            newNames:           isChecked('newNames'),
+            phoneUpdates:       isChecked('phoneUpdates'),
+            projectRoleUpdates: isChecked('projectRoleUpdates'),
+            notesUpdates:       isChecked('notesUpdates'),
+        };
+
+        // Auto-add roles only if the relevant groups (shift roles or project
+        // role updates) were accepted — no orphan additions otherwise.
+        if (accept.shiftRoles || accept.projectRoleUpdates) {
+            diff.newRoles.forEach(role => {
+                if (!project.attendantRoles.includes(role)) project.attendantRoles.push(role);
+            });
+        }
+
+        // Build sets of accepted assignment changes so the per-row apply loop
+        // can decide what to touch. Use the original triple shiftId+postId+name
+        // as the lookup key.
+        const acceptedAssignmentKeys = new Set();
+        if (accept.assignmentAdds) diff.assignmentAdds.forEach(a => acceptedAssignmentKeys.add(`${a.shiftLabel}|${a.postLabel}|ADD`));
+        if (accept.assignmentUpdates) diff.assignmentUpdates.forEach(a => acceptedAssignmentKeys.add(`${a.shiftLabel}|${a.postLabel}|UPDATE`));
+        if (accept.assignmentClears) diff.assignmentClears.forEach(a => acceptedAssignmentKeys.add(`${a.shiftLabel}|${a.postLabel}|CLEAR`));
+
+        // Apply assignment changes by re-walking the applicableRows and
+        // categorizing each row the same way analyze did.
+        diff.applicableRows.forEach(row => {
+            const shift = project.attendants.shifts.find(s => s.id === row.shiftId);
+            const post = project.attendants.posts.find(p => p.id === row.postId);
+            if (!shift || !post) return;
+            const shiftLabel = `#${shift.number}${shift.description ? ' — ' + shift.description : ''}`;
+            const postLabel  = `#${post.number}${post.description ? ' — ' + post.description : ''}`;
+            const currentAssign = (project.attendants.assignments[shift.id] || {})[post.id] || '';
+            const newName = row.name;
+
+            // Determine category and apply if accepted
+            let category = null;
+            if (newName === '' && currentAssign !== '') category = 'CLEAR';
+            else if (newName !== '' && currentAssign === '') category = 'ADD';
+            else if (newName !== '' && currentAssign !== '' && newName !== currentAssign) category = 'UPDATE';
+
+            if (category && acceptedAssignmentKeys.has(`${shiftLabel}|${postLabel}|${category}`)) {
+                if (!project.attendants.assignments[shift.id]) project.attendants.assignments[shift.id] = {};
+                if (category === 'CLEAR') {
+                    delete project.attendants.assignments[shift.id][post.id];
+                } else {
+                    project.attendants.assignments[shift.id][post.id] = newName;
+                }
+            }
+
+            // Shift roles (one group toggle covers all 3 sub-categories)
+            if (accept.shiftRoles && row.shiftRole !== null && newName !== '') {
+                if (!project.attendants.shiftRoles[shift.id]) project.attendants.shiftRoles[shift.id] = {};
+                if (row.shiftRole === '') {
+                    delete project.attendants.shiftRoles[shift.id][newName];
+                    if (Object.keys(project.attendants.shiftRoles[shift.id]).length === 0) {
+                        delete project.attendants.shiftRoles[shift.id];
+                    }
+                } else {
+                    project.attendants.shiftRoles[shift.id][newName] = row.shiftRole;
+                }
+            }
+        });
+
+        // New names — add them as fresh roster entries.
+        if (accept.newNames) {
+            diff.newNames.forEach(name => {
+                if (!project.attendants.roster.some(r => r.name === name)) {
+                    project.attendants.roster.push({ id: genId('att'), name, notes: '', phone: '', projectRole: '' });
+                }
+            });
+        }
+
+        // Roster field updates — apply to existing entries (or newly-added ones).
+        const updateField = (updates, field) => {
+            updates.forEach(u => {
+                const entry = project.attendants.roster.find(r => r.name === u.name);
+                if (entry) entry[field] = u.newValue;
+            });
+        };
+        if (accept.phoneUpdates)       updateField(diff.phoneUpdates, 'phone');
+        if (accept.projectRoleUpdates) updateField(diff.projectRoleUpdates, 'projectRole');
+        if (accept.notesUpdates)       updateField(diff.notesUpdates, 'notes');
+
+        // Sort if anything roster-side changed
+        if (accept.newNames || accept.phoneUpdates || accept.projectRoleUpdates || accept.notesUpdates) {
+            project.attendants.roster.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        triggerUpdate(); updateUI();
+        hideScheduleImportPreview();
+        showToast(t('att.csv.toast.import_applied'));
     }
 
     // ─── Schedule viewer modal ───────────────────────────────────────────────────
@@ -3676,10 +4663,18 @@ const I18N_STRINGS = {
             status:  document.getElementById('schedule-viewer-status-filter').value || 'all',
             search:  document.getElementById('schedule-viewer-search').value || ''
         };
-        // Hide the modal before invoking print so the print preview isn't behind a dimmed overlay
-        hideScheduleViewer();
-        // Wait one frame for the modal to actually disappear, then print with filters applied
-        requestAnimationFrame(() => printReport('schedule', filters));
+        // Open print options dialog. The user picks what to include; on Apply,
+        // we hide the viewer modal and trigger the print with both filters and
+        // the chosen options.
+        openExportOptionsModal([
+            { field: 'projectRoles', label: t('modal.schedule.print.options.project_roles'), default: true  },
+            { field: 'shiftRoles',   label: t('modal.schedule.print.options.shift_roles'),   default: true  },
+            { field: 'phone',        label: t('modal.schedule.print.options.phone'),         default: false },
+            { field: 'unassigned',   label: t('modal.schedule.print.options.unassigned'),    default: true  },
+        ], (sel) => {
+            hideScheduleViewer();
+            requestAnimationFrame(() => printReport('schedule', filters, sel));
+        });
     }
 
     function renderScheduleViewer() {
@@ -3741,6 +4736,85 @@ const I18N_STRINGS = {
                 </div>
             `;
 
+            // Shift roles section: lists every unique person serving this shift,
+            // both post-assigned and role-only (additional personnel). Each gets
+            // a role dropdown. An "Additional Personnel" input lets the user
+            // add anyone (from the roster datalist or freely typed) with a role,
+            // for people overseeing without a specific post assignment.
+            const postAssignedNames = new Set(
+                postsForShift
+                    .map(p => assignmentMap[p.id])
+                    .filter(n => n && n.trim() !== '')
+            );
+            const shiftRoleMap = project.attendants.shiftRoles[shift.id] || {};
+            // Union: post-assignees + anyone in shiftRoles for this shift.
+            const allShiftNames = new Set([...postAssignedNames, ...Object.keys(shiftRoleMap)]);
+            const uniqueNames = [...allShiftNames].sort((a, b) => a.localeCompare(b));
+
+            // Always show the panel (even when empty), so the user can ALWAYS
+            // add additional personnel. Collapsed by default.
+            const roleCount = uniqueNames.filter(n => (shiftRoleMap[n] || '') !== '').length;
+            const sectionId = `shift-roles-${shift.id}`;
+            let rolesHTML = `
+                <div class="collapse-header collapsed" data-collapse-target="${sectionId}" onclick="toggleCollapse(this)" style="margin: 8px 0;">
+                    <span class="title">${escapeHTML(t('modal.schedule.shift_roles.title'))} <span class="badge" style="margin-left:6px;">${roleCount}/${uniqueNames.length}</span></span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div id="${sectionId}" class="collapse-body collapsed" style="padding: 0 10px 10px;">
+                    <p style="font-size:0.8em; color:#aaa; margin: 4px 0 8px;">${escapeHTML(t('modal.schedule.shift_roles.help'))}</p>
+            `;
+            if (uniqueNames.length > 0) {
+                rolesHTML += `<div style="display:grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; align-items:center;">`;
+                uniqueNames.forEach(name => {
+                    const currentRole = shiftRoleMap[name] || '';
+                    const opts = `<option value="">${escapeHTML(t('att.roster.field.role.none'))}</option>` +
+                        project.attendantRoles.map(role =>
+                            `<option value="${escapeHTML(role)}" ${currentRole === role ? 'selected' : ''}>${escapeHTML(role)}</option>`
+                        ).join('');
+                    // Mark "no post" with a small tag if they're in shiftRoles but
+                    // not in any post for this shift. Lets the user spot extras.
+                    const isPostAssigned = postAssignedNames.has(name);
+                    const noPostTag = !isPostAssigned
+                        ? ` <span style="color:#aaa; font-size:0.75em; font-style:italic;">(${escapeHTML(t('modal.schedule.shift_roles.no_post'))})</span>`
+                        : '';
+                    // For people without a post assignment, offer a remove (✕)
+                    // button. (Post-assigned people stay in the list automatically.)
+                    const removeBtn = !isPostAssigned
+                        ? `<button class="icon-btn" onclick="updateShiftRole('${shift.id}', ${JSON.stringify(name).replace(/"/g, '&quot;')}, '')" title="${escapeHTML(t('modal.schedule.shift_roles.remove'))}">✕</button>`
+                        : '<span></span>';
+                    rolesHTML += `
+                        <span style="font-size:0.9em; ${currentRole ? 'font-weight:bold;' : ''}">${escapeHTML(name)}${noPostTag}</span>
+                        <select onchange="updateShiftRole('${shift.id}', ${JSON.stringify(name).replace(/"/g, '&quot;')}, this.value)" style="min-width:120px;">${opts}</select>
+                        ${removeBtn}
+                    `;
+                });
+                rolesHTML += `</div>`;
+            }
+            // "Additional Personnel" input: typeable name (with roster
+            // suggestions via the global datalist) + role dropdown + Add button.
+            const addInputId = `add-shift-role-name-${shift.id}`;
+            const addRoleId = `add-shift-role-role-${shift.id}`;
+            rolesHTML += `
+                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #444;">
+                    <div style="font-size: 0.8em; color: #aaa; font-weight: bold; margin-bottom: 6px;">${escapeHTML(t('modal.schedule.shift_roles.additional'))}</div>
+                    <!-- Three-column grid: name (flexes), role (fixed width
+                         capped at 140px so long role names don't blow it up),
+                         Add button (auto). Prevents the dropdown from
+                         dominating the row regardless of option lengths. -->
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 140px auto; gap: 6px; align-items: center;">
+                        <input type="text" id="${addInputId}" class="text-input-dark" list="att-roster-datalist" placeholder="${escapeHTML(t('modal.schedule.shift_roles.add.name.placeholder'))}" style="min-width: 0;">
+                        <select id="${addRoleId}" style="width: 100%; min-width: 0;">
+                            <option value="">${escapeHTML(t('att.roster.field.role.none'))}</option>
+                            ${project.attendantRoles.map(role => `<option value="${escapeHTML(role)}">${escapeHTML(role)}</option>`).join('')}
+                        </select>
+                        <button onclick="addShiftRoleEntry('${shift.id}', '${addInputId}', '${addRoleId}')"
+                            style="background:#27ae60; color:white; border:none; padding:6px 12px; border-radius:3px; cursor:pointer; white-space: nowrap;">+ ${escapeHTML(t('modal.schedule.shift_roles.add.button'))}</button>
+                    </div>
+                </div>
+            `;
+            rolesHTML += `</div>`;
+            block.innerHTML += rolesHTML;
+
             if (filteredPosts.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'schedule-empty-shift';
@@ -3750,6 +4824,7 @@ const I18N_STRINGS = {
                 block.appendChild(empty);
             } else {
                 let rowsHTML = '';
+                const shiftRoleMap = project.attendants.shiftRoles[shift.id] || {};
                 filteredPosts.forEach(p => {
                     const at = getAttendantTypeFor(p);
                     const name = assignmentMap[p.id] || '';
@@ -3758,8 +4833,12 @@ const I18N_STRINGS = {
                     const scopeBadge = p.scope === 'shift'
                         ? `<span class="scope-badge shift-only">${escapeHTML(t('print.schedule.shift_only_badge'))}</span>`
                         : '';
+                    const shiftRole = name ? (shiftRoleMap[name] || '') : '';
+                    const roleTag = shiftRole
+                        ? ` <span style="color:#aaa; font-size:0.85em; font-style:italic;">— ${escapeHTML(shiftRole)}</span>`
+                        : '';
                     const nameCell = name
-                        ? `<span class="name-assigned">${escapeHTML(name)}</span>`
+                        ? `<span class="name-assigned">${escapeHTML(name)}</span>${roleTag}`
                         : `<span class="name-unassigned">${escapeHTML(t('modal.schedule.unassigned_text'))}</span>`;
                     rowsHTML += `<tr>
                         <td class="post-cell"><span class="post-dot" style="background:${escapeHTML(at.dotColor)};">${escapeHTML(p.number || '')}</span></td>
@@ -3859,7 +4938,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "1.7.0";
+    const APP_VERSION = "1.8.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -4047,101 +5126,225 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2026-05-17b";
+    const ANNOUNCEMENT_VERSION = "2026-05-17c";
 
-    const ANNOUNCEMENT_EN = `
-        <h3 style="margin-top:0;">📣 What's New in 1.7</h3>
-        <p style="font-size: 0.85em; color: #aaa; margin-top: -6px;">A combined summary of recent updates.</p>
+    // ─── Changelog ─────────────────────────────────────────────────────────────
+    // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
+    // The popup shows only CHANGELOG[0] (the latest); the Tutorials > Latest
+    // Announcement view renders the full list, with the latest expanded and
+    // older ones collapsed. Adding a new release: prepend a new entry.
+    const CHANGELOG = [
+        {
+            version: "1.8",
+            en: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">🎖️ Attendant Roles</h4>
 
-        <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Drawing &amp; editing</h4>
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Project &amp; Shift Roles</p>
+                <p style="font-size: 0.9em;">Track who's serving as <strong>Keyman, Captain, Assistant, Overseer</strong>, or any custom role you want. <strong>Project roles</strong> stick with the person for the whole convention (set in the Roster). <strong>Shift roles</strong> change shift to shift (set in the Schedule Viewer). Edit the list of available roles in the Roster modal under "Manage Role Options."</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edit text directly on the canvas</p>
-        <p style="font-size: 0.9em;">Place or edit text annotations right where they live. <strong>Double-click</strong> any text to edit in place. Press <strong>Enter</strong> for a new line, click anywhere outside (or press <strong>Esc</strong>) to commit. Cleared text deletes the annotation.</p>
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Additional personnel without a post</p>
+                <p style="font-size: 0.9em;">Some overseers monitor a shift without being assigned to a specific post. The Shift Roles section now has an "Add additional personnel" input where you can name anyone and give them a role for that shift.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Meters joins Feet and Millimeters</p>
-        <p style="font-size: 0.9em;">A third unit option is now available — <strong>Meters (m)</strong>. Switch any time from the <strong>Project</strong> tab. Both <code>.</code> and <code>,</code> work as decimal separators when typing values.</p>
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Phone numbers on the roster</p>
+                <p style="font-size: 0.9em;">Each roster entry now has a phone field. Optionally included in exports and the schedule print when you need contact info handy.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">What You See Is What You Print</p>
-        <p style="font-size: 0.9em;">Line thickness, dimension labels, polymeasure labels, arrowheads, <strong>plus seat-area names, seat counts, and screen labels</strong> now all render in real-world units. <strong>At 100% zoom, what you see matches exactly what you'll print.</strong> Zoom becomes a pure magnifier.</p>
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🖨️ Better Schedule Print</h4>
 
-        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Visual control</h4>
+                <p style="font-size: 0.9em;">The shift schedule print is now organized for clarity:</p>
+                <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+                    <li><strong>Page 1:</strong> Project Roles header — who's in long-term roles</li>
+                    <li><strong>Each shift starts on its own page</strong> with a Shift Roles section above the post assignments</li>
+                    <li><strong>Totals appear once</strong> at the end, not on every page</li>
+                    <li>New <strong>Print Options dialog</strong> lets you choose what to include: project roles, shift roles, phone numbers, unassigned posts</li>
+                </ul>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Per-instance label sizes for everything</p>
-        <p style="font-size: 0.9em;">Each dimension, polymeasure, seat area (name + seat count), and screen has its own <strong>Text Size</strong> control. Make labels bigger for visibility or smaller for tight diagrams — all on the same page.</p>
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">👁️ Import Preview</h4>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Arrowheads on lines and polymeasures</p>
-        <p style="font-size: 0.9em;">Add filled-triangle arrowheads to either end of any line or polymeasure. Useful for pointing out features on plans.</p>
+                <p style="font-size: 0.9em;">Importing a schedule file now opens a <strong>preview dialog</strong> showing every change before applying. Each group of changes (new assignments, name changes, phone updates, etc.) has its own checkbox and a "Details" expander so you can verify exactly what would change. Uncheck any group you don't want, click Apply.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Finer layer control</p>
-        <p style="font-size: 0.9em;">The Layers panel splits annotations into <strong>Lines</strong>, <strong>Dimensions</strong>, <strong>Text Labels</strong>, and <strong>Polymeasures</strong> — each with its own toggle.</p>
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Polish: the Roster modal stays within the viewport with the names list scrolling separately. Names typed during a schedule import now auto-add to the roster. Smaller, greener Add Role button.</p>
+            `,
+            es: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">🎖️ Roles de Acomodadores</h4>
 
-        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">📊 Output &amp; data</h4>
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Roles del Proyecto y del Turno</p>
+                <p style="font-size: 0.9em;">Lleva el seguimiento de quién sirve como <strong>Hombre Clave, Capitán, Ayudante, Superintendente</strong>, o cualquier rol personalizado que quieras. Los <strong>roles del proyecto</strong> acompañan a la persona durante toda la asamblea (se establecen en la Lista). Los <strong>roles del turno</strong> cambian de turno a turno (se establecen en el Visor de Horario). Edita la lista de roles disponibles en la ventana de Lista bajo "Gestionar Opciones de Rol."</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Export to Excel</p>
-        <p style="font-size: 0.9em;">Download chair counts and key-item data as a two-sheet <strong>.xlsx file</strong>. One row per area or item — perfect for pivot tables or reporting. Find it on the <strong>Project</strong> tab under <strong>📊 Export to Excel</strong>.</p>
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Personal adicional sin puesto</p>
+                <p style="font-size: 0.9em;">Algunos superintendentes supervisan un turno sin estar asignados a un puesto específico. La sección de Roles del Turno tiene ahora un campo "Añadir personal adicional" donde puedes nombrar a cualquier persona y darle un rol para ese turno.</p>
 
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Cleaner Chair Summary print</p>
-        <p style="font-size: 0.9em;">The Summary print is now called <strong>Chair Summary</strong> and is laid out for easier reading:</p>
-        <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
-            <li>Each area starts on its own printed page</li>
-            <li>Every page shows the area total of all chairs</li>
-            <li>All grand totals appear together on a dedicated final page</li>
-        </ul>
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Key items now live exclusively in the Key Items Report.</p>
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Números de teléfono en la lista</p>
+                <p style="font-size: 0.9em;">Cada entrada de la lista tiene ahora un campo de teléfono. Se puede incluir opcionalmente en exportaciones y en la impresión del horario cuando necesites tener la información de contacto a mano.</p>
 
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Polish: post editing opens a proper modal, the announcement dialog scrolls correctly, and a long list of translation, layout, and color-picker fixes shipped along the way.</p>
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🖨️ Mejor Impresión del Horario</h4>
 
+                <p style="font-size: 0.9em;">La impresión del horario de turnos está ahora organizada para mayor claridad:</p>
+                <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+                    <li><strong>Página 1:</strong> Cabecera de Roles del Proyecto — quién está en roles a largo plazo</li>
+                    <li><strong>Cada turno empieza en su propia página</strong> con una sección de Roles del Turno arriba de las asignaciones de puestos</li>
+                    <li><strong>Los totales aparecen una sola vez</strong> al final, no en cada página</li>
+                    <li>Nuevo <strong>Diálogo de Opciones de Impresión</strong> para elegir qué incluir: roles del proyecto, roles del turno, teléfonos, puestos sin asignar</li>
+                </ul>
+
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">👁️ Vista Previa de Importación</h4>
+
+                <p style="font-size: 0.9em;">Importar un archivo de horario ahora abre un <strong>diálogo de vista previa</strong> mostrando cada cambio antes de aplicar. Cada grupo de cambios (asignaciones nuevas, cambios de nombre, actualizaciones de teléfono, etc.) tiene su propia casilla y un expansor "Detalles" para que puedas verificar exactamente qué cambiaría. Desmarca cualquier grupo que no quieras y pulsa Aplicar.</p>
+
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Pulido: la ventana de Lista se mantiene dentro de la pantalla con la lista de nombres desplazándose por separado. Los nombres escritos durante una importación de horario ahora se añaden automáticamente a la lista. Botón Añadir Rol más pequeño y verde.</p>
+            `
+        },
+        {
+            version: "1.7",
+            en: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📊 Output &amp; data</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Export to Excel</p>
+                <p style="font-size: 0.9em;">Download chair counts and key-item data as a two-sheet <strong>.xlsx file</strong>. One row per area or item — perfect for pivot tables or reporting. Find it on the <strong>Project</strong> tab under <strong>📊 Export to Excel</strong>.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Cleaner Chair Summary print</p>
+                <p style="font-size: 0.9em;">The Summary print is now called <strong>Chair Summary</strong> and is laid out for easier reading:</p>
+                <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+                    <li>Each area starts on its own printed page</li>
+                    <li>Every page shows the area total of all chairs</li>
+                    <li>All grand totals appear together on a dedicated final page</li>
+                </ul>
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Key items now live exclusively in the Key Items Report.</p>
+
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Visual</h4>
+                <p style="font-size: 0.9em;">Seat-area names, seat counts, and screen labels now render in real-world units. Each has its own per-instance Text Size control. Comma-or-period decimal separator accepted when typing values.</p>
+
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Polish: post editing opens a proper modal, the announcement dialog scrolls correctly, and a long list of translation, layout, and color-picker fixes shipped along the way.</p>
+            `,
+            es: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📊 Salida y datos</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Exportar a Excel</p>
+                <p style="font-size: 0.9em;">Descarga los recuentos de sillas y los datos de artículos claves como un <strong>archivo .xlsx</strong> con dos hojas. Una fila por área o artículo — perfecto para tablas dinámicas o informes. Lo encuentras en la pestaña <strong>Proyecto</strong> bajo <strong>📊 Exportar a Excel</strong>.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Impresión de Resumen de Sillas más clara</p>
+                <p style="font-size: 0.9em;">La impresión de Resumen ahora se llama <strong>Resumen de Sillas</strong> y tiene un diseño más fácil de leer:</p>
+                <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
+                    <li>Cada área empieza en su propia página impresa</li>
+                    <li>Cada página muestra el total de todas las sillas del área</li>
+                    <li>Todos los totales generales aparecen juntos en una página final dedicada</li>
+                </ul>
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Los artículos claves ahora viven exclusivamente en el Reporte de Artículos Claves.</p>
+
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Visual</h4>
+                <p style="font-size: 0.9em;">Los nombres de áreas de asientos, los recuentos y las etiquetas de pantalla ahora se renderizan en unidades del mundo real. Cada uno tiene su propio control de Tamaño de Texto por instancia. Se aceptan tanto coma como punto como separador decimal al escribir valores.</p>
+
+                <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Pulido: editar un puesto abre una ventana modal apropiada, el diálogo de anuncios se desplaza correctamente, y se corrigieron muchos problemas de traducción, diseño y selectores de color en el camino.</p>
+            `
+        },
+        {
+            version: "1.6",
+            en: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Drawing &amp; editing</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edit text directly on the canvas</p>
+                <p style="font-size: 0.9em;">Place or edit text annotations right where they live. <strong>Double-click</strong> any text to edit in place. Press <strong>Enter</strong> for a new line, click anywhere outside (or press <strong>Esc</strong>) to commit. Cleared text deletes the annotation.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Meters joins Feet and Millimeters</p>
+                <p style="font-size: 0.9em;">A third unit option is now available — <strong>Meters (m)</strong>. Switch any time from the <strong>Project</strong> tab.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">What You See Is What You Print</p>
+                <p style="font-size: 0.9em;">Line thickness, dimension labels, polymeasure labels, and arrowheads now all render in real-world units. <strong>At 100% zoom, what you see matches exactly what you'll print.</strong> Zoom becomes a pure magnifier.</p>
+
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Visual control</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Per-instance label sizes for dimensions &amp; polymeasures</p>
+                <p style="font-size: 0.9em;">Each dimension and polymeasure has its own <strong>Text Size</strong> control. Make labels bigger for visibility or smaller for tight diagrams — all on the same page.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Arrowheads on lines and polymeasures</p>
+                <p style="font-size: 0.9em;">Add filled-triangle arrowheads to either end of any line or polymeasure. Useful for pointing out features on plans.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Finer layer control</p>
+                <p style="font-size: 0.9em;">The Layers panel splits annotations into <strong>Lines</strong>, <strong>Dimensions</strong>, <strong>Text Labels</strong>, and <strong>Polymeasures</strong> — each with its own toggle.</p>
+            `,
+            es: `
+                <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Dibujo y edición</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edita texto directamente en el lienzo</p>
+                <p style="font-size: 0.9em;">Coloca o edita anotaciones de texto justo donde están. <strong>Doble clic</strong> en cualquier texto para editarlo en su lugar. Pulsa <strong>Enter</strong> para una nueva línea, haz clic fuera (o pulsa <strong>Esc</strong>) para confirmar. Si borras todo el texto, se elimina la anotación.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Metros se une a Pies y Milímetros</p>
+                <p style="font-size: 0.9em;">Ahora hay una tercera opción de unidad — <strong>Metros (m)</strong>. Cambia cuando quieras desde la pestaña <strong>Proyecto</strong>.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Lo Que Ves Es Lo Que Imprimes</p>
+                <p style="font-size: 0.9em;">El grosor de línea, las etiquetas de cota, las etiquetas de polimedida, y las flechas ahora se renderizan en unidades del mundo real. <strong>Al 100% de zoom, lo que ves coincide exactamente con lo que se imprimirá.</strong> El zoom se convierte en una lupa pura.</p>
+
+                <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Control visual</h4>
+
+                <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Tamaño de etiqueta por instancia para cotas y polimedidas</p>
+                <p style="font-size: 0.9em;">Cada cota y polimedida tiene su propio control de <strong>Tamaño de Texto</strong>. Hazlas más grandes para mayor visibilidad o más pequeñas para diagramas ajustados — todo en la misma página.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Flechas en líneas y polimedidas</p>
+                <p style="font-size: 0.9em;">Añade flechas (triángulo relleno) a cualquier extremo de una línea o polimedida. Útil para señalar elementos en los planos.</p>
+
+                <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Control de capas más detallado</p>
+                <p style="font-size: 0.9em;">El panel de Capas divide las anotaciones en <strong>Líneas</strong>, <strong>Cotas</strong>, <strong>Etiquetas de Texto</strong> y <strong>Polimedidas</strong> — cada una con su propio interruptor.</p>
+            `
+        },
+    ];
+
+    // Footer used on the popup-style announcement (latest only). Tutorials view
+    // gets the same footer appended at the very bottom of the full changelog.
+    const ANNOUNCEMENT_FOOTER_EN = `
         <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
             🐛 Found a bug or have a suggestion? Email <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
         </p>
     `;
-
-    const ANNOUNCEMENT_ES = `
-        <h3 style="margin-top:0;">📣 Novedades de 1.7</h3>
-        <p style="font-size: 0.85em; color: #aaa; margin-top: -6px;">Un resumen combinado de las actualizaciones recientes.</p>
-
-        <h4 style="color: var(--accent); margin: 16px 0 6px 0; font-size: 1em;">📝 Dibujo y edición</h4>
-
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Edita texto directamente en el lienzo</p>
-        <p style="font-size: 0.9em;">Coloca o edita anotaciones de texto justo donde están. <strong>Doble clic</strong> en cualquier texto para editarlo en su lugar. Pulsa <strong>Enter</strong> para una nueva línea, haz clic fuera (o pulsa <strong>Esc</strong>) para confirmar. Si borras todo el texto, se elimina la anotación.</p>
-
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Metros se une a Pies y Milímetros</p>
-        <p style="font-size: 0.9em;">Ahora hay una tercera opción de unidad — <strong>Metros (m)</strong>. Cambia cuando quieras desde la pestaña <strong>Proyecto</strong>. Al escribir valores funcionan tanto <code>.</code> como <code>,</code> como separador decimal.</p>
-
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Lo Que Ves Es Lo Que Imprimes</p>
-        <p style="font-size: 0.9em;">El grosor de línea, las etiquetas de cota, las etiquetas de polimedida, las flechas, <strong>además de los nombres de áreas de asientos, los recuentos y las etiquetas de pantalla</strong> ahora se renderizan en unidades del mundo real. <strong>Al 100% de zoom, lo que ves coincide exactamente con lo que se imprimirá.</strong> El zoom se convierte en una lupa pura.</p>
-
-        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">🎚️ Control visual</h4>
-
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Tamaño de etiqueta por instancia para todo</p>
-        <p style="font-size: 0.9em;">Cada cota, polimedida, área de asientos (nombre + recuento) y pantalla tiene su propio control de <strong>Tamaño de Texto</strong>. Hazlas más grandes para mayor visibilidad o más pequeñas para diagramas ajustados — todo en la misma página.</p>
-
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Flechas en líneas y polimedidas</p>
-        <p style="font-size: 0.9em;">Añade flechas (triángulo relleno) a cualquier extremo de una línea o polimedida. Útil para señalar elementos en los planos.</p>
-
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Control de capas más detallado</p>
-        <p style="font-size: 0.9em;">El panel de Capas divide las anotaciones en <strong>Líneas</strong>, <strong>Cotas</strong>, <strong>Etiquetas de Texto</strong> y <strong>Polimedidas</strong> — cada una con su propio interruptor.</p>
-
-        <h4 style="color: var(--accent); margin: 18px 0 6px 0; font-size: 1em;">📊 Salida y datos</h4>
-
-        <p style="font-weight: bold; color: #ddd; margin-bottom: 4px;">Exportar a Excel</p>
-        <p style="font-size: 0.9em;">Descarga los recuentos de sillas y los datos de artículos claves como un <strong>archivo .xlsx</strong> con dos hojas. Una fila por área o artículo — perfecto para tablas dinámicas o informes. Lo encuentras en la pestaña <strong>Proyecto</strong> bajo <strong>📊 Exportar a Excel</strong>.</p>
-
-        <p style="font-weight: bold; color: #ddd; margin-top: 14px; margin-bottom: 4px;">Impresión de Resumen de Sillas más clara</p>
-        <p style="font-size: 0.9em;">La impresión de Resumen ahora se llama <strong>Resumen de Sillas</strong> y tiene un diseño más fácil de leer:</p>
-        <ul style="font-size: 0.9em; margin-top: 4px; padding-left: 22px;">
-            <li>Cada área empieza en su propia página impresa</li>
-            <li>Cada página muestra el total de todas las sillas del área</li>
-            <li>Todos los totales generales aparecen juntos en una página final dedicada</li>
-        </ul>
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic;">Los artículos claves ahora viven exclusivamente en el Reporte de Artículos Claves.</p>
-
-        <p style="font-size: 0.85em; color: #aaa; font-style: italic; margin-top: 14px;">Pulido: editar un puesto abre una ventana modal apropiada, el diálogo de anuncios se desplaza correctamente, y se corrigieron muchos problemas de traducción, diseño y selectores de color en el camino.</p>
-
+    const ANNOUNCEMENT_FOOTER_ES = `
         <p style="font-size: 0.85em; color: #aaa; margin-top: 18px; padding-top: 12px; border-top: 1px solid #444;">
             🐛 ¿Encontraste un error o tienes una sugerencia? Escribe a <a href="mailto:dev@abarca-services.com" style="color: var(--accent);">dev@abarca-services.com</a>.
         </p>
     `;
+
+    // Popup announcement: shows ONLY the latest release entry (CHANGELOG[0]).
+    // Tutorials view shows the full changelog with older entries collapsed.
+    const ANNOUNCEMENT_EN = `
+        <h3 style="margin-top:0;">📣 What's New in ${CHANGELOG[0].version}</h3>
+        ${CHANGELOG[0].en}
+        ${ANNOUNCEMENT_FOOTER_EN}
+    `;
+    const ANNOUNCEMENT_ES = `
+        <h3 style="margin-top:0;">📣 Novedades de ${CHANGELOG[0].version}</h3>
+        ${CHANGELOG[0].es}
+        ${ANNOUNCEMENT_FOOTER_ES}
+    `;
+
+    // Build the full changelog HTML for the Tutorials view. Latest version is
+    // expanded by default; older versions are collapsed (click to expand).
+    // Uses the existing .collapse-header / .collapse-body pattern so visuals
+    // match the rest of the app.
+    function buildFullChangelog(lang) {
+        const langKey = (lang === 'es') ? 'es' : 'en';
+        const titleText = (lang === 'es') ? 'Notas de Versión' : 'Release Notes';
+        const introText = (lang === 'es')
+            ? 'Historial de cambios. El más reciente está expandido; pulsa los anteriores para abrirlos.'
+            : 'Change history. The latest is expanded; click older versions to open them.';
+        const versionLabel = (lang === 'es') ? 'Versión' : 'Version';
+        let html = `<h3 style="margin-top:0;">${escapeHTML(titleText)}</h3>`;
+        html += `<p style="font-size: 0.85em; color: #aaa; margin-top: -6px;">${escapeHTML(introText)}</p>`;
+        CHANGELOG.forEach((entry, i) => {
+            const isLatest = (i === 0);
+            const bodyId = `changelog-body-${entry.version.replace(/\./g, '_')}`;
+            // Latest entry: shown expanded (no `collapsed` class). Older
+            // entries: collapsed by default, click to toggle.
+            html += `
+                <div class="collapse-header${isLatest ? '' : ' collapsed'}" data-collapse-target="${bodyId}" onclick="toggleCollapse(this)" style="margin: 12px 0 0 0;">
+                    <span class="title">${escapeHTML(versionLabel)} ${escapeHTML(entry.version)}${isLatest ? ' <span style="color:#aaa; font-weight:normal; font-size:0.85em;">(' + escapeHTML(lang === 'es' ? 'más reciente' : 'latest') + ')</span>' : ''}</span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div id="${bodyId}" class="collapse-body${isLatest ? '' : ' collapsed'}" style="padding: 8px 14px 4px;">
+                    ${entry[langKey]}
+                </div>
+            `;
+        });
+        // Footer appears once at the bottom.
+        html += (lang === 'es') ? ANNOUNCEMENT_FOOTER_ES : ANNOUNCEMENT_FOOTER_EN;
+        return html;
+    }
     // ─── END ANNOUNCEMENTS ──────────────────────────────────────────────────────
 
     function showAnnouncementIfNew() {
@@ -4199,8 +5402,9 @@ const I18N_STRINGS = {
         const annView  = document.getElementById('tutorials-announcement-view');
         const annContent = document.getElementById('tutorials-announcement-content');
         if (!menuView || !annView || !annContent) return;
-        const html = (currentLang === 'es') ? ANNOUNCEMENT_ES : ANNOUNCEMENT_EN;
-        annContent.innerHTML = html;
+        // Use the full changelog (latest expanded, older collapsed) — not the
+        // popup content (which is latest-only).
+        annContent.innerHTML = buildFullChangelog(currentLang);
         menuView.style.display = 'none';
         // Use 'flex' (not 'block') because the announcement view uses flex
         // column layout to keep its action bar pinned at the bottom while
@@ -7557,18 +8761,71 @@ const I18N_STRINGS = {
             project.attendants.posts.push(copy);
         });
 
-        // ─── Merge roster ───
-        const localRosterByName = new Set(
-            (project.attendants.roster || []).map(r => (r.name || '').toLowerCase())
-        );
+        // ─── Merge roster ───────────────────────────────────────────────────
+        // New names: appended in full (phone, projectRole, notes all carry).
+        // Existing names: fill in BLANK fields only — never overwrite something
+        // the user has already set locally. This matches "merge adds, doesn't
+        // overwrite" but lets useful 1.8 data (phone, projectRole) flow in.
         const incomingRoster = (incoming.attendants && incoming.attendants.roster) || [];
+        const localByName = new Map();
+        (project.attendants.roster || []).forEach(r => {
+            localByName.set((r.name || '').toLowerCase(), r);
+        });
         incomingRoster.forEach(r => {
-            if (!localRosterByName.has((r.name || '').toLowerCase())) {
-                (project.attendants.roster = project.attendants.roster || []).push(JSON.parse(JSON.stringify(r)));
+            const key = (r.name || '').toLowerCase();
+            const existing = localByName.get(key);
+            if (!existing) {
+                // Brand new name → append in full.
+                const copy = JSON.parse(JSON.stringify(r));
+                // Make sure 1.8 fields exist even if the imported file predates them.
+                if (typeof copy.phone !== 'string') copy.phone = '';
+                if (typeof copy.projectRole !== 'string') copy.projectRole = '';
+                (project.attendants.roster = project.attendants.roster || []).push(copy);
+                localByName.set(key, copy);
+            } else {
+                // Name already in roster — fill in blanks only.
+                if (!existing.phone       && r.phone)       existing.phone       = r.phone;
+                if (!existing.projectRole && r.projectRole) existing.projectRole = r.projectRole;
+                if (!existing.notes       && r.notes)       existing.notes       = r.notes;
             }
         });
 
-        // ─── Merge assignments ───
+        // ─── Merge attendant role list ───────────────────────────────────────
+        // Pull in any role names the imported project uses (either as a project
+        // role on a roster entry or as a shift role) that we don't have yet.
+        // Without this, references would dangle as orphan strings.
+        const incomingRoles = new Set();
+        incomingRoster.forEach(r => { if (r.projectRole) incomingRoles.add(r.projectRole); });
+        const incomingShiftRoles = (incoming.attendants && incoming.attendants.shiftRoles) || {};
+        Object.values(incomingShiftRoles).forEach(m => {
+            Object.values(m).forEach(role => { if (role) incomingRoles.add(role); });
+        });
+        project.attendantRoles = project.attendantRoles || [];
+        incomingRoles.forEach(role => {
+            if (!project.attendantRoles.includes(role)) {
+                project.attendantRoles.push(role);
+            }
+        });
+
+        // ─── Merge shift roles ───────────────────────────────────────────────
+        // For each (shiftId, personName) in the incoming map: add if not set
+        // locally; keep local value if already set. Only apply for shifts that
+        // exist in the merged project (shifts were merged earlier by ID).
+        project.attendants.shiftRoles = project.attendants.shiftRoles || {};
+        const validShiftIds = new Set(project.attendants.shifts.map(s => s.id));
+        Object.entries(incomingShiftRoles).forEach(([shiftId, personMap]) => {
+            if (!validShiftIds.has(shiftId)) return;  // skip stranded data
+            project.attendants.shiftRoles[shiftId] = project.attendants.shiftRoles[shiftId] || {};
+            const localShiftMap = project.attendants.shiftRoles[shiftId];
+            Object.entries(personMap).forEach(([name, role]) => {
+                if (!role) return;
+                if (!localShiftMap[name]) {
+                    localShiftMap[name] = role;
+                }
+            });
+        });
+
+        // ─── Merge assignments ───────────────────────────────────────────────
         if (incoming.attendants && incoming.attendants.assignments) {
             const validPostIds = new Set(project.attendants.posts.map(p => p.id));
             project.attendants.assignments = project.attendants.assignments || {};
@@ -7903,12 +9160,16 @@ const I18N_STRINGS = {
         if (rptEl) rptEl.innerHTML = html;
     }
 
-    function printReport(type, scheduleFilters) {
+    function printReport(type, scheduleFilters, scheduleOptions) {
         try {
             populatePrintLogos();
             document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
             const dateStr = fmtDate(new Date());
             document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
+            // Reset the prebody region (only the schedule print uses it; clear
+            // it for every other report type so stale content doesn't carry over).
+            const prebody = document.getElementById('rpt-prebody-print');
+            if (prebody) prebody.innerHTML = '';
 
             // Shift indicator on layout print — only shown when the toggle is on
             const shiftEl = document.getElementById('lay-shift-print');
@@ -7999,6 +9260,16 @@ const I18N_STRINGS = {
                 const searchTerm = ((scheduleFilters && scheduleFilters.search) || '').trim().toLowerCase();
                 const isFiltered = (sFilter || statusFilter !== 'all' || searchTerm);
 
+                // Options: default to including everything if not provided
+                // (caller didn't go through the options dialog). Phone defaults
+                // OFF for privacy; unassigned defaults ON (visibility).
+                const opts = {
+                    projectRoles: scheduleOptions ? !!scheduleOptions.projectRoles : true,
+                    shiftRoles:   scheduleOptions ? !!scheduleOptions.shiftRoles   : true,
+                    phone:        scheduleOptions ? !!scheduleOptions.phone        : false,
+                    unassigned:   scheduleOptions ? !!scheduleOptions.unassigned   : true,
+                };
+
                 // Title reflects whether filters are applied
                 let titleSuffix = ' - ' + t('print.schedule.title');
                 if (isFiltered) {
@@ -8020,10 +9291,54 @@ const I18N_STRINGS = {
                     body.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic;">${escapeHTML(t('print.schedule.empty_project'))}</td></tr>`;
                     document.querySelector('#print-report-container tfoot').innerHTML = '';
                 } else {
+                    // Helper to look up a roster entry by name (for phone lookup)
+                    const lookupRoster = (name) => project.attendants.roster.find(r => r.name === name);
+
+                    // ── PROJECT ROLES HEADER ───────────────────────────────────
+                    // Rendered OUTSIDE the table (in #rpt-prebody-print) so the
+                    // table's column headers don't appear above it. Each printed
+                    // page that includes a project roles header therefore looks
+                    // like a true intro page, not a header-row-with-content.
+                    let projectRolesRendered = false;
+                    if (opts.projectRoles) {
+                        // Group roster entries by projectRole; show only if any are set.
+                        const projectRoleGroups = {};
+                        project.attendants.roster.forEach(r => {
+                            if (r.projectRole && r.projectRole.trim() !== '') {
+                                if (!projectRoleGroups[r.projectRole]) projectRoleGroups[r.projectRole] = [];
+                                projectRoleGroups[r.projectRole].push(r.name);
+                            }
+                        });
+                        const knownOrder = project.attendantRoles.filter(r => projectRoleGroups[r]);
+                        const unknownOrder = Object.keys(projectRoleGroups).filter(r => !project.attendantRoles.includes(r)).sort();
+                        const allRoles = [...knownOrder, ...unknownOrder];
+                        if (allRoles.length > 0) {
+                            projectRolesRendered = true;
+                            let html = `<div style="background:#1a4480; color:white; font-weight:bold; font-size:1.1em; padding:10px 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; border-radius:3px 3px 0 0;">${escapeHTML(t('print.schedule.project_roles.header'))}</div>`;
+                            html += `<div style="border:1px solid #ddd; border-top:none; padding:8px 16px 12px; margin-bottom: 20px;">`;
+                            allRoles.forEach(role => {
+                                const names = projectRoleGroups[role].sort((a, b) => a.localeCompare(b));
+                                const nameList = opts.phone
+                                    ? names.map(n => {
+                                        const r = lookupRoster(n);
+                                        return r && r.phone ? `${escapeHTML(n)} (${escapeHTML(r.phone)})` : escapeHTML(n);
+                                    }).join(', ')
+                                    : names.map(n => escapeHTML(n)).join(', ');
+                                html += `<div style="display:flex; gap:12px; padding:4px 0; border-bottom:1px solid #eee;">
+                                    <div style="font-weight:bold; min-width:180px;">${escapeHTML(role)}:</div>
+                                    <div style="flex:1;">${nameList}</div>
+                                </div>`;
+                            });
+                            html += `</div>`;
+                            document.getElementById('rpt-prebody-print').innerHTML = html;
+                        }
+                    }
+
                     const shiftsToShow = sFilter
                         ? project.attendants.shifts.filter(s => s.id === sFilter)
                         : project.attendants.shifts;
                     let totalAssigned = 0, totalUnassigned = 0, totalRows = 0;
+                    let shiftsRendered = 0;  // counts shifts actually emitted (not filtered out)
                     shiftsToShow.forEach(shift => {
                         // Determine which posts apply to this shift
                         const postsForShift = project.attendants.posts.filter(p => p.scope === 'persistent' || (p.scope === 'shift' && p.shiftId === shift.id));
@@ -8031,8 +9346,12 @@ const I18N_STRINGS = {
                         postsForShift.sort((a, b) => String(a.number || '').localeCompare(String(b.number || ''), undefined, { numeric: true }));
 
                         const assignmentMap = project.attendants.assignments[shift.id] || {};
+                        const shiftRoleMap = project.attendants.shiftRoles[shift.id] || {};
+
                         const filteredPosts = postsForShift.filter(p => {
                             const name = assignmentMap[p.id] || '';
+                            // Honor the user's option to suppress unassigned posts entirely.
+                            if (!opts.unassigned && !name) return false;
                             if (statusFilter === 'assigned' && !name) return false;
                             if (statusFilter === 'unassigned' && name) return false;
                             if (searchTerm) {
@@ -8043,30 +9362,93 @@ const I18N_STRINGS = {
                         });
 
                         // Skip the shift entirely if filter eliminated everything AND filters are active
-                        // (when no filter, still show the shift even if empty so user sees structure)
                         if (filteredPosts.length === 0 && isFiltered) return;
 
-                        body.innerHTML += `<tr style="background: #2c5282 !important; color:white !important; font-weight: bold; font-size: 1.05em; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                        // Page break before this shift's banner so each shift
+                        // starts on its own printed page. Skip for the very
+                        // first rendered shift only if no project-roles section
+                        // appeared above it (would otherwise leave a blank
+                        // first page).
+                        const needsPageBreak = (shiftsRendered > 0) || projectRolesRendered;
+                        const breakStyle = needsPageBreak ? 'page-break-before: always; break-before: page; ' : '';
+
+                        // Shift banner row
+                        body.innerHTML += `<tr style="${breakStyle}background: #2c5282 !important; color:white !important; font-weight: bold; font-size: 1.05em; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
                             <td colspan="3" style="padding: 10px;">${escapeHTML(t('print.schedule.shift_banner', { n: shift.number }))}${shift.description ? ' &nbsp;—&nbsp; ' + escapeHTML(shift.description) : ''}</td>
                         </tr>`;
+                        shiftsRendered++;
 
+                        // ── SHIFT ROLES SECTION ──────────────────────────────
+                        if (opts.shiftRoles) {
+                            // Group everyone in this shift's role map by role.
+                            const roleGroups = {};
+                            Object.keys(shiftRoleMap).forEach(name => {
+                                const r = shiftRoleMap[name];
+                                if (r && r.trim() !== '') {
+                                    if (!roleGroups[r]) roleGroups[r] = [];
+                                    roleGroups[r].push(name);
+                                }
+                            });
+                            const knownOrder = project.attendantRoles.filter(r => roleGroups[r]);
+                            const unknownOrder = Object.keys(roleGroups).filter(r => !project.attendantRoles.includes(r)).sort();
+                            const allRoles = [...knownOrder, ...unknownOrder];
+                            if (allRoles.length > 0) {
+                                body.innerHTML += `<tr style="background:#3a5a8a !important; color:white !important; font-weight:bold; font-size:0.9em; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td colspan="3" style="padding:6px 10px;">${escapeHTML(t('print.schedule.shift_roles.header'))}</td></tr>`;
+                                allRoles.forEach(role => {
+                                    const names = roleGroups[role].sort((a, b) => a.localeCompare(b));
+                                    // For each name, tag it (no post) if they're not in any post for this shift.
+                                    const postAssignedSet = new Set(postsForShift.map(p => assignmentMap[p.id]).filter(n => n));
+                                    const nameList = names.map(n => {
+                                        const tag = postAssignedSet.has(n) ? '' : ` <span style="font-style:italic; color:#666;">(${escapeHTML(t('print.schedule.shift_roles.no_post'))})</span>`;
+                                        if (opts.phone) {
+                                            const r = lookupRoster(n);
+                                            const phoneStr = r && r.phone ? ` (${escapeHTML(r.phone)})` : '';
+                                            return `${escapeHTML(n)}${phoneStr}${tag}`;
+                                        }
+                                        return `${escapeHTML(n)}${tag}`;
+                                    }).join(', ');
+                                    body.innerHTML += `<tr><td style="padding-left:30px; font-weight:bold; width:30%;">${escapeHTML(role)}:</td><td colspan="2">${nameList}</td></tr>`;
+                                });
+                            }
+                        }
+
+                        // ── POST ASSIGNMENTS ─────────────────────────────────
                         if (filteredPosts.length === 0) {
                             body.innerHTML += `<tr><td colspan="3" style="font-style:italic; color:#777; padding-left:20px;">${escapeHTML(t('print.schedule.empty_shift'))}</td></tr>`;
                         } else {
+                            // Sub-header for the post-assignments section, only
+                            // shown when we also showed a shift-roles header.
+                            if (opts.shiftRoles && Object.keys(shiftRoleMap).length > 0) {
+                                body.innerHTML += `<tr style="background:#e8e8e8 !important; font-weight:bold; font-size:0.85em; color:#555; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td colspan="3" style="padding:4px 10px;">${escapeHTML(t('print.schedule.post_assignments.header'))}</td></tr>`;
+                            }
                             filteredPosts.forEach(post => {
                                 const at = getAttendantTypeFor(post);
                                 const name = assignmentMap[post.id] || '';
                                 if (name) totalAssigned++; else totalUnassigned++;
                                 totalRows++;
                                 const scopeBadge = post.scope === 'shift' ? `<span style="display:inline-block; padding:1px 6px; background:#f1c40f; color:black; font-size:0.7em; border-radius:3px; margin-left:6px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${escapeHTML(t('print.schedule.shift_only_badge'))}</span>` : '';
+                                // Phone hint: if enabled and the person is in the
+                                // roster with a phone, render a small line under
+                                // the name. Quiet for unassigned cells.
+                                let nameCell;
+                                if (name) {
+                                    let extra = '';
+                                    if (opts.phone) {
+                                        const r = lookupRoster(name);
+                                        if (r && r.phone) extra = `<div style="font-size:0.8em; color:#555; font-weight:normal;">${escapeHTML(r.phone)}</div>`;
+                                    }
+                                    nameCell = `<td style="font-weight:bold;">${escapeHTML(name)}${extra}</td>`;
+                                } else {
+                                    nameCell = `<td style="color:#999; font-style:italic;">${escapeHTML(t('print.schedule.unassigned'))}</td>`;
+                                }
                                 body.innerHTML += `<tr>
                                     <td style="padding-left:20px;"><span style="display:inline-block; width:24px; height:24px; background-color:${escapeHTML(at.dotColor)}; color:white; text-align:center; border-radius:50%; font-size:11px; line-height:24px; font-weight:bold; margin-right:8px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${escapeHTML(post.number || '')}</span></td>
                                     <td>${escapeHTML(post.description || t('print.schedule.no_description'))}${scopeBadge}</td>
-                                    <td style="${name ? 'font-weight:bold;' : 'color:#999; font-style:italic;'}">${escapeHTML(name || t('print.schedule.unassigned'))}</td>
+                                    ${nameCell}
                                 </tr>`;
                             });
                         }
-                        // Spacer row
+                        // Spacer row between shifts
                         body.innerHTML += `<tr><td colspan="3" style="height:8px; border:none;"></td></tr>`;
                     });
 
@@ -8074,7 +9456,13 @@ const I18N_STRINGS = {
                         body.innerHTML = `<tr><td colspan="3" style="text-align:center; font-style:italic; padding:20px;">${escapeHTML(t('print.schedule.empty_filter'))}</td></tr>`;
                         document.querySelector('#print-report-container tfoot').innerHTML = '';
                     } else {
-                        document.querySelector('#print-report-container tfoot').innerHTML = `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;" colspan="2">${escapeHTML(t('print.schedule.footer'))}</td><td>${fmtNum(totalAssigned)} / ${fmtNum(totalUnassigned)}</td></tr>`;
+                        // Totals go in the body, NOT tfoot — tfoot repeats on
+                        // every printed page (display:table-footer-group). We
+                        // want one totals row at the very end, no repeats.
+                        // Use page-break-inside:avoid to keep it intact if the
+                        // last shift's tail leaves room for it.
+                        body.innerHTML += `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; page-break-inside: avoid; break-inside: avoid;"><td style="text-align: right;" colspan="2">${escapeHTML(t('print.schedule.footer'))}</td><td>${fmtNum(totalAssigned)} / ${fmtNum(totalUnassigned)}</td></tr>`;
+                        document.querySelector('#print-report-container tfoot').innerHTML = '';
                     }
                 }
                 document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
