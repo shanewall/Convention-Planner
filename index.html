@@ -1742,7 +1742,16 @@ const I18N_STRINGS = {
         "page.prompt.add": "Page Name?",
         "page.prompt.rename": "Rename page:",
         "page.confirm_delete": "Delete this page?",
+        "page.confirm_delete.with_content": "Delete this page? It contains: {contents}. This cannot be undone.",
         "page.error.last_page": "Cannot delete the last page.",
+        "page.upload.warn.replace_with_content": "This page already has an image AND content: {contents}. Replacing the image will NOT delete those items, but they'll stay at their current positions, which may no longer match the new image. You may need to reposition items and recalibrate the scale.\n\nContinue with the upload?",
+        "page.content.shapes": "seat areas",
+        "page.content.screens": "screens",
+        "page.content.signs": "signs",
+        "page.content.measures": "measures",
+        "page.content.lines": "lines",
+        "page.content.texts": "text annotations",
+        "page.content.posts": "attendant posts",
         "profile.seat.add.prompt": "New Seat Profile Name:",
         "profile.seat.default": "New Seat",
         "profile.point.add.prompt": "New Point Profile Name:",
@@ -2235,7 +2244,16 @@ const I18N_STRINGS = {
         "page.prompt.add": "¿Nombre de la Página?",
         "page.prompt.rename": "Renombrar Página:",
         "page.confirm_delete": "¿Eliminar esta página?",
+        "page.confirm_delete.with_content": "¿Eliminar esta página? Contiene: {contents}. Esta acción no se puede deshacer.",
         "page.error.last_page": "No se puede eliminar la última página.",
+        "page.upload.warn.replace_with_content": "Esta página ya tiene una imagen Y contenido: {contents}. Reemplazar la imagen NO eliminará esos elementos, pero permanecerán en sus posiciones actuales, las cuales pueden ya no coincidir con la nueva imagen. Puede que necesites reposicionar los elementos y recalibrar la escala.\n\n¿Continuar con la carga?",
+        "page.content.shapes": "áreas de asientos",
+        "page.content.screens": "pantallas",
+        "page.content.signs": "señales",
+        "page.content.measures": "polimedidas",
+        "page.content.lines": "líneas",
+        "page.content.texts": "anotaciones de texto",
+        "page.content.posts": "puestos de acomodadores",
         "profile.seat.add.prompt": "Nombre del Nuevo Perfil de Asiento:",
         "profile.seat.default": "Nuevo Asiento",
         "profile.point.add.prompt": "Nombre del Nuevo Perfil de Punto:",
@@ -3965,10 +3983,25 @@ const I18N_STRINGS = {
         triggerUpdate(); updateUI();
     }
 
+    // Move a role up/down within the attendantRoles list. Pure reordering —
+    // doesn't affect roster entries or shift roles (those reference roles by
+    // string value, not index). Updates the printed-output sort order, since
+    // the print groups roles by attendantRoles order.
+    function moveAttendantRole(i, dir) {
+        ensureAttendants();
+        const list = project.attendantRoles;
+        const j = i + dir;
+        if (j < 0 || j >= list.length) return;
+        saveState();
+        moveInArray(list, i, j);
+        triggerUpdate(); updateUI();
+    }
+
     function buildRolesList() {
         const el = document.getElementById('att-roles-list'); if (!el) return;
         ensureAttendants();
         el.innerHTML = '';
+        const total = project.attendantRoles.length;
         project.attendantRoles.forEach((role, i) => {
             el.innerHTML += `<li class="list-item" style="align-items:center; gap:6px;">
                 <input type="text"
@@ -3976,7 +4009,10 @@ const I18N_STRINGS = {
                     value="${escapeHTML(role)}"
                     onchange="renameAttendantRole(${i}, this.value)"
                     style="flex:1; min-width:0;">
-                <button class="icon-btn" onclick="deleteAttendantRole(${i})" title="${escapeHTML(t('att.roles.delete.title'))}">✕</button>
+                <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+                    ${reorderArrowsHTML('moveAttendantRole', i, total)}
+                    <button class="icon-btn" onclick="deleteAttendantRole(${i})" title="${escapeHTML(t('att.roles.delete.title'))}">✕</button>
+                </div>
             </li>`;
         });
         if (project.attendantRoles.length === 0) {
@@ -6298,15 +6334,51 @@ const I18N_STRINGS = {
     function renamePage(i) { const newName = prompt(t('page.prompt.rename'), project.pages[i].name); if (newName && newName.trim() !== "") { project.pages[i].name = newName.trim(); updateUI(); triggerUpdate(); } }
     function addNewPage() { const n = prompt(t('page.prompt.add')); if(n) { project.pages.push({name:n, imgData:null, pixelsPerFoot:0, shapes:[], screens:[], signs:[], measures:[], lines:[], texts:[], legend:{show:true, x:40, y:40, scale:1}, seatLegend:{show:true, x:40, y:150, scale:1}, attLegend:{show:false, x:40, y:280, scale:1}}); switchPage(project.pages.length-1); } }
 
-    // ─── FIX #14: Clamp activePageIndex before switchPage ───────────────────────
-    function deleteCurrentPage() { 
-        if (project.pages.length > 1) { 
-            if (confirm(t('page.confirm_delete'))) { 
-                project.pages.splice(project.activePageIndex, 1); 
-                const safeIndex = Math.min(project.activePageIndex, project.pages.length - 1);
-                switchPage(safeIndex); 
-            } 
-        } else { alert(t('page.error.last_page')); } 
+    // ─── Count items on a given page index ─────────────────────────────────────
+    // Returns an array of { key, count } pairs for non-empty categories, plus a
+    // total. Used to build human-readable warning messages before destructive
+    // actions like deleting a page or replacing its background image. Counts
+    // attendant posts that point at this page too, since they're stored at the
+    // project level but live visually on a specific page.
+    function countPageContents(pageIndex) {
+        const page = project.pages[pageIndex];
+        if (!page) return { items: [], total: 0 };
+        const counts = [
+            { key: 'shapes',   label: t('page.content.shapes'),   n: (page.shapes  || []).length },
+            { key: 'screens',  label: t('page.content.screens'),  n: (page.screens || []).length },
+            { key: 'signs',    label: t('page.content.signs'),    n: (page.signs   || []).length },
+            { key: 'measures', label: t('page.content.measures'), n: (page.measures|| []).length },
+            { key: 'lines',    label: t('page.content.lines'),    n: (page.lines   || []).length },
+            { key: 'texts',    label: t('page.content.texts'),    n: (page.texts   || []).length },
+        ];
+        // Attendant posts: project-level array, filtered to this page.
+        let postCount = 0;
+        if (project.attendants && Array.isArray(project.attendants.posts)) {
+            postCount = project.attendants.posts.filter(p => (p.pageIndex || 0) === pageIndex).length;
+        }
+        counts.push({ key: 'posts', label: t('page.content.posts'), n: postCount });
+        const items = counts.filter(c => c.n > 0);
+        const total = items.reduce((s, c) => s + c.n, 0);
+        return { items, total };
+    }
+
+    // Build a comma-separated "12 seat areas, 3 screens, 4 measures" sentence.
+    function describePageContents(pageIndex) {
+        const c = countPageContents(pageIndex);
+        if (c.total === 0) return '';
+        return c.items.map(it => `${it.n} ${it.label}`).join(', ');
+    }
+
+    function deleteCurrentPage() {
+        if (project.pages.length <= 1) { alert(t('page.error.last_page')); return; }
+        const desc = describePageContents(project.activePageIndex);
+        const msg = desc
+            ? t('page.confirm_delete.with_content', { contents: desc })
+            : t('page.confirm_delete');
+        if (!confirm(msg)) return;
+        project.pages.splice(project.activePageIndex, 1);
+        const safeIndex = Math.min(project.activePageIndex, project.pages.length - 1);
+        switchPage(safeIndex);
     }
     
     function deleteShape(i) { saveState(); getActivePage().shapes.splice(i,1); if(selectedShapeIndex === i) selectedShapeIndex = -1; markSeatCachesDirty(); updateUI(); triggerUpdate(); }
@@ -6354,6 +6426,21 @@ const I18N_STRINGS = {
 
     async function handleImageUpload(input) {
         const file = input.files[0]; if (!file) return;
+        // Warn ONLY when both an image AND items exist: that's the case where
+        // items are positioned against the about-to-change background and may
+        // end up in wrong spots on the new image. First upload (no image) and
+        // image-replace-on-empty-page are both harmless and don't get a prompt.
+        const page = getActivePage();
+        if (page && page.imgData) {
+            const desc = describePageContents(project.activePageIndex);
+            if (desc) {
+                const msg = t('page.upload.warn.replace_with_content', { contents: desc });
+                if (!confirm(msg)) {
+                    input.value = '';
+                    return;
+                }
+            }
+        }
         const label = document.getElementById('upload-label'); label.innerText = "Processing...";
         if (file.type === 'application/pdf') {
             try {
@@ -9316,18 +9403,23 @@ const I18N_STRINGS = {
                             projectRolesRendered = true;
                             let html = `<div style="background:#1a4480; color:white; font-weight:bold; font-size:1.1em; padding:10px 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; border-radius:3px 3px 0 0;">${escapeHTML(t('print.schedule.project_roles.header'))}</div>`;
                             html += `<div style="border:1px solid #ddd; border-top:none; padding:8px 16px 12px; margin-bottom: 20px;">`;
+                            // Grid columns adapt: 3 cols when showing phone,
+                            // 2 cols otherwise so names use full width.
+                            const rowGridCols = opts.phone ? '20px 1fr 160px' : '20px 1fr';
                             allRoles.forEach(role => {
                                 const names = projectRoleGroups[role].sort((a, b) => a.localeCompare(b));
-                                const nameList = opts.phone
-                                    ? names.map(n => {
-                                        const r = lookupRoster(n);
-                                        return r && r.phone ? `${escapeHTML(n)} (${escapeHTML(r.phone)})` : escapeHTML(n);
-                                    }).join(', ')
-                                    : names.map(n => escapeHTML(n)).join(', ');
-                                html += `<div style="display:flex; gap:12px; padding:4px 0; border-bottom:1px solid #eee;">
-                                    <div style="font-weight:bold; min-width:180px;">${escapeHTML(role)}:</div>
-                                    <div style="flex:1;">${nameList}</div>
-                                </div>`;
+                                html += `<div style="font-weight:bold; padding:6px 0 2px;">${escapeHTML(role)}:</div>`;
+                                names.forEach(n => {
+                                    const r = lookupRoster(n);
+                                    const phoneCell = opts.phone
+                                        ? `<div style="color:#555;">${(r && r.phone) ? escapeHTML(r.phone) : ''}</div>`
+                                        : '';
+                                    html += `<div style="display:grid; grid-template-columns: ${rowGridCols}; padding:2px 0; border-bottom:1px solid #f3f3f3;">
+                                        <div></div>
+                                        <div>${escapeHTML(n)}</div>
+                                        ${phoneCell}
+                                    </div>`;
+                                });
                             });
                             html += `</div>`;
                             document.getElementById('rpt-prebody-print').innerHTML = html;
