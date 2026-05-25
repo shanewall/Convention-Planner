@@ -595,14 +595,17 @@
         #panel-attendants .panel-list-container,
         #panel-project .panel-list-container { display: flex; flex-direction: column; min-height: 0; }
 
-        /* A "grow-section" naturally sizes to its content, but its scrollable body
-           shares any extra vertical space with siblings. When collapsed, the
-           section shrinks down to just its header. */
-        .grow-section { display: flex; flex-direction: column; min-height: 0; }
+        /* A "grow-section" claims a fair share of vertical space in its
+           flex parent when its body is expanded. With flex-basis: 0 the
+           share is independent of how much content the body holds — so
+           two sibling grow-sections always split available space evenly
+           instead of the section with more items squeezing the other.
+           When the body is collapsed, the section shrinks down to just
+           its header (body-collapsed mirrors the body's collapsed state
+           via toggleCollapse). */
+        .grow-section { display: flex; flex-direction: column; min-height: 0; flex: 1 1 0; }
+        .grow-section.body-collapsed { flex: 0 0 auto; }
         .grow-section > .collapse-body:not(.collapsed) { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-
-        #placed-sign-section { display: flex; flex-direction: column; min-height: 0; }
-        #placed-sign-section > .collapse-body:not(.collapsed) { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
         /* Color Palette Swatches — delegated via data attrs, no inline onclick */
         .color-swatch { width: 16px; height: 16px; border-radius: 3px; cursor: pointer; border: 1px solid #666; transition: 0.1s; box-sizing: border-box; display: inline-block; }
@@ -777,8 +780,7 @@
                 flex-shrink: 0 !important;
             }
             .profile-scroll,
-            .grow-section > .collapse-body:not(.collapsed),
-            #placed-sign-section > .collapse-body:not(.collapsed) {
+            .grow-section > .collapse-body:not(.collapsed) {
                 max-height: none !important;
                 overflow-y: visible !important;
                 height: auto !important;
@@ -1920,7 +1922,7 @@
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
-                <div id="placed-sign-section">
+                <div id="placed-sign-section" class="grow-section">
                     <div class="collapse-header" data-collapse-target="placed-sign-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="sign.placed.header">Placed Key Items <span id="placed-sign-badge" class="badge">0</span></span>
                         <span class="chevron">▼</span>
@@ -1992,12 +1994,14 @@
                         <ul class="item-list" id="line-list"></ul>
                     </div>
                 </div>
-                <div class="collapse-header collapsed" data-collapse-target="text-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
-                    <span class="title" data-i18n="ann.text.header">Text Elements <span id="text-badge" class="badge">0</span></span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div id="text-body" class="collapse-body collapsed">
-                    <ul class="item-list" id="text-list"></ul>
+                <div id="text-section" class="grow-section body-collapsed" style="margin-top: 6px;">
+                    <div class="collapse-header collapsed" data-collapse-target="text-body" onclick="toggleCollapse(this)">
+                        <span class="title" data-i18n="ann.text.header">Text Elements <span id="text-badge" class="badge">0</span></span>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div id="text-body" class="collapse-body collapsed">
+                        <ul class="item-list" id="text-list"></ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -7171,7 +7175,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.1.0";
+    const APP_VERSION = "2.1.1";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7461,6 +7465,15 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.1.1",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Bug fix:</strong> when two list panels sit one above the other in the sidebar (Drawn Lines & Dims and Text Elements in the Annotate tab; Key Item profiles and Placed Key Items in the Key Items tab), the lower panel\'s items could creep up and visually cover the items in the panel above as the lower list grew. Both panels now share the available vertical space evenly when expanded and scroll independently when full. Collapsing one panel gives the other the full height.</p>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Corrección de error:</strong> cuando dos paneles de lista están uno encima del otro en la barra lateral (Líneas y Dimensiones Dibujadas y Elementos de Texto en la pestaña Anotar; perfiles de Elementos Clave y Elementos Clave Colocados en la pestaña Elementos Clave), los elementos del panel inferior podían colarse hacia arriba y cubrir visualmente los elementos del panel superior a medida que crecía la lista inferior. Ahora ambos paneles comparten el espacio vertical disponible de manera uniforme cuando están expandidos y se desplazan independientemente cuando están llenos. Al contraer un panel, el otro recibe la altura completa.</p>
+            `
+        },
         {
             version: "2.1.0",
             en: `
@@ -8088,6 +8101,16 @@ const I18N_STRINGS = {
         if (!body) return;
         const isCollapsed = headerEl.classList.toggle('collapsed');
         body.classList.toggle('collapsed', isCollapsed);
+        // Mirror the collapsed state onto a grow-section ancestor (if any) so
+        // CSS can give it appropriate flex behavior: an expanded grow-section
+        // claims a share of available vertical space; a collapsed one
+        // shrinks to header-only. Without this, two expanded sibling grow-
+        // sections would fight for space based on content height — the
+        // section with more items would squeeze its sibling down to nothing.
+        const parent = headerEl.parentElement;
+        if (parent && parent.classList.contains('grow-section')) {
+            parent.classList.toggle('body-collapsed', isCollapsed);
+        }
     }
 
     function updateAllBadges() {
