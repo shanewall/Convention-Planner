@@ -659,85 +659,104 @@
             .print-logo svg, .print-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
             .print-subtitle { font-size: 10pt; color: #666; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; }
 
-            /* Layout print: a single-page document. Container fills the page,
-               header takes whatever it needs, SVG wrapper takes the rest. */
+            /* ── Floor-plan (layout) print ───────────────────────────────
+               Two modes only, chosen by the "title bar" option (default on):
+
+                 • Title bar ON: one full-width row pinned to the TOP of the
+                   page — logo · project · page · scale (or "Not to scale") ·
+                   date · shift (when on) · a small scale bar (when scaled and
+                   that option is on). Rendered at paper scale so it stays
+                   readable regardless of the drawing's scale.
+                 • Title bar OFF: bare drawing, nothing else.
+
+               FIT-TO-PAGE: the container is a flex column; the bar takes its
+               natural height as a reserved band and the drawing viewport
+               (#svg-print-wrapper) fills the rest, fitting + centering the SVG
+               via preserveAspectRatio="xMidYMid meet" so nothing overlaps.
+
+               SCALED set-sheets (body.print-scale-active, overrides below):
+               the drawing is full-bleed at its exact inch size and the bar
+               OVERLAYS the TOP strip (opaque). The workspace title-bar guide
+               keeps that strip clear on new sheets so nothing is covered. */
             #print-layout-container {
-                display: flex !important;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                display: flex;
                 flex-direction: column;
-                width: 100%;
-                height: 100vh;
-                max-height: 100vh;
-                box-sizing: border-box;
-                page-break-after: avoid;
-                page-break-inside: avoid;
-                break-inside: avoid;
                 overflow: hidden;
             }
             #svg-print-wrapper {
                 flex: 1 1 auto;
                 min-height: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                position: relative;
                 overflow: hidden;
-                page-break-inside: avoid;
-                break-inside: avoid;
             }
             #svg-print-wrapper svg {
-                display: block !important;
-                width: 100% !important;
-                height: 100% !important;
-                max-width: 100%;
-                max-height: 100%;
-                margin: 0 auto;
-                object-fit: contain;
-            }
-
-            /* When the print-options dialog supplied a specific scale, paper
-               size, or extras (scale bar / title block), opt out of the flex
-               auto-fit wrapper so the SVG can render at its intrinsic inch-
-               based dimensions, and so the corner-anchored elements (title
-               block, scale bar) can be absolutely positioned. */
-            body.layout-only.print-options-active #svg-print-wrapper {
-                display: block !important;
-                overflow: visible !important;
-                align-items: initial !important;
-                justify-content: initial !important;
-                position: relative;
+                display: block;
+                width: 100%;
                 height: 100%;
             }
-            body.layout-only.print-options-active #svg-print-wrapper svg {
-                width: auto !important;
-                height: auto !important;
-                max-width: none !important;
-                max-height: none !important;
-                object-fit: initial !important;
-                margin: 0;
+
+            /* The title bar — one full-width row at the top. Empty (and
+               hidden) when the title bar is turned off. */
+            #lay-tb-band {
+                flex: 0 0 auto;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 4px 10px;
+                background: #fff;
+                border-bottom: 1px solid #333;
+                font-family: Arial, sans-serif;
+                font-size: 13pt;
+                line-height: 1.2;
+                color: #222;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-            body.layout-only.print-options-active #print-layout-container {
-                position: relative;
+            #lay-tb-band:empty { display: none; }
+            #lay-tb-band .tb-logo {
+                width: 30px; height: 30px;
+                flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center;
             }
-            /* Anchored title block — always at the bottom-right corner of the
-               print page, sized to its content. Sits over any drawing content. */
-            body.layout-only.print-options-active .print-title-block {
-                position: absolute !important;
-                bottom: 12px;
-                right: 12px;
-                margin: 0 !important;
+            #lay-tb-band .tb-logo img,
+            #lay-tb-band .tb-logo svg { max-width: 100%; max-height: 100%; object-fit: contain; }
+            #lay-tb-band .tb-id {
+                font-weight: bold;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
+            }
+            #lay-tb-band .tb-id .tb-page { font-weight: normal; color: #444; }
+            #lay-tb-band .tb-meta {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            #lay-tb-band .tb-scalebar { flex-shrink: 0; display: flex; align-items: center; }
+
+            /* ── SCALED prints (print-scale-active) ──────────────────────
+               Full-bleed drawing at exact inch size; the title bar overlays
+               the TOP strip (opaque). The workspace title-bar guide keeps
+               that strip clear on new sheets. */
+            body.layout-only.print-scale-active #print-layout-container { display: block; }
+            body.layout-only.print-scale-active #svg-print-wrapper {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+            }
+            body.layout-only.print-scale-active #svg-print-wrapper svg {
+                width: auto;
+                height: auto;
+            }
+            body.layout-only.print-scale-active #lay-tb-band {
+                position: absolute;
+                left: 0; right: 0; top: 0;
                 z-index: 10;
-                background: #f6f6f6;
-                border: 1px solid #222;
-            }
-            /* Anchored scale bar — bottom-left corner. */
-            body.layout-only.print-options-active .print-scale-bar {
-                position: absolute !important;
-                bottom: 12px;
-                left: 12px;
-                margin: 0 !important;
-                z-index: 10;
-                background: rgba(255,255,255,0.85);
-                padding: 4px 6px;
-                border-radius: 2px;
             }
 
             .summary-only #print-layout-container { display: none !important; }
@@ -1343,13 +1362,13 @@
         <div style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
                 <input type="checkbox" id="print-scale-bar" style="width: auto; margin: 0;">
-                <span data-i18n="modal.print.scale_bar">Include scale bar in margin</span>
+                <span data-i18n="modal.print.scale_bar">Include scale bar (shown in the title bar, scaled prints only)</span>
             </label>
         </div>
         <div style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
                 <input type="checkbox" id="print-title-block" style="width: auto; margin: 0;">
-                <span data-i18n="modal.print.title_block">Include title block (project, page, date, scale)</span>
+                <span data-i18n="modal.print.title_block">Show title bar (logo, project, page, scale, date)</span>
             </label>
         </div>
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -2149,17 +2168,11 @@
 </div><!-- /app-root -->
 
 <div id="print-layout-container">
-    <div class="print-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div class="print-logo" id="lay-logo-print"></div>
-            <div>
-                <h1 id="lay-title-print">Layout</h1>
-                <div class="print-subtitle" data-i18n="print.subtitle">Convention Planner</div>
-                <div id="lay-shift-print" style="font-size: 11pt; color: #555; margin-top: 4px; font-weight: bold; display: none;"></div>
-            </div>
-        </div>
-        <span id="lay-date-print" style="font-weight: bold; font-size: 11pt;"></span>
-    </div>
+    <!-- The title bar: one full-width row at the TOP of the page (logo ·
+         project · page · scale · date · shift · scale bar). Populated by
+         buildAndPrint when the title-bar option is on; left empty (and hidden
+         via :empty) when off. -->
+    <div id="lay-tb-band"></div>
     <div id="svg-print-wrapper"></div>
 </div>
 
@@ -2484,6 +2497,7 @@ const I18N_STRINGS = {
         "project.sheet.none": "No drawing sheet on this page.",
         "project.sheet.current": "Drawing sheet:",
         "project.sheet.scale": "Scale:",
+        "sheet.titlebar.guide": "Title bar area",
         "project.sheet.add": "+ Add Drawing Sheet",
         "project.sheet.edit": "✎ Edit Sheet",
         "project.sheet.remove": "Remove",
@@ -2512,11 +2526,12 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientation",
         "modal.print.scale": "Print scale",
         "modal.print.scale.fit": "Fit to page (no specific scale)",
-        "modal.print.scale_bar": "Include scale bar in margin",
-        "modal.print.title_block": "Include title block (project, page, date, scale)",
+        "modal.print.scale_bar": "Include scale bar (shown in the title bar, scaled prints only)",
+        "modal.print.title_block": "Show title bar (logo, project, page, scale, date)",
         "modal.print.cancel": "Cancel",
         "modal.print.confirm": "Print",
         "print.scale.fit_label": "Fit to page",
+        "print.scale.nts": "Not to scale",
         "print.titleblock.page": "Page:",
         "print.titleblock.date": "Date:",
         "print.titleblock.scale": "Scale:",
@@ -3144,6 +3159,7 @@ const I18N_STRINGS = {
         "project.sheet.none": "No hay hoja de dibujo en esta página.",
         "project.sheet.current": "Hoja de dibujo:",
         "project.sheet.scale": "Escala:",
+        "sheet.titlebar.guide": "Área de la barra de título",
         "project.sheet.add": "+ Añadir Hoja de Dibujo",
         "project.sheet.edit": "✎ Editar Hoja",
         "project.sheet.remove": "Quitar",
@@ -3172,11 +3188,12 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientación",
         "modal.print.scale": "Escala de impresión",
         "modal.print.scale.fit": "Ajustar a la página (sin escala específica)",
-        "modal.print.scale_bar": "Incluir barra de escala en el margen",
-        "modal.print.title_block": "Incluir cuadro de título (proyecto, página, fecha, escala)",
+        "modal.print.scale_bar": "Incluir barra de escala (se muestra en la barra de título, solo impresiones a escala)",
+        "modal.print.title_block": "Mostrar barra de título (logotipo, proyecto, página, escala, fecha)",
         "modal.print.cancel": "Cancelar",
         "modal.print.confirm": "Imprimir",
         "print.scale.fit_label": "Ajustar a la página",
+        "print.scale.nts": "No a escala",
         "print.titleblock.page": "Página:",
         "print.titleblock.date": "Fecha:",
         "print.titleblock.scale": "Escala:",
@@ -7175,7 +7192,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.1.1";
+    const APP_VERSION = "2.1.2";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7392,6 +7409,11 @@ const I18N_STRINGS = {
     // for 1/4" = 1', or 12/50 = 0.24 for 1:50 metric).
     const PIXELS_PER_PAPER_INCH = 96;        // Standard CSS DPI — drives sheet pixel size on screen
     const DEFAULT_DRAWING_SCALE = 0.25;       // 1/4" = 1' — most common architectural scale for floor plans
+    // Height (in paper inches) reserved for the printed title bar at the bottom
+    // of a sheet. The workspace guide reserves the same strip so the drawing is
+    // designed around where the bar will land. Roughly matches the printed
+    // bar's natural height (≈ 30px logo + padding at 96dpi).
+    const TITLE_BAR_STRIP_IN = 0.4;
 
     // Standard drawing scales — imperial first, then metric. Each preset is
     // identified by id and stores its scale as paper_inches_per_real_foot so the
@@ -7465,6 +7487,25 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.1.2",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Streamlined floor-plan printing down to two clear choices — a title bar, or just the drawing:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>The title bar (on by default) is now a single full-width row across the top of the page. It carries your project logo, the project and page names, the scale — or <em>"Not to scale"</em> when no set scale is chosen — the date, the shift (when the shift indicator is on), and a small scale bar (when a scale is set and that option is on). It prints at paper scale, so it stays readable no matter the drawing's scale.</li>
+                    <li>Turn the title bar off to print just the drawing — nothing else. The old slim top line and the separate title-block card are gone.</li>
+                    <li>Fit-to-page plans are scaled to fit and centered below the bar, so large floor plans are never clipped or covered. Scaled set-sheets still print at their exact drawing scale, with the bar across the top. On drawing sheets, a faint guide strip marks where the bar will sit so you can design around it.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Impresión de planos simplificada a dos opciones claras — con barra de título o solo el dibujo:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>La barra de título (activada por defecto) ahora es una sola fila de ancho completo en la parte superior de la página. Incluye el logotipo del proyecto, los nombres del proyecto y de la página, la escala — o <em>"No a escala"</em> cuando no se elige una escala — la fecha, el turno (cuando el indicador de turno está activado) y una pequeña barra de escala (cuando hay una escala definida y esa opción está activada). Se imprime a escala de papel, así que se mantiene legible sin importar la escala del dibujo.</li>
+                    <li>Desactive la barra de título para imprimir solo el dibujo — nada más. La antigua línea delgada superior y la tarjeta de bloque de título separada desaparecieron.</li>
+                    <li>Los planos ajustados a la página se escalan para caber y se centran debajo de la barra, así que los planos grandes nunca se recortan ni se tapan. Las hojas a escala siguen imprimiéndose a su escala de dibujo exacta, con la barra en la parte superior. En las hojas de dibujo, una franja guía tenue marca dónde irá la barra para que pueda diseñar alrededor de ella.</li>
+                </ul>
+            `
+        },
         {
             version: "2.1.1",
             en: `
@@ -10601,10 +10642,10 @@ const I18N_STRINGS = {
 
     function init() {
         window.onresize = resize; resize();
-        // After any print, strip the print-options-active body class so the
-        // next normal app interaction or print isn't affected by it.
+        // After any print, clear the layout-print mode classes so the next
+        // normal app interaction or print isn't affected by them.
         window.addEventListener('afterprint', () => {
-            document.body.classList.remove('print-options-active');
+            document.body.classList.remove('print-scale-active');
         });
         // Apply static translations BEFORE the first updateUI so the panel
         // title strings get translated on first render. The language picker
@@ -12398,6 +12439,41 @@ const I18N_STRINGS = {
             targetCtx.strokeStyle = '#444';
             targetCtx.lineWidth = 1.5 / v.zoom;
             targetCtx.strokeRect(0, 0, sW, sH);
+
+            // Title-bar guide — a reserved strip across the TOP of the sheet
+            // marking where the printed title bar will sit, so the plan is
+            // designed around it. Visual aid only (drawing here isn't blocked),
+            // and screen-only (isLive) so it never lands in any export raster.
+            if (isLive && uiState.showTitleBarGuide !== false) {
+                const stripPx     = TITLE_BAR_STRIP_IN * PIXELS_PER_PAPER_INCH;
+                const stripBottom = stripPx;
+                if (stripBottom < sH) {
+                    targetCtx.save();
+                    targetCtx.fillStyle = 'rgba(46, 117, 182, 0.06)';
+                    targetCtx.fillRect(0, 0, sW, stripPx);
+                    targetCtx.strokeStyle = 'rgba(46, 117, 182, 0.55)';
+                    targetCtx.lineWidth = 1.2 / v.zoom;
+                    targetCtx.setLineDash([6 / v.zoom, 4 / v.zoom]);
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, stripBottom);
+                    targetCtx.lineTo(sW, stripBottom);
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
+                    // Label at a screen-constant size, only when the strip is
+                    // tall enough on screen to read it.
+                    if (stripPx * v.zoom > 16) {
+                        targetCtx.fillStyle = 'rgba(46, 117, 182, 0.75)';
+                        targetCtx.font = `${11 / v.zoom}px Arial`;
+                        targetCtx.textAlign = 'center';
+                        targetCtx.textBaseline = 'middle';
+                        targetCtx.fillText(
+                            t('sheet.titlebar.guide') || 'Title bar area',
+                            sW / 2, stripPx / 2
+                        );
+                    }
+                    targetCtx.restore();
+                }
+            }
         }
 
         if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
@@ -14442,7 +14518,7 @@ const I18N_STRINGS = {
             scaleEl.value = 'fit';
         }
         document.getElementById('print-scale-bar').checked = false;
-        document.getElementById('print-title-block').checked = false;
+        document.getElementById('print-title-block').checked = true;  // title bar on by default
         document.getElementById('print-scale-warning').style.display = 'none';
         updatePrintOrientationButtons();
         document.getElementById('print-options-modal').classList.add('show');
@@ -14550,42 +14626,83 @@ const I18N_STRINGS = {
 
     // Title block — a small card with project metadata for the print's corner.
     // Includes project name, page name, date, and the drawing scale.
+    // Builds the INNER content of the bottom title bar (#lay-tb-band): a
+    // single horizontal row — logo + project/page on the left; scale, date,
+    // shift, and (when scaled + option on) a small scale bar pushed right.
+    // Builds the INNER content of the bottom title bar (#lay-tb-band): a
+    // single horizontal row — logo + project/page on the left; scale, date,
+    // shift, and (when scaled + option on) a small scale bar pushed right.
+    // Returns { html, fontPt }: fontPt is auto-shrunk from the base size so a
+    // long project/page name fits the selected paper width on one line instead
+    // of being truncated. (CSS ellipsis on .tb-id remains the last-ditch
+    // fallback if the text is extreme.)
+    const TB_BASE_FONT_PT = 13;   // base title-bar text size (shrinks to fit)
+    const TB_MIN_FONT_PT  = 7.5;  // never shrink below this
     function buildTitleBlockHTML(page, printOpts) {
         const proj = project.title || '';
         const pageName = page ? (page.name || '') : '';
         const date = new Date().toLocaleDateString();
-        const scaleLabel = (printOpts.printScale !== null)
+        const scaled = printOpts.printScale !== null;
+        const scaleLabel = scaled
             ? formatDrawingScale(printOpts.printScale)
-            : (t('print.scale.fit_label') || 'Fit to page');
-        return `<div class="print-title-block" style="padding: 8px 12px; border: 1px solid #222; background: #f6f6f6; font-family: Arial, sans-serif; font-size: 10px; color: #222; max-width: 360px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-            <div style="font-weight: bold; font-size: 12px; margin-bottom: 4px;">${escapeHTML(proj)}</div>
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <span><b>${escapeHTML(t('print.titleblock.page') || 'Page:')}</b> ${escapeHTML(pageName)}</span>
-                <span><b>${escapeHTML(t('print.titleblock.date') || 'Date:')}</b> ${escapeHTML(date)}</span>
+            : (t('print.scale.nts') || 'Not to scale');
+        const activeShift = getActiveShift();
+        const showShift = activeShift && uiState.showShiftInPrint !== false;
+        const shiftStr = showShift
+            ? t('print.layout.shift_indicator', { n: activeShift.number, description: activeShift.description ? '— ' + activeShift.description : '' })
+            : '';
+        const logoHTML = project.logoData
+            ? `<img src="${project.logoData}" alt="Logo">`
+            : PRINT_DEFAULT_LOGO_SVG;
+        const showScaleBar = printOpts.showScaleBar && scaled;
+        const scaleBarInner = showScaleBar
+            ? buildScaleBarSVG(printOpts.printScale, getUnits() === 'mm' || getUnits() === 'm')
+            : '';
+
+        // ── Auto-fit: shrink the font only when the row would overflow ──────
+        // Text width scales linearly with font size; the logo, gaps, padding,
+        // and scale bar are fixed px. So solve for the largest font size where
+        //   fixedPx + textPx × (fontPt / base) ≤ availablePx
+        const idText    = proj + (pageName ? ` — ${pageName}` : '');
+        const scaleText = (t('print.titleblock.scale') || 'Scale:') + ' ' + scaleLabel;
+        const metaParts = [scaleText, date];
+        if (showShift) metaParts.push(shiftStr);
+        measureCtx.font = `${TB_BASE_FONT_PT}pt Arial`;
+        const textPxAtBase =
+            measureCtx.measureText(idText).width +
+            metaParts.reduce((sum, s) => sum + measureCtx.measureText(s).width, 0);
+        const metaGaps   = (metaParts.length - 1) * 14;     // gap between meta spans
+        const scaleBarPx = showScaleBar ? 170 : 0;          // approx fixed width of the bar graphic
+        const fixedPx = 20 /*padding*/ + 30 /*logo*/ + 12 /*logo→id gap*/
+                      + 14 /*id→meta min gap*/ + metaGaps + scaleBarPx;
+        const availPx = ((printOpts.paperWidthIn || 11) - 0.30 /*@page margins*/)
+                      * PIXELS_PER_PAPER_INCH * 0.97 /*safety*/;
+        let fontPt = TB_BASE_FONT_PT;
+        if (textPxAtBase > 0 && fixedPx + textPxAtBase > availPx) {
+            fontPt = TB_BASE_FONT_PT * Math.max(availPx - fixedPx, 0) / textPxAtBase;
+            fontPt = Math.max(TB_MIN_FONT_PT, Math.min(TB_BASE_FONT_PT, fontPt));
+        }
+
+        const idHTML = `${escapeHTML(proj)}${pageName ? `<span class="tb-page"> — ${escapeHTML(pageName)}</span>` : ''}`;
+        const html = `<div class="tb-logo">${logoHTML}</div>
+            <div class="tb-id">${idHTML}</div>
+            <div class="tb-meta">
                 <span><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b> ${escapeHTML(scaleLabel)}</span>
-            </div>
-        </div>`;
+                <span>${escapeHTML(date)}</span>
+                ${showShift ? `<span>${escapeHTML(shiftStr)}</span>` : ''}
+                ${showScaleBar ? `<span class="tb-scalebar">${scaleBarInner}</span>` : ''}
+            </div>`;
+        return { html, fontPt: Math.round(fontPt * 10) / 10 };
     }
 
     function printReport(type, scheduleFilters, scheduleOptions, printOpts) {        try {
             populatePrintLogos();
-            document.getElementById('lay-title-print').innerText = project.title + " - " + getActivePage().name;
             const dateStr = fmtDate(new Date());
-            document.getElementById('lay-date-print').innerText = dateStr; document.getElementById('rpt-date-print').innerText = dateStr;
+            document.getElementById('rpt-date-print').innerText = dateStr;
             // Reset the prebody region (only the schedule print uses it; clear
             // it for every other report type so stale content doesn't carry over).
             const prebody = document.getElementById('rpt-prebody-print');
             if (prebody) prebody.innerHTML = '';
-
-            // Shift indicator on layout print — only shown when the toggle is on
-            const shiftEl = document.getElementById('lay-shift-print');
-            const activeShift = getActiveShift();
-            if (activeShift && shiftEl && uiState.showShiftInPrint !== false) {
-                shiftEl.innerText = t('print.layout.shift_indicator', { n: activeShift.number, description: activeShift.description ? '— ' + activeShift.description : '' });
-                shiftEl.style.display = 'block';
-            } else if (shiftEl) {
-                shiftEl.style.display = 'none';
-            }
 
             if (type === 'summary') {
                 document.getElementById('rpt-title-print').innerText = project.title + " - " + t('print.summary.title');
@@ -15080,7 +15197,7 @@ const I18N_STRINGS = {
                         }
                     });
                     const rasterBgDataUrl = rasterCanvas.toDataURL('image/jpeg', 0.85);
-                    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
+                    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" preserveAspectRatio="xMidYMid meet" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
                     svg += `<image href="${rasterBgDataUrl}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
                     if (uiState.showScreens && hasScreens) {
                         activeScreens.forEach((sc) => {
@@ -15603,12 +15720,11 @@ const I18N_STRINGS = {
                     // ── Scale-aware sizing ────────────────────────────────────
                     // For scaled prints: give the SVG intrinsic dimensions in
                     // CSS inches via width/height ATTRIBUTES (not style). The
-                    // body class "print-options-active" opts out of the wrapper's
-                    // flex auto-fit so the SVG can render at its true paper size.
+                    // body class "print-scale-active" opts the SVG out of
+                    // fit-to-page sizing so it renders at its true paper size.
                     // 1 CSS inch = 1 physical inch in print mode, so the printed
                     // output is at exactly the requested scale.
-                    let scaleBarHTML = '';
-                    let titleBlockHTML = '';
+                    let titleBar = { html: '', fontPt: TB_BASE_FONT_PT };
                     const hasOpts = !!printOpts;
 
                     if (hasOpts && printOpts.printScale !== null && page.pixelsPerFoot > 0) {
@@ -15617,7 +15733,7 @@ const I18N_STRINGS = {
                         const outWIn = realWorldWFt * printOpts.printScale;
                         const outHIn = realWorldHFt * printOpts.printScale;
                         // Inject width/height attributes — these become the SVG's
-                        // intrinsic size. CSS `width: auto` (from .print-options-active
+                        // intrinsic size. CSS `width: auto` (from .print-scale-active
                         // override) lets these attributes drive layout.
                         svg = svg.replace(
                             /^<svg /,
@@ -15625,26 +15741,34 @@ const I18N_STRINGS = {
                         );
                     }
 
-                    // Scale bar — independent of SVG sizing, in corner. Only
-                    // renders when a specific scale is set (no scale ⇒ no bar).
-                    if (hasOpts && printOpts.showScaleBar && printOpts.printScale !== null) {
-                        scaleBarHTML = `<div class="print-scale-bar">${buildScaleBarSVG(printOpts.printScale, getUnits() === 'mm' || getUnits() === 'm')}</div>`;
-                    }
-
-                    // Title block — corner-anchored card with project metadata.
+                    // Title bar — the single top row (logo · project · page ·
+                    // scale · date · shift · scale bar). The scale bar is built
+                    // inside it, so there's no separate corner overlay anymore.
+                    // buildTitleBlockHTML also returns an auto-fitted font size.
                     if (hasOpts && printOpts.showTitleBlock) {
-                        titleBlockHTML = buildTitleBlockHTML(page, printOpts);
+                        titleBar = buildTitleBlockHTML(page, printOpts);
                     }
 
-                    // Toggle the body class so the CSS overrides activate
-                    // (wrapper flex auto-fit off, corner anchoring on). Removed
-                    // via the afterprint listener so the next non-options print
-                    // (or normal app use) isn't affected.
-                    if (hasOpts) {
-                        document.body.classList.add('print-options-active');
+                    // print-scale-active: a specific drawing scale is set, so the
+                    // SVG renders at exact inch size (full-bleed) and the title
+                    // bar overlays the top strip; otherwise the bar is a reserved
+                    // band and the drawing fits below it.
+                    // Removed via the afterprint listener.
+                    document.body.classList.remove('print-scale-active');
+                    if (hasOpts && printOpts.printScale !== null && page.pixelsPerFoot > 0) {
+                        document.body.classList.add('print-scale-active');
                     }
 
-                    document.getElementById('svg-print-wrapper').innerHTML = svg + scaleBarHTML + titleBlockHTML;
+                    // The drawing wrapper holds only the SVG in both modes; the
+                    // title bar (when on) goes into #lay-tb-band. CSS positions
+                    // it as a reserved top band (fit) or a top overlay (scaled).
+                    // When off, the band is empty → hidden via :empty.
+                    document.getElementById('svg-print-wrapper').innerHTML = svg;
+                    const tbBand = document.getElementById('lay-tb-band');
+                    if (tbBand) {
+                        tbBand.style.fontSize = titleBar.fontPt + 'pt';
+                        tbBand.innerHTML = titleBar.html;
+                    }
                     // ─── FIX #13: Use rAF + small delay to ensure browser paints SVG ──
                     requestAnimationFrame(() => setTimeout(() => window.print(), 50));
                 }
