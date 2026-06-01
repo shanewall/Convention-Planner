@@ -1,5 +1,1 @@
-[[redirects]]
-  from = "/*"
-  to = "https://app.conventionplanner.org/:splat"
-  status = 301
-  force = true
+/*  https://app.conventionplanner.org/:splat  301!
