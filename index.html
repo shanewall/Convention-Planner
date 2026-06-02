@@ -699,37 +699,64 @@
 
             /* The title bar — one full-width row at the top. Empty (and
                hidden) when the title bar is turned off. */
+            /* Layout title bar — styled to match the report header (.print-header):
+               a bold project/page title stacked over a gray uppercase
+               "Convention Planner" subtitle, a 60px logo, and a heavy 2px rule.
+               It stays a single flex row (logo · stacked title block · meta);
+               the title block is the only part that stacks vertically. */
             #lay-tb-band {
                 flex: 0 0 auto;
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                padding: 4px 10px;
+                gap: 15px;
+                padding: 6px 12px;
                 background: #fff;
-                border-bottom: 1px solid #333;
+                border-bottom: 2px solid #000;
                 font-family: Arial, sans-serif;
-                font-size: 13pt;
-                line-height: 1.2;
-                color: #222;
+                /* Title size for the project/page name. The whole band is sized
+                   from a single font-size (set inline to the auto-shrunk fontPt
+                   at print time); this is the un-shrunk ceiling and MUST stay in
+                   sync with TB_BASE_FONT_PT in the JS. The subtitle (.tb-sub) and
+                   metadata (.tb-meta) are em fractions below, mirroring the
+                   report header's 20pt title / 10pt subtitle / 11pt date. */
+                font-size: 18pt;
+                line-height: 1.15;
+                color: #000;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             #lay-tb-band:empty { display: none; }
             #lay-tb-band .tb-logo {
-                width: 30px; height: 30px;
+                width: 60px; height: 60px;
                 flex-shrink: 0;
                 display: flex; align-items: center; justify-content: center;
             }
             #lay-tb-band .tb-logo img,
             #lay-tb-band .tb-logo svg { max-width: 100%; max-height: 100%; object-fit: contain; }
+            /* Stacked title + subtitle, mirroring the report header's <h1> + subtitle. */
             #lay-tb-band .tb-id {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-width: 0;
+            }
+            #lay-tb-band .tb-title {
                 font-weight: bold;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                min-width: 0;
+                line-height: 1.1;
             }
-            #lay-tb-band .tb-id .tb-page { font-weight: normal; color: #444; }
+            #lay-tb-band .tb-title .tb-page { font-weight: normal; color: #444; }
+            #lay-tb-band .tb-sub {
+                font-size: 0.5em;              /* ~10pt against an 18-20pt title */
+                color: #666;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                font-weight: bold;
+                line-height: 1.2;
+                margin-top: 1px;
+            }
             #lay-tb-band .tb-meta {
                 margin-left: auto;
                 display: flex;
@@ -737,8 +764,42 @@
                 gap: 14px;
                 white-space: nowrap;
                 flex-shrink: 0;
+                /* ~11pt against an 18pt title — matches the report header's date.
+                   Keep this factor in sync with TB_META_SCALE in the JS
+                   (used by the auto-fit width math). */
+                font-size: 0.62em;
             }
-            #lay-tb-band .tb-scalebar { flex-shrink: 0; display: flex; align-items: center; }
+            #lay-tb-band .tb-scalebar {
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                white-space: nowrap;
+                font-weight: bold;
+                font-size: 0.72em;   /* ~13pt corner scale, clearly readable, never clips */
+                color: #000;
+            }
+
+            /* Two-line mode — added by the auto-fit (class .tb-wrap) when one row
+               would force the title to shrink too small. A grid stacks the meta
+               UNDER the title, with the logo spanning both rows and the scale bar
+               staying on the title row. Because the title block + meta stack
+               within roughly the logo's height, the bar stays about as tall as
+               the one-line version, so the reserved guide strip still covers it.
+               Nothing is truncated. */
+            #lay-tb-band.tb-wrap {
+                display: grid;
+                grid-template-columns: auto 1fr auto;
+                grid-template-areas:
+                    "logo title scalebar"
+                    "logo meta  meta";
+                align-items: center;
+                column-gap: 15px;
+                row-gap: 2px;
+            }
+            #lay-tb-band.tb-wrap .tb-logo     { grid-area: logo; align-self: center; }
+            #lay-tb-band.tb-wrap .tb-id       { grid-area: title; }
+            #lay-tb-band.tb-wrap .tb-scalebar { grid-area: scalebar; justify-self: end; }
+            #lay-tb-band.tb-wrap .tb-meta     { grid-area: meta; margin-left: 0; }
 
             /* ── SCALED prints (print-scale-active) ──────────────────────
                Full-bleed drawing at exact inch size; the title bar overlays
@@ -1362,7 +1423,7 @@
         <div style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
                 <input type="checkbox" id="print-scale-bar" style="width: auto; margin: 0;">
-                <span data-i18n="modal.print.scale_bar">Include scale bar (shown in the title bar, scaled prints only)</span>
+                <span data-i18n="modal.print.scale_bar">Show scale in the corner (scaled prints only)</span>
             </label>
         </div>
         <div style="margin-bottom: 12px;">
@@ -2526,7 +2587,7 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientation",
         "modal.print.scale": "Print scale",
         "modal.print.scale.fit": "Fit to page (no specific scale)",
-        "modal.print.scale_bar": "Include scale bar (shown in the title bar, scaled prints only)",
+        "modal.print.scale_bar": "Show scale in the corner (scaled prints only)",
         "modal.print.title_block": "Show title bar (logo, project, page, scale, date)",
         "modal.print.cancel": "Cancel",
         "modal.print.confirm": "Print",
@@ -2841,7 +2902,7 @@ const I18N_STRINGS = {
         "print.signs.col.count": "Total Count / Length (All Pages)",
         "print.signs.grand_total": "GRAND TOTAL ALL KEY ITEMS",
         "print.signs.empty": "No key items placed in this project.",
-        "print.layout.shift_indicator": "Shift #{n} — {description}",
+        "print.layout.shift_indicator": "Shift #{n}{description}",
         "print.layout.processing": "Processing Hybrid Print… Please wait.",
         "print.schedule.title": "Shift Schedule",
         "print.schedule.col.post": "Post",
@@ -3188,7 +3249,7 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientación",
         "modal.print.scale": "Escala de impresión",
         "modal.print.scale.fit": "Ajustar a la página (sin escala específica)",
-        "modal.print.scale_bar": "Incluir barra de escala (se muestra en la barra de título, solo impresiones a escala)",
+        "modal.print.scale_bar": "Mostrar la escala en la esquina (solo impresiones a escala)",
         "modal.print.title_block": "Mostrar barra de título (logotipo, proyecto, página, escala, fecha)",
         "modal.print.cancel": "Cancelar",
         "modal.print.confirm": "Imprimir",
@@ -3503,7 +3564,7 @@ const I18N_STRINGS = {
         "print.signs.col.count": "Cantidad Total / Longitud (Todas las Páginas)",
         "print.signs.grand_total": "TOTAL GENERAL DE TODOS LOS ARTÍCULOS CLAVES",
         "print.signs.empty": "No se han colocado artículos claves en este proyecto.",
-        "print.layout.shift_indicator": "Turno #{n} — {description}",
+        "print.layout.shift_indicator": "Turno #{n}{description}",
         "print.layout.processing": "Procesando impresión híbrida... Por favor, espera.",
         "print.schedule.title": "Horario de Turnos",
         "print.schedule.col.post": "Puesto",
@@ -7409,11 +7470,13 @@ const I18N_STRINGS = {
     // for 1/4" = 1', or 12/50 = 0.24 for 1:50 metric).
     const PIXELS_PER_PAPER_INCH = 96;        // Standard CSS DPI — drives sheet pixel size on screen
     const DEFAULT_DRAWING_SCALE = 0.25;       // 1/4" = 1' — most common architectural scale for floor plans
-    // Height (in paper inches) reserved for the printed title bar at the bottom
+    // Height (in paper inches) reserved for the printed title bar at the top
     // of a sheet. The workspace guide reserves the same strip so the drawing is
-    // designed around where the bar will land. Roughly matches the printed
-    // bar's natural height (≈ 30px logo + padding at 96dpi).
-    const TITLE_BAR_STRIP_IN = 0.4;
+    // designed around where the bar will land. Covers both the one-line bar
+    // (≈60px logo + ~12px padding + 2px rule ≈ 0.77") and the two-line wrap mode,
+    // where the grid stacks the metadata under the title within ~the logo's
+    // height (≈0.79"), so 0.8" fits either. Keep matched to #lay-tb-band sizing.
+    const TITLE_BAR_STRIP_IN = 0.8;
 
     // Standard drawing scales — imperial first, then metric. Each preset is
     // identified by id and stores its scale as paper_inches_per_real_foot so the
@@ -14636,8 +14699,10 @@ const I18N_STRINGS = {
     // long project/page name fits the selected paper width on one line instead
     // of being truncated. (CSS ellipsis on .tb-id remains the last-ditch
     // fallback if the text is extreme.)
-    const TB_BASE_FONT_PT = 13;   // base title-bar text size (shrinks to fit)
+    const TB_BASE_FONT_PT = 18;   // title size for project/page name (shrinks to fit); mirrors #lay-tb-band font-size
     const TB_MIN_FONT_PT  = 7.5;  // never shrink below this
+    const TB_META_SCALE   = 0.62; // .tb-meta renders at this fraction of the band font; mirrors CSS .tb-meta font-size
+    const TB_SUB_SCALE    = 0.5;  // .tb-sub (subtitle) fraction of the band font; mirrors CSS .tb-sub font-size
     function buildTitleBlockHTML(page, printOpts) {
         const proj = project.title || '';
         const pageName = page ? (page.name || '') : '';
@@ -14649,50 +14714,73 @@ const I18N_STRINGS = {
         const activeShift = getActiveShift();
         const showShift = activeShift && uiState.showShiftInPrint !== false;
         const shiftStr = showShift
-            ? t('print.layout.shift_indicator', { n: activeShift.number, description: activeShift.description ? '— ' + activeShift.description : '' })
+            ? t('print.layout.shift_indicator', { n: activeShift.number, description: activeShift.description ? ' — ' + activeShift.description : '' })
             : '';
         const logoHTML = project.logoData
             ? `<img src="${project.logoData}" alt="Logo">`
             : PRINT_DEFAULT_LOGO_SVG;
-        const showScaleBar = printOpts.showScaleBar && scaled;
-        const scaleBarInner = showScaleBar
-            ? buildScaleBarSVG(printOpts.printScale, getUnits() === 'mm' || getUnits() === 'm')
-            : '';
+        // Scale callout: a compact TEXT scale in the corner instead of a drawn
+        // ruler (the ruler's end label kept clipping the page edge). The label
+        // is already unit-aware via formatDrawingScale — "1/4\" = 1'" for
+        // imperial, "1:50" for metric — so no separate unit handling is needed.
+        const showScaleCallout = printOpts.showScaleBar && scaled;
 
-        // ── Auto-fit: shrink the font only when the row would overflow ──────
-        // Text width scales linearly with font size; the logo, gaps, padding,
-        // and scale bar are fixed px. So solve for the largest font size where
-        //   fixedPx + textPx × (fontPt / base) ≤ availablePx
+        // ── Two-row layout: the metadata always sits on its own row beneath the
+        // title, so the title gets a full row to itself and can never be crushed
+        // or truncated. We only shrink the font if even a single row is too
+        // narrow for its content (extreme names on small paper). The title and
+        // subtitle render BOLD (wider than regular), so measure them bold, and
+        // assume a conservative usable width so we err toward shrinking, never
+        // toward overflow.
         const idText    = proj + (pageName ? ` — ${pageName}` : '');
+        const subText   = (t('print.subtitle') || 'Convention Planner').toUpperCase();
         const scaleText = (t('print.titleblock.scale') || 'Scale:') + ' ' + scaleLabel;
-        const metaParts = [scaleText, date];
+        // Show the scale inline in the meta only when it's NOT in the corner
+        // callout, so it's never stated twice.
+        const metaParts = [];
+        if (!showScaleCallout) metaParts.push(scaleText);
+        metaParts.push(date);
         if (showShift) metaParts.push(shiftStr);
+
+        measureCtx.font = `bold ${TB_BASE_FONT_PT}pt Arial`;
+        const idPx  = measureCtx.measureText(idText).width;
+        // Subtitle is bold + uppercase with letter-spacing; add the tracking.
+        const subPx = (measureCtx.measureText(subText).width + subText.length * 1.5) * TB_SUB_SCALE;
+        // Corner scale callout is bold; measure it bold too.
+        const calloutPx = showScaleCallout ? measureCtx.measureText(scaleText).width + 6 : 0;
         measureCtx.font = `${TB_BASE_FONT_PT}pt Arial`;
-        const textPxAtBase =
-            measureCtx.measureText(idText).width +
-            metaParts.reduce((sum, s) => sum + measureCtx.measureText(s).width, 0);
-        const metaGaps   = (metaParts.length - 1) * 14;     // gap between meta spans
-        const scaleBarPx = showScaleBar ? 170 : 0;          // approx fixed width of the bar graphic
-        const fixedPx = 20 /*padding*/ + 30 /*logo*/ + 12 /*logo→id gap*/
-                      + 14 /*id→meta min gap*/ + metaGaps + scaleBarPx;
-        const availPx = ((printOpts.paperWidthIn || 11) - 0.30 /*@page margins*/)
-                      * PIXELS_PER_PAPER_INCH * 0.97 /*safety*/;
-        let fontPt = TB_BASE_FONT_PT;
-        if (textPxAtBase > 0 && fixedPx + textPxAtBase > availPx) {
-            fontPt = TB_BASE_FONT_PT * Math.max(availPx - fixedPx, 0) / textPxAtBase;
-            fontPt = Math.max(TB_MIN_FONT_PT, Math.min(TB_BASE_FONT_PT, fontPt));
-        }
+        const metaTextPx = metaParts.reduce((sum, s) => sum + measureCtx.measureText(s).width, 0) * TB_META_SCALE;
+        const metaGaps   = (metaParts.length - 1) * 14;   // gaps between meta spans
+        const scaleBarPx = calloutPx;                     // width reserved for the corner scale text
+
+        const PAD_PX = 24, LOGO_PX = 60, LOGO_GAP = 15;
+        // Conservative usable width: 0.25in print margins each side, minus a
+        // safety factor — better to shrink a hair early than to clip.
+        const availPx = Math.max(0, (printOpts.paperWidthIn || 11) - 0.5)
+                      * PIXELS_PER_PAPER_INCH * 0.95;
+
+        const stackFixed  = PAD_PX + LOGO_PX + LOGO_GAP;                              // logo column, both rows
+        const titleAvail  = availPx - stackFixed - (scaleBarPx ? scaleBarPx + LOGO_GAP : 0); // title shares row 1 with the scale bar
+        const metaAvail   = availPx - stackFixed - metaGaps;                          // meta spans row 2
+        const leftBlockPx = Math.max(idPx, subPx);
+        const f1 = leftBlockPx > 0 ? TB_BASE_FONT_PT * Math.max(titleAvail, 0) / leftBlockPx : TB_BASE_FONT_PT;
+        const f2 = metaTextPx  > 0 ? TB_BASE_FONT_PT * Math.max(metaAvail, 0)  / metaTextPx  : TB_BASE_FONT_PT;
+        const fontPt = Math.max(TB_MIN_FONT_PT, Math.min(TB_BASE_FONT_PT, f1, f2));
+        const wrap = true;   // always two-row, so the title never gets crammed
 
         const idHTML = `${escapeHTML(proj)}${pageName ? `<span class="tb-page"> — ${escapeHTML(pageName)}</span>` : ''}`;
         const html = `<div class="tb-logo">${logoHTML}</div>
-            <div class="tb-id">${idHTML}</div>
+            <div class="tb-id">
+                <div class="tb-title">${idHTML}</div>
+                <div class="tb-sub">${escapeHTML(subText)}</div>
+            </div>
             <div class="tb-meta">
-                <span><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b> ${escapeHTML(scaleLabel)}</span>
+                ${!showScaleCallout ? `<span><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b> ${escapeHTML(scaleLabel)}</span>` : ''}
                 <span>${escapeHTML(date)}</span>
                 ${showShift ? `<span>${escapeHTML(shiftStr)}</span>` : ''}
-                ${showScaleBar ? `<span class="tb-scalebar">${scaleBarInner}</span>` : ''}
-            </div>`;
-        return { html, fontPt: Math.round(fontPt * 10) / 10 };
+            </div>
+            ${showScaleCallout ? `<div class="tb-scalebar"><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b>&nbsp;${escapeHTML(scaleLabel)}</div>` : ''}`;
+        return { html, fontPt: Math.round(fontPt * 10) / 10, wrap };
     }
 
     function printReport(type, scheduleFilters, scheduleOptions, printOpts) {        try {
@@ -15724,7 +15812,7 @@ const I18N_STRINGS = {
                     // fit-to-page sizing so it renders at its true paper size.
                     // 1 CSS inch = 1 physical inch in print mode, so the printed
                     // output is at exactly the requested scale.
-                    let titleBar = { html: '', fontPt: TB_BASE_FONT_PT };
+                    let titleBar = { html: '', fontPt: TB_BASE_FONT_PT, wrap: false };
                     const hasOpts = !!printOpts;
 
                     if (hasOpts && printOpts.printScale !== null && page.pixelsPerFoot > 0) {
@@ -15767,6 +15855,7 @@ const I18N_STRINGS = {
                     const tbBand = document.getElementById('lay-tb-band');
                     if (tbBand) {
                         tbBand.style.fontSize = titleBar.fontPt + 'pt';
+                        tbBand.classList.toggle('tb-wrap', !!titleBar.wrap);
                         tbBand.innerHTML = titleBar.html;
                     }
                     // ─── FIX #13: Use rAF + small delay to ensure browser paints SVG ──
