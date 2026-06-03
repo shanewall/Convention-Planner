@@ -758,48 +758,39 @@
                 margin-top: 1px;
             }
             #lay-tb-band .tb-meta {
-                margin-left: auto;
                 display: flex;
                 align-items: center;
-                gap: 14px;
-                white-space: nowrap;
-                flex-shrink: 0;
-                /* ~11pt against an 18pt title — matches the report header's date.
-                   Keep this factor in sync with TB_META_SCALE in the JS
-                   (used by the auto-fit width math). */
+                gap: 4px 14px;
+                flex-wrap: wrap;            /* scale + shift wrap to a 2nd line if extreme */
+                /* Secondary info (scale, shift), smaller than the title.
+                   Keep in sync with TB_META_SCALE in the JS auto-fit math. */
                 font-size: 0.62em;
             }
-            #lay-tb-band .tb-scalebar {
-                flex-shrink: 0;
-                display: flex;
-                align-items: center;
-                white-space: nowrap;
+            /* Date, top-right — matches the report header's date (bold, ~11pt). */
+            #lay-tb-band .tb-date {
                 font-weight: bold;
-                font-size: 0.72em;   /* ~13pt corner scale, clearly readable, never clips */
-                color: #000;
+                white-space: nowrap;
+                font-size: 0.62em;
             }
 
-            /* Two-line mode — added by the auto-fit (class .tb-wrap) when one row
-               would force the title to shrink too small. A grid stacks the meta
-               UNDER the title, with the logo spanning both rows and the scale bar
-               staying on the title row. Because the title block + meta stack
-               within roughly the logo's height, the bar stays about as tall as
-               the one-line version, so the reserved guide strip still covers it.
-               Nothing is truncated. */
+            /* Layout: logo spans both rows; title + "Convention Planner"
+               subtitle top-left, date top-right (like the report headers), and
+               the scale/shift on a smaller second row. The logo's height sets the
+               bar height, so the two text rows stack within it and stay compact. */
             #lay-tb-band.tb-wrap {
                 display: grid;
                 grid-template-columns: auto 1fr auto;
                 grid-template-areas:
-                    "logo title scalebar"
+                    "logo title date"
                     "logo meta  meta";
                 align-items: center;
                 column-gap: 15px;
                 row-gap: 2px;
             }
-            #lay-tb-band.tb-wrap .tb-logo     { grid-area: logo; align-self: center; }
-            #lay-tb-band.tb-wrap .tb-id       { grid-area: title; }
-            #lay-tb-band.tb-wrap .tb-scalebar { grid-area: scalebar; justify-self: end; }
-            #lay-tb-band.tb-wrap .tb-meta     { grid-area: meta; margin-left: 0; }
+            #lay-tb-band.tb-wrap .tb-logo { grid-area: logo; align-self: center; }
+            #lay-tb-band.tb-wrap .tb-id   { grid-area: title; }
+            #lay-tb-band.tb-wrap .tb-date { grid-area: date; justify-self: end; align-self: center; }
+            #lay-tb-band.tb-wrap .tb-meta { grid-area: meta; }
 
             /* ── SCALED prints (print-scale-active) ──────────────────────
                Full-bleed drawing at exact inch size; the title bar overlays
@@ -1419,12 +1410,6 @@
                 </optgroup>
             </select>
             <div id="print-scale-warning" style="font-size: 0.75em; color: #e67e22; margin-top: 4px; display: none;"></div>
-        </div>
-        <div style="margin-bottom: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
-                <input type="checkbox" id="print-scale-bar" style="width: auto; margin: 0;">
-                <span data-i18n="modal.print.scale_bar">Show scale in the corner (scaled prints only)</span>
-            </label>
         </div>
         <div style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
@@ -14580,7 +14565,6 @@ const I18N_STRINGS = {
             _printOrientation = 'landscape';
             scaleEl.value = 'fit';
         }
-        document.getElementById('print-scale-bar').checked = false;
         document.getElementById('print-title-block').checked = true;  // title bar on by default
         document.getElementById('print-scale-warning').style.display = 'none';
         updatePrintOrientationButtons();
@@ -14627,7 +14611,6 @@ const I18N_STRINGS = {
             paperKey:       paperKey,
             orientation:    _printOrientation,
             printScale:     scaleVal,   // null = Fit to page
-            showScaleBar:   document.getElementById('print-scale-bar').checked,
             showTitleBlock: document.getElementById('print-title-block').checked
         };
         hidePrintOptionsModal();
@@ -14706,7 +14689,7 @@ const I18N_STRINGS = {
     function buildTitleBlockHTML(page, printOpts) {
         const proj = project.title || '';
         const pageName = page ? (page.name || '') : '';
-        const date = new Date().toLocaleDateString();
+        const date = fmtDate(new Date());          // long form, e.g. "June 3, 2026" / "3 de junio de 2026"
         const scaled = printOpts.printScale !== null;
         const scaleLabel = scaled
             ? formatDrawingScale(printOpts.printScale)
@@ -14719,39 +14702,28 @@ const I18N_STRINGS = {
         const logoHTML = project.logoData
             ? `<img src="${project.logoData}" alt="Logo">`
             : PRINT_DEFAULT_LOGO_SVG;
-        // Scale callout: a compact TEXT scale in the corner instead of a drawn
-        // ruler (the ruler's end label kept clipping the page edge). The label
-        // is already unit-aware via formatDrawingScale — "1/4\" = 1'" for
-        // imperial, "1:50" for metric — so no separate unit handling is needed.
-        const showScaleCallout = printOpts.showScaleBar && scaled;
 
-        // ── Two-row layout: the metadata always sits on its own row beneath the
-        // title, so the title gets a full row to itself and can never be crushed
-        // or truncated. We only shrink the font if even a single row is too
-        // narrow for its content (extreme names on small paper). The title and
-        // subtitle render BOLD (wider than regular), so measure them bold, and
-        // assume a conservative usable width so we err toward shrinking, never
-        // toward overflow.
+        // ── Styled like the report headers: logo + bold project/page title +
+        // "Convention Planner" subtitle on the left, the date top-right, and the
+        // scale (+ shift) on a smaller second row. The title always owns its own
+        // row, so it can't be crushed; the font shrinks (and finally ellipsizes)
+        // only if a name is too long even for its full row. Title and subtitle
+        // render BOLD (wider), so measure them bold; assume a conservative usable
+        // width so we err toward shrinking, never toward overflow.
         const idText    = proj + (pageName ? ` — ${pageName}` : '');
         const subText   = (t('print.subtitle') || 'Convention Planner').toUpperCase();
         const scaleText = (t('print.titleblock.scale') || 'Scale:') + ' ' + scaleLabel;
-        // Show the scale inline in the meta only when it's NOT in the corner
-        // callout, so it's never stated twice.
-        const metaParts = [];
-        if (!showScaleCallout) metaParts.push(scaleText);
-        metaParts.push(date);
+        const metaParts = [scaleText];
         if (showShift) metaParts.push(shiftStr);
 
         measureCtx.font = `bold ${TB_BASE_FONT_PT}pt Arial`;
-        const idPx  = measureCtx.measureText(idText).width;
+        const idPx   = measureCtx.measureText(idText).width;
         // Subtitle is bold + uppercase with letter-spacing; add the tracking.
-        const subPx = (measureCtx.measureText(subText).width + subText.length * 1.5) * TB_SUB_SCALE;
-        // Corner scale callout is bold; measure it bold too.
-        const calloutPx = showScaleCallout ? measureCtx.measureText(scaleText).width + 6 : 0;
+        const subPx  = (measureCtx.measureText(subText).width + subText.length * 1.5) * TB_SUB_SCALE;
+        const datePx = measureCtx.measureText(date).width * TB_META_SCALE;   // date is bold, rendered small
         measureCtx.font = `${TB_BASE_FONT_PT}pt Arial`;
         const metaTextPx = metaParts.reduce((sum, s) => sum + measureCtx.measureText(s).width, 0) * TB_META_SCALE;
-        const metaGaps   = (metaParts.length - 1) * 14;   // gaps between meta spans
-        const scaleBarPx = calloutPx;                     // width reserved for the corner scale text
+        const metaGaps   = (metaParts.length - 1) * 14;
 
         const PAD_PX = 24, LOGO_PX = 60, LOGO_GAP = 15;
         // Conservative usable width: 0.25in print margins each side, minus a
@@ -14759,9 +14731,9 @@ const I18N_STRINGS = {
         const availPx = Math.max(0, (printOpts.paperWidthIn || 11) - 0.5)
                       * PIXELS_PER_PAPER_INCH * 0.95;
 
-        const stackFixed  = PAD_PX + LOGO_PX + LOGO_GAP;                              // logo column, both rows
-        const titleAvail  = availPx - stackFixed - (scaleBarPx ? scaleBarPx + LOGO_GAP : 0); // title shares row 1 with the scale bar
-        const metaAvail   = availPx - stackFixed - metaGaps;                          // meta spans row 2
+        const stackFixed  = PAD_PX + LOGO_PX + LOGO_GAP;                 // logo column, both rows
+        const titleAvail  = availPx - stackFixed - (datePx + LOGO_GAP);  // title shares row 1 with the date
+        const metaAvail   = availPx - stackFixed - metaGaps;             // meta spans row 2
         const leftBlockPx = Math.max(idPx, subPx);
         const f1 = leftBlockPx > 0 ? TB_BASE_FONT_PT * Math.max(titleAvail, 0) / leftBlockPx : TB_BASE_FONT_PT;
         const f2 = metaTextPx  > 0 ? TB_BASE_FONT_PT * Math.max(metaAvail, 0)  / metaTextPx  : TB_BASE_FONT_PT;
@@ -14774,12 +14746,11 @@ const I18N_STRINGS = {
                 <div class="tb-title">${idHTML}</div>
                 <div class="tb-sub">${escapeHTML(subText)}</div>
             </div>
+            <div class="tb-date">${escapeHTML(date)}</div>
             <div class="tb-meta">
-                ${!showScaleCallout ? `<span><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b> ${escapeHTML(scaleLabel)}</span>` : ''}
-                <span>${escapeHTML(date)}</span>
+                <span><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b> ${escapeHTML(scaleLabel)}</span>
                 ${showShift ? `<span>${escapeHTML(shiftStr)}</span>` : ''}
-            </div>
-            ${showScaleCallout ? `<div class="tb-scalebar"><b>${escapeHTML(t('print.titleblock.scale') || 'Scale:')}</b>&nbsp;${escapeHTML(scaleLabel)}</div>` : ''}`;
+            </div>`;
         return { html, fontPt: Math.round(fontPt * 10) / 10, wrap };
     }
 
