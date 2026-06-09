@@ -7280,7 +7280,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.1.2";
+    const APP_VERSION = "2.2.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7569,7 +7569,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.1.0-release";
+    const ANNOUNCEMENT_VERSION = "2.2.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7577,6 +7577,27 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.2.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Reference sheets, multi-select copy &amp; paste, and crisper seating:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Reference sheets &amp; “not counted” items.</strong> Mark a whole page as a reference sheet (it gets a ★ in the tabs and page list) or flag individual seating areas, placed items, and measures as <em>not counted</em> — so duplicated reference copies stop inflating your totals (Chair Summary, Key Item Report, and Excel export). The page setting overrides individual ones in both directions. Turn on <em>Dim not-counted</em> in the Layers panel to gray every excluded item and spot them at a glance.</li>
+                    <li><strong>Multi-select with scale-aware copy &amp; paste.</strong> Drag a box to select several items at once; Ctrl-click to add, Shift-click to remove. Move, duplicate, or delete the whole group. Copy a selection and paste it onto another sheet — it’s automatically resized to that sheet’s drawing scale, so a section copied from one floor lands correctly on another.</li>
+                    <li><strong>Cleaner per-page and per-item editing.</strong> Rename a page and set its reference flag in one place (the pencil on the page, or right-click its tab). Every item’s Edit dialog now has a <em>not counted</em> checkbox, and obstacles open their own editor instead of the seat-area one.</li>
+                    <li><strong>Crisper, faster floor plans.</strong> Seats now draw as sharp vectors at any zoom with lighter borders, panning and hovering feel smoother on dense layouts, and the crosshair tracks the cursor in real time.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Hojas de referencia, selección múltiple con copiar y pegar, y asientos más nítidos:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Hojas de referencia y elementos “no contados”.</strong> Marque una página completa como hoja de referencia (recibe una ★ en las pestañas y en la lista de páginas) o marque áreas de asientos, elementos colocados y medidas como <em>no contados</em>, para que las copias de referencia dejen de inflar sus totales (Resumen de Sillas, Informe de Elementos Clave y exportación a Excel). El ajuste de la página anula los individuales en ambos sentidos. Active <em>Atenuar no contados</em> en el panel de Capas para ver en gris todos los elementos excluidos.</li>
+                    <li><strong>Selección múltiple con copiar y pegar a escala.</strong> Arrastre un recuadro para seleccionar varios elementos; Ctrl-clic para añadir, Shift-clic para quitar. Mueva, duplique o elimine todo el grupo. Copie una selección y péguela en otra hoja — se redimensiona automáticamente a la escala de dibujo de esa hoja.</li>
+                    <li><strong>Edición por página y por elemento más clara.</strong> Cambie el nombre de una página y defina su marca de referencia en un solo lugar (el lápiz de la página o clic derecho en su pestaña). El diálogo de edición de cada elemento ahora tiene una casilla <em>no contado</em>, y los obstáculos abren su propio editor en lugar del de área de asientos.</li>
+                    <li><strong>Planos más nítidos y rápidos.</strong> Los asientos se dibujan como vectores nítidos a cualquier zoom con bordes más finos, el desplazamiento y el resaltado son más suaves en planos densos, y la cruz sigue el cursor en tiempo real.</li>
+                </ul>
+            `
+        },
         {
             version: "2.1.2",
             en: `
