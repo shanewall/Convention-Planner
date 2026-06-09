@@ -1383,7 +1383,7 @@
                 <button type="button" id="print-orient-landscape" onclick="setPrintOrientation('landscape')" style="flex: 1; padding: 6px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer;" data-i18n="modal.newpage.orientation.landscape">📄 Landscape</button>
             </div>
         </div>
-        <div style="margin-bottom: 12px;">
+        <div id="print-opt-scale-group" style="margin-bottom: 12px;">
             <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="modal.print.scale">Print scale</label>
             <select id="print-scale-select" style="width: 100%;">
                 <option value="fit" data-i18n="modal.print.scale.fit">Fit to page (no specific scale)</option>
@@ -1414,7 +1414,7 @@
             </select>
             <div id="print-scale-warning" style="font-size: 0.75em; color: #e67e22; margin-top: 4px; display: none;"></div>
         </div>
-        <div style="margin-bottom: 12px;">
+        <div id="print-opt-titleblock-group" style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
                 <input type="checkbox" id="print-title-block" style="width: auto; margin: 0;">
                 <span data-i18n="modal.print.title_block">Show title bar (logo, project, page, scale, date)</span>
@@ -2590,6 +2590,7 @@ const I18N_STRINGS = {
         "ann.counter.reset": "Reset to 1",
         "prompt.callout.text": "Callout text:",
         "modal.print.title": "Print Layout",
+        "modal.print.title.report": "Print Report",
         "modal.print.paper": "Paper size",
         "modal.print.orientation": "Orientation",
         "modal.print.scale": "Print scale",
@@ -3264,6 +3265,7 @@ const I18N_STRINGS = {
         "ann.counter.reset": "Reiniciar a 1",
         "prompt.callout.text": "Texto de la llamada:",
         "modal.print.title": "Imprimir Plano",
+        "modal.print.title.report": "Imprimir Informe",
         "modal.print.paper": "Tamaño de papel",
         "modal.print.orientation": "Orientación",
         "modal.print.scale": "Escala de impresión",
@@ -6825,7 +6827,7 @@ const I18N_STRINGS = {
             { field: 'unassigned',   label: t('modal.schedule.print.options.unassigned'),    default: true  },
         ], (sel) => {
             hideScheduleViewer();
-            requestAnimationFrame(() => printReport('schedule', filters, sel));
+            requestAnimationFrame(() => showPrintOptions('schedule', filters, sel));
         });
     }
 
@@ -14847,11 +14849,36 @@ const I18N_STRINGS = {
     // print types (Summary, Key Items, Schedule), printReport is called directly
     // because those types are documents, not scaled drawings.
     let _printOrientation = 'landscape';
+    let _printOptionsType = 'layout';
+    let _printSchedFilters = null, _printSchedSel = null;
 
-    function showPrintOptions(type) {
-        // Only Layout uses the options dialog; other types print directly.
-        if (type !== 'layout') {
-            printReport(type);
+    function setReportPageRule(printOpts) {
+        let s = document.getElementById('print-page-rule');
+        if (!s) { s = document.createElement('style'); s.id = 'print-page-rule'; document.head.appendChild(s); }
+        if (printOpts && printOpts.paperWidthIn && printOpts.paperHeightIn) {
+            s.textContent = `@page { size: ${printOpts.paperWidthIn}in ${printOpts.paperHeightIn}in; margin: 0.25in; }`;
+        } else { s.textContent = ''; }
+    }
+    function showPrintOptions(type, schedFilters, schedSel) {
+        _printOptionsType = type;
+        _printSchedFilters = schedFilters || null;
+        _printSchedSel = schedSel || null;
+        const isLayout = (type === 'layout');
+        // Layout-only controls (drawing scale, title bar) are irrelevant to the
+        // document reports, which just need paper size + orientation.
+        const scaleGroup = document.getElementById('print-opt-scale-group');
+        const tbGroup = document.getElementById('print-opt-titleblock-group');
+        if (scaleGroup) scaleGroup.style.display = isLayout ? 'block' : 'none';
+        if (tbGroup) tbGroup.style.display = isLayout ? 'block' : 'none';
+        const titleEl = document.getElementById('print-options-title');
+        if (titleEl) titleEl.textContent = isLayout ? t('modal.print.title') : t('modal.print.title.report');
+        if (!isLayout) {
+            // Reports: default to Letter; the wide shift schedule defaults to
+            // landscape, the others to portrait.
+            document.getElementById('print-paper-size').value = 'letter';
+            _printOrientation = (type === 'schedule') ? 'landscape' : 'portrait';
+            updatePrintOrientationButtons();
+            document.getElementById('print-options-modal').classList.add('show');
             return;
         }
         const page = getActivePage();
@@ -14933,7 +14960,7 @@ const I18N_STRINGS = {
             showTitleBlock: document.getElementById('print-title-block').checked
         };
         hidePrintOptionsModal();
-        printReport('layout', null, null, opts);
+        printReport(_printOptionsType, _printSchedFilters, _printSchedSel, opts);
     }
 
     // Scale bar — a horizontal ruler with tick marks, drawn at the correct
@@ -15150,7 +15177,7 @@ const I18N_STRINGS = {
                 // Clear tfoot — for the chair summary we put everything in tbody
                 // so totals don't repeat per page.
                 document.querySelector('#print-report-container tfoot').innerHTML = '';
-                document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
+                setReportPageRule(printOpts); document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
             } else if (type === 'schedule') {
                 ensureAttendants();
@@ -15496,7 +15523,7 @@ const I18N_STRINGS = {
                         document.querySelector('#print-report-container tfoot').innerHTML = '';
                     }
                 }
-                document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
+                setReportPageRule(printOpts); document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
             } else if (type === 'signs') {
                 document.getElementById('rpt-title-print').innerText = project.title + " - " + t('print.signs.title');
@@ -15512,7 +15539,7 @@ const I18N_STRINGS = {
                 if (absoluteTotal === 0 && totalMeasureTypes === 0) bodyHTML = `<tr><td colspan="2" style="text-align:center; font-style:italic;">${escapeHTML(t('print.signs.empty'))}</td></tr>`;
                 document.getElementById('rpt-body').innerHTML = bodyHTML;
                 document.querySelector('#print-report-container tfoot').innerHTML = `<tr style="font-weight:bold; background:#222 !important; color:white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"><td style="text-align: right;">${escapeHTML(t('print.signs.grand_total'))}</td><td>${fmtNum(absoluteTotal)}</td></tr>`;
-                document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
+                setReportPageRule(printOpts); document.body.className = 'summary-only'; setTimeout(() => window.print(), 100);
 
             } else {
                 // ─── Layout print — scale-aware when printOpts is supplied ──
