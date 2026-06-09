@@ -521,7 +521,8 @@
             align-items: center;
             gap: 2px;
         }
-        .list-item.active { border-color: var(--accent); background: #3a3a40; }
+        .list-item.nc-row { background: #4a3a12; outline: 1px solid rgba(241,196,15,0.4); outline-offset: -1px; }
+    .list-item.active { border-color: var(--accent); background: #3a3a40; }
         
         .profile-item { background: #2d2d30; padding: 7px 8px; border-radius: 3px; font-size: 0.82em; display: flex; flex-direction: column; gap: 6px; border: 1px solid #444; margin-bottom: 6px; cursor: pointer; }
         .profile-item.active { border-color: var(--accent); background: #333337; }
@@ -1274,6 +1275,8 @@
             </div>
         </div>
 
+        <label id="item-edit-nocount-group" class="layer-toggle" style="display:none; margin-bottom:10px; align-items:center; gap:8px;"><input type="checkbox" id="item-edit-nocount" style="width:auto; margin:0;"> <span data-i18n="modal.item_edit.nocount">Not counted — exclude from totals</span></label>
+        <div id="item-edit-nocount-hint" style="display:none; font-size:0.75em; color:#f1c40f; margin:-4px 0 12px;" data-i18n="modal.item_edit.nocount_page_hint">This page is a reference sheet, so every item on it is already excluded.</div>
         <div class="modal-actions">
             <button class="secondary" onclick="hideItemEditModal()" data-i18n="modal.profile_edit.cancel">Cancel</button>
             <button id="item-edit-save" data-i18n="modal.profile_edit.save">Save</button>
@@ -1541,6 +1544,21 @@
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
             <button onclick="hideNewPageModal()" class="secondary" data-i18n="modal.newpage.cancel">Cancel</button>
             <button onclick="applyNewPageModal()" data-i18n="modal.newpage.create">Create Page</button>
+        </div>
+    </div>
+</div>
+
+<div id="page-edit-modal" class="modal-overlay" onclick="if(event.target===this) hidePageEditModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="page-edit-title">
+        <h2 id="page-edit-title" data-i18n="modal.pageedit.title">Edit Page</h2>
+        <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:0.75em; color:#aaa; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="modal.pageedit.name">Page Name</label>
+            <input type="text" id="page-edit-name" class="text-input-dark" style="width: 100%;" onkeydown="if(event.key==='Enter'){event.preventDefault(); applyPageEditModal();}">
+        </div>
+        <label class="layer-toggle" style="margin-bottom:14px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="page-edit-reference" style="width:auto; margin:0;"> <span data-i18n="modal.newpage.reference">Reference sheet — exclude items from all totals</span></label>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button onclick="hidePageEditModal()" class="secondary" data-i18n="modal.pageedit.cancel">Cancel</button>
+            <button onclick="applyPageEditModal()" data-i18n="modal.pageedit.save">Save</button>
         </div>
     </div>
 </div>
@@ -2157,6 +2175,10 @@
                             <span data-i18n="layers.area_labels">🏷️ Show Area Labels & Counts</span>
                         </label>
                         <label class="layer-toggle">
+                            <input type="checkbox" id="layer-dim-nocount" onchange="uiState.dimNotCounted=this.checked; needsCacheUpdate=true; render();">
+                            <span data-i18n="layers.dim_nocount">Dim not-counted items</span>
+                        </label>
+                        <label class="layer-toggle">
                             <input type="checkbox" id="layer-seat-legend" onchange="toggleSeatLegend(this.checked)">
                             <span data-i18n="layers.seat_legend">📋 Show Seat Legend</span>
                         </label>
@@ -2690,6 +2712,12 @@ const I18N_STRINGS = {
         "ctx.rename_via_profile": "✎ Rename (via profile)",
         "ctx.duplicate": "⎘ Duplicate",
         "ctx.delete": "✕ Delete",
+        "ctx.exclude_counts": "🚫 Exclude from counts",
+        "ctx.include_counts": "✓ Include in counts",
+        "ctx.items_selected": "selected",
+        "layers.dim_nocount": "Dim not-counted items",
+        "nocount.badge": "not counted",
+        "modal.newpage.reference": "Reference sheet — exclude items from all totals",
         "kind.area": "Seating Area",
         "kind.obstacle": "Obstacle",
         "kind.aisle": "Aisle",
@@ -2715,6 +2743,10 @@ const I18N_STRINGS = {
         "logo.toast.reset": "Logo reset.",
         "page.prompt.add": "Page Name?",
         "page.prompt.rename": "Rename page:",
+        "modal.pageedit.title": "Edit Page",
+        "modal.pageedit.name": "Page Name",
+        "modal.pageedit.cancel": "Cancel",
+        "modal.pageedit.save": "Save",
         "page.confirm_delete": "Delete this page?",
         "page.confirm_delete.with_content": "Delete this page? It contains: {contents}. This cannot be undone.",
         "page.error.last_page": "Cannot delete the last page.",
@@ -2754,6 +2786,8 @@ const I18N_STRINGS = {
         "modal.item_edit.title.measure": "Edit Polymeasure",
         "modal.item_edit.title.line": "Edit Line",
         "modal.item_edit.title.text": "Edit Text Annotation",
+        "modal.item_edit.nocount": "Not counted — exclude from totals",
+        "modal.item_edit.nocount_page_hint": "This page is a reference sheet, so every item on it is already excluded.",
         "modal.item_edit.profile_default_hint": "Profile default: {value}",
         "modal.item_edit.name_from_profile": "Name comes from the profile — edit the profile to change it.",
         "modal.item_edit.field.text_content": "Text",
@@ -3352,6 +3386,12 @@ const I18N_STRINGS = {
         "ctx.rename_via_profile": "✒️ Renombrar (Vía Perfil)",
         "ctx.duplicate": "📑 Duplicar",
         "ctx.delete": "❌ Eliminar",
+        "ctx.exclude_counts": "🚫 Excluir del conteo",
+        "ctx.include_counts": "✓ Incluir en el conteo",
+        "ctx.items_selected": "seleccionados",
+        "layers.dim_nocount": "Atenuar elementos no contados",
+        "nocount.badge": "no contado",
+        "modal.newpage.reference": "Hoja de referencia — excluir elementos de todos los totales",
         "kind.area": "Área de Asientos",
         "kind.obstacle": "Obstáculo",
         "kind.aisle": "Pasillo",
@@ -3377,6 +3417,10 @@ const I18N_STRINGS = {
         "logo.toast.reset": "Logo restablecido.",
         "page.prompt.add": "¿Nombre de la Página?",
         "page.prompt.rename": "Renombrar Página:",
+        "modal.pageedit.title": "Editar Página",
+        "modal.pageedit.name": "Nombre de la Página",
+        "modal.pageedit.cancel": "Cancelar",
+        "modal.pageedit.save": "Guardar",
         "page.confirm_delete": "¿Eliminar esta página?",
         "page.confirm_delete.with_content": "¿Eliminar esta página? Contiene: {contents}. Esta acción no se puede deshacer.",
         "page.error.last_page": "No se puede eliminar la última página.",
@@ -3416,6 +3460,8 @@ const I18N_STRINGS = {
         "modal.item_edit.title.measure": "Editar Polimedida",
         "modal.item_edit.title.line": "Editar Línea",
         "modal.item_edit.title.text": "Editar Anotación de Texto",
+        "modal.item_edit.nocount": "No contado — excluir de los totales",
+        "modal.item_edit.nocount_page_hint": "Esta página es una hoja de referencia, por lo que todos sus elementos ya están excluidos.",
         "modal.item_edit.profile_default_hint": "Predeterminado del perfil: {value}",
         "modal.item_edit.name_from_profile": "El nombre viene del perfil — edita el perfil para cambiarlo.",
         "modal.item_edit.field.text_content": "Texto",
@@ -4001,30 +4047,32 @@ const I18N_STRINGS = {
     }
 
     function showCanvasContextMenu(clientX, clientY) {
-        const item = getSelectedItem();
-        if (!item) return false; // no menu when nothing is selected
+        const refs = getSelectionRefs();
+        if (!refs.length) return false;
+        const isGroup = multiSel.length > 0;
+        const item = isGroup ? null : getSelectedItem();
+        const page = getActivePage();
+        const allNC = refs.every(r => { const arr = arrFor(page, r.kind); return arr && arr[r.idx] && arr[r.idx].noCount; });
 
-        const headerName = item.name ? `${item.label}: ${item.name}` : item.label;
-
-        // New menu structure: Edit Properties → opens the item-edit popup at the
-        // cursor (covers what Rename used to do plus all other per-instance
-        // edits). Text annotations use the in-place text editor instead since
-        // editing multi-line text in a single field is awkward.
+        const headerName = isGroup
+            ? (multiSel.length + ' ' + t('ctx.items_selected'))
+            : (item.name ? `${item.label}: ${item.name}` : item.label);
         let html = `<div class="ctx-menu-header">${escapeHTML(headerName)}</div>`;
-        if (item.kind === 'text') {
-            html += `<div class="ctx-menu-item" data-ctx-action="edit-text">${escapeHTML(t('ctx.edit_text'))}</div>`;
-        } else if (item.kind === 'attendant') {
-            // Attendant posts have their own dedicated edit modal already (number, description, scope).
-            html += `<div class="ctx-menu-item" data-ctx-action="edit-attendant">${escapeHTML(t('ctx.edit_properties'))}</div>`;
-        } else {
-            html += `<div class="ctx-menu-item" data-ctx-action="edit-properties">${escapeHTML(t('ctx.edit_properties'))}</div>`;
+        if (!isGroup) {
+            if (item.kind === 'text') html += `<div class="ctx-menu-item" data-ctx-action="edit-text">${escapeHTML(t('ctx.edit_text'))}</div>`;
+            else if (item.kind === 'attendant') html += `<div class="ctx-menu-item" data-ctx-action="edit-attendant">${escapeHTML(t('ctx.edit_properties'))}</div>`;
+            else html += `<div class="ctx-menu-item" data-ctx-action="edit-properties">${escapeHTML(t('ctx.edit_properties'))}</div>`;
+            html += `<div class="ctx-menu-item" data-ctx-action="duplicate">${escapeHTML(t('ctx.duplicate'))}</div>`;
         }
-        html += `<div class="ctx-menu-item" data-ctx-action="duplicate">${escapeHTML(t('ctx.duplicate'))}</div>`;
+        // Hidden on reference pages — the page-level toggle already excludes
+        // everything, so a per-item toggle here would be a no-op.
+        if (!(item && item.kind === 'attendant') && !(page && page.excludeFromTotals)) {
+            html += `<div class="ctx-menu-item" data-ctx-action="toggle-nocount">${escapeHTML(allNC ? t('ctx.include_counts') : t('ctx.exclude_counts'))}</div>`;
+        }
         html += `<div class="ctx-menu-sep"></div>`;
         html += `<div class="ctx-menu-item danger" data-ctx-action="delete">${escapeHTML(t('ctx.delete'))}</div>`;
         ctxMenu.innerHTML = html;
 
-        // Position with viewport edge clamping
         ctxMenu.classList.add('show');
         const menuRect = ctxMenu.getBoundingClientRect();
         let x = clientX, y = clientY;
@@ -4033,42 +4081,30 @@ const I18N_STRINGS = {
         ctxMenu.style.left = x + 'px';
         ctxMenu.style.top = y + 'px';
 
-        // Wire up actions. For edit-properties, we open the item-edit popup
-        // positioned at the cursor — pass a synthesized anchor element so the
-        // popup positioner places it near the click location.
         ctxMenu.querySelectorAll('.ctx-menu-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const action = el.dataset.ctxAction;
                 hideCtxMenu();
                 if (action === 'edit-properties') {
-                    // Create a tiny "ghost" anchor at the original click location
-                    // so _positionPopupNearAnchor has something to anchor against.
-                    const ghost = { getBoundingClientRect: () => ({
-                        left: clientX, top: clientY, right: clientX, bottom: clientY,
-                        width: 0, height: 0
-                    })};
+                    const ghost = { getBoundingClientRect: () => ({ left: clientX, top: clientY, right: clientX, bottom: clientY, width: 0, height: 0 }) };
                     editItem(item.kind, item.index, ghost);
-                } else if (action === 'edit-text') {
-                    startTextEdit(item.index, 0, 0);
-                } else if (action === 'edit-attendant') {
-                    editAttendantPostMeta(item.index);
-                } else if (action === 'duplicate') {
-                    duplicateSelectedItem();
-                } else if (action === 'delete') {
-                    deleteSelectedItem();
-                }
+                } else if (action === 'edit-text') { startTextEdit(item.index, 0, 0); }
+                else if (action === 'edit-attendant') { editAttendantPostMeta(item.index); }
+                else if (action === 'duplicate') { duplicateSelectedItem(); }
+                else if (action === 'toggle-nocount') { setNotCountedOnSelection(!allNC); }
+                else if (action === 'delete') { if (isGroup) deleteSelection(); else deleteSelectedItem(); }
             });
         });
         return true;
     }
 
-    canvas.addEventListener('contextmenu', e => {
+        canvas.addEventListener('contextmenu', e => {
         // Right-click on canvas: if something is selected, show menu;
         // otherwise let the original mousedown handler start panning.
         e.preventDefault();
         const item = getSelectedItem();
-        if (item) {
+        if (item || multiSel.length) {
             // We need to cancel the pan that mousedown(button=2) just kicked off
             isPanning = false;
             showCanvasContextMenu(e.clientX, e.clientY);
@@ -4168,7 +4204,7 @@ const I18N_STRINGS = {
 
     let activeTab = 'project'; 
     let uiState = { 
-        draftMode: false, 
+        draftMode: false, dimNotCounted: false, 
         showAreaLabels: true,
         showSeats: true,
         hiddenSeatTypes: [],
@@ -4243,6 +4279,12 @@ const I18N_STRINGS = {
     let selectedScreenIndex = -1, hoveredScreenIndex = -1, isDraggingScreen = false, hasDraggedScreen = false;
     let selectedTextIndex = -1, hoveredTextIndex = -1, isDraggingText = false, hasDraggedText = false;
     let selectedAttendantIndex = -1, hoveredAttendantIndex = -1, isDraggingAttendant = false, hasDraggedAttendant = false;
+    // ── Multi-select / group-clipboard state ─────────────────────────────────
+    let multiSel = [];                 // group selection: [{kind, idx}]
+    let marquee = null;                // {x0,y0,x1,y1} world coords during marquee drag
+    let isMarqueeSelecting = false;
+    let isDraggingGroup = false, hasDraggedGroup = false, groupDragStart = null;
+    let pastePreview = null;           // {items, srcPPF, anchorX, anchorY, cursorX, cursorY} during paste-place
     let hasUnsavedChanges = false;
 
     // ─── FIX #1: Track dblclick intent to strip exactly the phantom points ───────
@@ -4322,7 +4364,7 @@ const I18N_STRINGS = {
     }
 
     function clearSelections() {
-        selectedShapeIndex = -1; selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; selectedMeasureIndex = -1; selectedAttendantIndex = -1;
+        selectedShapeIndex = -1; selectedSignIndex = -1; selectedLineIndex = -1; selectedScreenIndex = -1; selectedTextIndex = -1; selectedMeasureIndex = -1; selectedAttendantIndex = -1; if (typeof multiSel !== 'undefined') multiSel = [];
     }
 
     // ─── ATTENDANTS MODULE ─────────────────────────────────────────────────────
@@ -8524,6 +8566,7 @@ const I18N_STRINGS = {
         const pActive = getActivePage();
         document.getElementById('layer-sightlines').checked = !uiState.draftMode;
         document.getElementById('layer-area-labels').checked = uiState.showAreaLabels !== false;
+        { const _dnc = document.getElementById('layer-dim-nocount'); if (_dnc) _dnc.checked = !!uiState.dimNotCounted; }
         document.getElementById('layer-seat-legend').checked = pActive.seatLegend && pActive.seatLegend.show !== false;
         document.getElementById('layer-marker-legend').checked = pActive.legend && pActive.legend.show !== false;
         const layerAttLegend = document.getElementById('layer-att-legend');
@@ -8603,10 +8646,10 @@ const I18N_STRINGS = {
         project.pages.forEach((p, i) => {
             const isActive = i === project.activePageIndex;
             el.innerHTML += `<li class="list-item ${isActive ? 'active' : ''}" onclick="switchPage(${i})">
-                <span style="pointer-events: none;">${escapeHTML(p.name)}</span>
+                <span style="pointer-events: none;">${p.excludeFromTotals ? '<span style="color:#f1c40f;" title="Reference sheet — not counted">\u2605</span> ' : ''}${escapeHTML(p.name)}</span>
                 <div>
                     ${reorderArrowsHTML('movePage', i, total)}
-                    ${isActive ? `<button class="icon-btn" onclick="event.stopPropagation(); renamePage(${i})">✎</button>` : ''}
+                    ${isActive ? `<button class="icon-btn" onclick="event.stopPropagation(); editPageModal(${i})">✎</button>` : ''}
                 </div>
             </li>`;
         });
@@ -8625,7 +8668,7 @@ const I18N_STRINGS = {
         project.pages.forEach((p, i) => {
             const isActive = i === project.activePageIndex;
             html += `<button class="page-tab${isActive ? ' active' : ''}" data-page-index="${i}" role="tab" aria-selected="${isActive}" title="${escapeHTML(p.name)}">
-                <span class="tab-name">${escapeHTML(p.name)}</span>
+                <span class="tab-name">${p.excludeFromTotals ? '<span style="color:#f1c40f;">\u2605</span> ' : ''}${escapeHTML(p.name)}</span>
             </button>`;
         });
         // Add-new-page button at the end.
@@ -8687,7 +8730,7 @@ const I18N_STRINGS = {
                 const action = el.dataset.pageCtxAction;
                 hideCtxMenu();
                 if (action === 'rename') {
-                    renamePage(pageIndex);
+                    editPageModal(pageIndex);
                 } else if (action === 'delete') {
                     // Switch to the page first (deleteCurrentPage operates on
                     // the active page), then run delete.
@@ -8767,7 +8810,7 @@ const I18N_STRINGS = {
             const { hasPrev, hasNext } = filteredNeighbors(shapes, i, isArea);
             const sTypeIdx = s.seatTypeIndex ?? 0;
             const strokeColor = project.seatTypes[sTypeIdx] ? project.seatTypes[sTypeIdx].stroke : '#2ecc71';
-            return `<li class="list-item" data-item-kind="shape" data-item-index="${i}" onclick="_sidebarRowClick(event, 'shape', ${i})" style="border-left: 4px solid ${escapeHTML(strokeColor)}${extraStyle ? '; ' + extraStyle : ''};">
+            return `<li class="list-item ${getActivePage().shapes[i] && !itemIsCounted(getActivePage().shapes[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="shape" data-item-index="${i}" onclick="_sidebarRowClick(event, 'shape', ${i})" style="border-left: 4px solid ${escapeHTML(strokeColor)}${extraStyle ? '; ' + extraStyle : ''};">
                 <input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                     ${reorderArrowsHTMLEx('moveAreaShape', i, hasPrev, hasNext)}
@@ -8820,7 +8863,7 @@ const I18N_STRINGS = {
                 // Aisles have no editable per-instance properties (label is
                 // suppressed at render); skip the ✎ for those.
                 const hasEdit = s.type === 'obs';
-                el.innerHTML += `<li class="list-item" data-item-kind="shape" data-item-index="${i}" onclick="_sidebarRowClick(event, 'shape', ${i})" style="border-left: 4px solid ${color};">
+                el.innerHTML += `<li class="list-item ${getActivePage().shapes[i] && !itemIsCounted(getActivePage().shapes[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="shape" data-item-index="${i}" onclick="_sidebarRowClick(event, 'shape', ${i})" style="border-left: 4px solid ${color};">
                     <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>
                     <input type="text" class="text-input-dark" value="${escapeHTML(s.name)}" onchange="saveState(); project.pages[${project.activePageIndex}].shapes[${i}].name=this.value; triggerUpdate();" style="flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
@@ -8875,7 +8918,7 @@ const I18N_STRINGS = {
 
                     if (isCollapsed) continue;
                     instances.forEach(({ s, i }) => {
-                        el.innerHTML += `<li class="list-item" data-item-kind="sign" data-item-index="${i}" onclick="_sidebarRowClick(event, 'sign', ${i})" style="padding-left:18px; border-left:4px solid ${escapeHTML(st.color)}66;">
+                        el.innerHTML += `<li class="list-item ${getActivePage().signs[i] && !itemIsCounted(getActivePage().signs[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="sign" data-item-index="${i}" onclick="_sidebarRowClick(event, 'sign', ${i})" style="padding-left:18px; border-left:4px solid ${escapeHTML(st.color)}66;">
                             <span style="font-size: 0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ddd;">📍 #${i + 1}</span>
                             <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                                 <button class="icon-btn" onclick="event.stopPropagation(); editItem('sign', ${i}, this)" title="${escapeHTML(t('common.edit'))}">✎</button>
@@ -8977,7 +9020,7 @@ const I18N_STRINGS = {
                         ? `<button class="icon-btn" onclick="event.stopPropagation(); clearMeasureLabelOverride(${i})" title="${escapeHTML(t('measure.instance.reset_to_profile'))}">↺</button>`
                         : '';
 
-                    el.innerHTML += `<li class="list-item measure-instance" data-item-kind="measure" data-item-index="${i}" onclick="_sidebarRowClick(event, 'measure', ${i})" style="flex-direction:column; align-items:stretch; padding-left:18px; border-left:4px solid ${escapeHTML(mt.color)}66;">
+                    el.innerHTML += `<li class="list-item measure-instance ${getActivePage().measures[i] && !itemIsCounted(getActivePage().measures[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="measure" data-item-index="${i}" onclick="_sidebarRowClick(event, 'measure', ${i})" style="flex-direction:column; align-items:stretch; padding-left:18px; border-left:4px solid ${escapeHTML(mt.color)}66;">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
                             <span style="font-size:0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ddd;">${overrideMark}〰️ ${escapeHTML(lenStr)}</span>
                             <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
@@ -9322,6 +9365,10 @@ const I18N_STRINGS = {
         else if (kind === 'line')               item = page.lines[index];
         else if (kind === 'text')               item = page.texts[index];
         if (!item) return;
+        // Obstacles live in page.shapes next to areas; the canvas right-click
+        // passes kind 'shape' for both. Route by the real type so an obstacle
+        // never opens the seat-area editor (title + profile field).
+        if (kind === 'shape' || kind === 'obs') kind = (item.type === 'area') ? 'shape' : 'obs';
 
         _itemEditState = { kind, index };
 
@@ -9341,6 +9388,22 @@ const I18N_STRINGS = {
             const el = document.getElementById('item-edit-' + k + '-fields');
             if (el) el.style.display = 'none';
         });
+
+        // Not-counted toggle: only for kinds that feed totals. A reference
+        // page overrides per-item state, so reflect (and lock) that.
+        {
+            const ncGroup = document.getElementById('item-edit-nocount-group');
+            const ncHint  = document.getElementById('item-edit-nocount-hint');
+            const ncBox   = document.getElementById('item-edit-nocount');
+            const ncKinds = (kind === 'shape' || kind === 'obs' || kind === 'sign' || kind === 'measure');
+            if (ncGroup) ncGroup.style.display = ncKinds ? 'flex' : 'none';
+            if (ncKinds && ncBox) {
+                const pageRef = !!(page && page.excludeFromTotals);
+                ncBox.checked = pageRef || !!item.noCount;
+                ncBox.disabled = pageRef;
+                if (ncHint) ncHint.style.display = pageRef ? 'block' : 'none';
+            } else if (ncHint) { ncHint.style.display = 'none'; }
+        }
 
         // Set up Name field. Visible (and editable) for items with an
         // instance-level name. Visible but disabled with a hint for items
@@ -9722,6 +9785,14 @@ const I18N_STRINGS = {
             if (!isNaN(sz) && sz > 0) item.size = sz;
         }
 
+        // Persist the not-counted toggle (control is hidden for other kinds).
+        if (kind === 'shape' || kind === 'obs' || kind === 'sign' || kind === 'measure') {
+            const _ncIt = (kind === 'shape' || kind === 'obs') ? page.shapes[index]
+                        : kind === 'sign' ? page.signs[index] : page.measures[index];
+            const _ncBox = document.getElementById('item-edit-nocount');
+            if (_ncIt && _ncBox && !_ncBox.disabled) _ncIt.noCount = !!_ncBox.checked;
+            markSeatCachesDirty();
+        }
         hideItemEditModal();
         triggerUpdate(); updateUI();
     }
@@ -10043,6 +10114,43 @@ const I18N_STRINGS = {
                 updateUI(); triggerUpdate();
             }
         });
+    }
+    let _pageEditIndex = null;
+    function editPageModal(i) {
+        _pageEditIndex = i;
+        document.getElementById('page-edit-name').value = project.pages[i].name || '';
+        document.getElementById('page-edit-reference').checked = !!project.pages[i].excludeFromTotals;
+        document.getElementById('page-edit-modal').classList.add('show');
+        setTimeout(() => { const n = document.getElementById('page-edit-name'); if (n) { n.focus(); n.select(); } }, 30);
+    }
+    function hidePageEditModal() {
+        document.getElementById('page-edit-modal').classList.remove('show');
+        _pageEditIndex = null;
+    }
+    function applyPageEditModal() {
+        if (_pageEditIndex === null) return;
+        const i = _pageEditIndex;
+        const pg = project.pages[i];
+        saveState();
+        const nm = document.getElementById('page-edit-name').value;
+        if (nm && nm.trim() !== '') pg.name = nm.trim();
+        const newRef = !!document.getElementById('page-edit-reference').checked;
+        const refChanged = (!!pg.excludeFromTotals !== newRef);
+        pg.excludeFromTotals = newRef;
+        if (refChanged) {
+            // The page-level reference toggle is the single source of truth.
+            // When it flips (either way) clear any per-item not-counted flags so
+            // leftover individual state can't keep an item excluded after the
+            // page returns to normal — nor duplicate the exclusion on a
+            // reference sheet (where the page flag already covers everything).
+            ['shapes','signs','measures','lines','texts','screens'].forEach(k => {
+                const arr = pg[k];
+                if (Array.isArray(arr)) arr.forEach(it => { if (it && it.noCount) delete it.noCount; });
+            });
+            if (pg.shapes) pg.shapes.forEach(s => { if (s.type === 'area') s.cacheDirty = true; });
+        }
+        hidePageEditModal();
+        updateUI(); triggerUpdate();
     }
     function addNewPage() {
         showNewPageModal();
@@ -11051,7 +11159,7 @@ const I18N_STRINGS = {
     }
 
     window.addEventListener('keydown', e => {
-        if (e.key === 'Escape') setMode('idle');
+        if (e.key === 'Escape') { setMode('idle'); pastePreview=null; isMarqueeSelecting=false; marquee=null; render(); }
         if (e.key === 'Shift') isShiftDown = true;
         // Don't hijack Ctrl+Z / Ctrl+Y when typing in form fields — let the browser handle text undo natively
         const isTyping = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT');
@@ -11061,42 +11169,12 @@ const I18N_STRINGS = {
         }
         if (e.key === 'Enter') finalizePolygon();
         
-        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
-            if (mode === 'idle') {
-                if (selectedShapeIndex !== -1) clipboardData = { type: 'shape', data: JSON.parse(JSON.stringify(getActivePage().shapes[selectedShapeIndex])) };
-                else if (selectedSignIndex !== -1) clipboardData = { type: 'sign', data: JSON.parse(JSON.stringify(getActivePage().signs[selectedSignIndex])) };
-                else if (selectedScreenIndex !== -1) clipboardData = { type: 'screen', data: JSON.parse(JSON.stringify(getActivePage().screens[selectedScreenIndex])) };
-                else if (selectedLineIndex !== -1) clipboardData = { type: 'line', data: JSON.parse(JSON.stringify(getActivePage().lines[selectedLineIndex])) };
-                else if (selectedMeasureIndex !== -1) clipboardData = { type: 'measure', data: JSON.parse(JSON.stringify(getActivePage().measures[selectedMeasureIndex])) };
-                else if (selectedTextIndex !== -1) clipboardData = { type: 'text', data: JSON.parse(JSON.stringify(getActivePage().texts[selectedTextIndex])) };
-            }
-        }
-        
-        if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) {
-            if (clipboardData && mode === 'idle') {
-                saveState();
-                let clone = JSON.parse(JSON.stringify(clipboardData.data));
-                // ─── FIX #4: Viewport-relative paste offset (50px in world space at current zoom) ─
-                const worldOffset = 50 / view.zoom;
-                if (clipboardData.type === 'shape' || clipboardData.type === 'line' || clipboardData.type === 'measure') {
-                    clone.points.forEach(p => { p.x += worldOffset; p.y += worldOffset; }); 
-                    if (clone.name) clone.name += " Copy";
-                    if (clipboardData.type === 'shape') { clone.cacheDirty = true; getActivePage().shapes.push(clone); clearSelections(); selectedShapeIndex = getActivePage().shapes.length - 1; markSeatCachesDirty(); }
-                    if (clipboardData.type === 'line') { getActivePage().lines.push(clone); clearSelections(); selectedLineIndex = getActivePage().lines.length - 1; }
-                    if (clipboardData.type === 'measure') { getActivePage().measures.push(clone); clearSelections(); selectedMeasureIndex = getActivePage().measures.length - 1; }
-                } else {
-                    clone.x += worldOffset; clone.y += worldOffset;
-                    if (clone.name) clone.name += " Copy";
-                    if (clipboardData.type === 'sign') { getActivePage().signs.push(clone); clearSelections(); selectedSignIndex = getActivePage().signs.length - 1; }
-                    if (clipboardData.type === 'screen') { getActivePage().screens.push(clone); clearSelections(); selectedScreenIndex = getActivePage().screens.length - 1; markSeatCachesDirty(); }
-                    if (clipboardData.type === 'text') { getActivePage().texts.push(clone); clearSelections(); selectedTextIndex = getActivePage().texts.length - 1; }
-                }
-                triggerUpdate(); updateUI();
-            }
-        }
+        if (!isTyping && (e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); doCopy(); }
+        if (!isTyping && (e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); beginPaste(); }
 
         if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'idle' && document.activeElement.tagName !== 'INPUT') {
-            if (selectedShapeIndex !== -1) deleteShape(selectedShapeIndex);
+            if (multiSel.length) { deleteSelection(); }
+            else if (selectedShapeIndex !== -1) deleteShape(selectedShapeIndex);
             else if (selectedSignIndex !== -1) deleteSign(selectedSignIndex);
             else if (selectedLineIndex !== -1) deleteLine(selectedLineIndex);
             else if (selectedMeasureIndex !== -1) deleteMeasure(selectedMeasureIndex);
@@ -11107,6 +11185,156 @@ const I18N_STRINGS = {
     });
     window.addEventListener('keyup', e => { if (e.key === 'Shift') isShiftDown = false; });
     window.addEventListener('beforeunload', function (e) { if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; } });
+
+    // ─── MULTI-SELECT / GROUP CLIPBOARD HELPERS ─────────────────────────────────
+    function clearSingleSelection() { selectedShapeIndex=-1; selectedSignIndex=-1; selectedLineIndex=-1; selectedScreenIndex=-1; selectedTextIndex=-1; selectedMeasureIndex=-1; selectedAttendantIndex=-1; }
+    function itemIsCounted(item, page) { return !(item && item.noCount) && !(page && page.excludeFromTotals); }
+    function setNotCountedOnSelection(val) {
+        const refs = getSelectionRefs(); if (!refs.length) return;
+        saveState(); const page = getActivePage();
+        refs.forEach(r => { const arr = arrFor(page, r.kind); if (arr && arr[r.idx]) arr[r.idx].noCount = !!val; });
+        markSeatCachesDirty(); triggerUpdate(); updateUI(); render();
+    }
+    function arrFor(page, kind) { return kind==='shape'?page.shapes:kind==='screen'?page.screens:kind==='sign'?page.signs:kind==='measure'?page.measures:kind==='line'?page.lines:kind==='text'?page.texts:null; }
+    function selRefHas(kind, idx) { return multiSel.some(r => r.kind===kind && r.idx===idx); }
+    function addRef(kind, idx) { if(!selRefHas(kind,idx)) multiSel.push({kind, idx}); }
+    function removeRef(kind, idx) { multiSel = multiSel.filter(r => !(r.kind===kind && r.idx===idx)); }
+    function getSelectionRefs() {
+        if (multiSel.length) return multiSel.slice();
+        const r=[];
+        if (selectedShapeIndex!==-1) r.push({kind:'shape',idx:selectedShapeIndex});
+        else if (selectedSignIndex!==-1) r.push({kind:'sign',idx:selectedSignIndex});
+        else if (selectedScreenIndex!==-1) r.push({kind:'screen',idx:selectedScreenIndex});
+        else if (selectedLineIndex!==-1) r.push({kind:'line',idx:selectedLineIndex});
+        else if (selectedMeasureIndex!==-1) r.push({kind:'measure',idx:selectedMeasureIndex});
+        else if (selectedTextIndex!==-1) r.push({kind:'text',idx:selectedTextIndex});
+        return r;
+    }
+    function syncSingleIntoMulti() { if (!multiSel.length) { const r=getSelectionRefs(); if (r.length) multiSel=r; } }
+    function hitRefAt(world) {
+        const page=getActivePage(); let i;
+        i=getHitScreen(world); if(i!==-1) return {kind:'screen',idx:i};
+        i=getHitSign(world); if(i!==-1) return {kind:'sign',idx:i};
+        i=getHitText(world); if(i!==-1) return {kind:'text',idx:i};
+        i=getHitMeasure(world); if(i!==-1) return {kind:'measure',idx:i};
+        i=getHitLine(world); if(i!==-1) return {kind:'line',idx:i};
+        i=getHitShape(world); if(i!==-1){ const s=page.shapes[i]; if(!((s.type==='obs'||s.type==='aisle')&&!uiState.showObs)) return {kind:'shape',idx:i}; }
+        return null;
+    }
+    function itemBBox(kind, it, page) {
+        if (it.points && it.points.length) {
+            let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+            it.points.forEach(p=>{ if(p.x<mnx)mnx=p.x; if(p.y<mny)mny=p.y; if(p.x>mxx)mxx=p.x; if(p.y>mxy)mxy=p.y; });
+            return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy};
+        }
+        if (kind==='screen') { const r=it.radius||60; return {minX:it.x-r,minY:it.y-r,maxX:it.x+r,maxY:it.y+r}; }
+        if (kind==='text') { const s=it.size||24; const w=((it.text&&it.text.length)?it.text.length:3)*s*0.55; return {minX:it.x,minY:it.y-s,maxX:it.x+w,maxY:it.y+s*0.3}; }
+        const p=12; return {minX:it.x-p,minY:it.y-p,maxX:it.x+p,maxY:it.y+p}; // sign / point fallback
+    }
+    function itemInRect(kind, it, page, rect) {
+        const b=itemBBox(kind,it,page);
+        return !(b.maxX<rect.minX || b.minX>rect.maxX || b.maxY<rect.minY || b.minY>rect.maxY);
+    }
+    function selectInRect(rect) {
+        const page=getActivePage(); const refs=[];
+        ['shape','screen','sign','measure','line','text'].forEach(kind=>{
+            const arr=arrFor(page,kind)||[];
+            arr.forEach((it,idx)=>{
+                if (kind==='shape' && (it.type==='obs'||it.type==='aisle') && !uiState.showObs) return;
+                if (itemInRect(kind,it,page,rect)) refs.push({kind,idx});
+            });
+        });
+        clearSelections(); multiSel=refs;
+    }
+    function beginGroupDrag(world) {
+        const page=getActivePage();
+        groupDragStart={ mouseX:world.x, mouseY:world.y, items: multiSel.map(r=>{
+            const it=arrFor(page,r.kind)[r.idx]; const snap={kind:r.kind, idx:r.idx};
+            if (it.points) snap.points=it.points.map(p=>({x:p.x,y:p.y})); else { snap.x=it.x; snap.y=it.y; }
+            return snap;
+        }) };
+        isDraggingGroup=true; hasDraggedGroup=false;
+    }
+    function applyGroupDrag(world) {
+        if (!groupDragStart) return;
+        if (!hasDraggedGroup) { saveState(); hasDraggedGroup=true; }
+        const dx=world.x-groupDragStart.mouseX, dy=world.y-groupDragStart.mouseY;
+        const page=getActivePage();
+        groupDragStart.items.forEach(snap=>{
+            const arr=arrFor(page,snap.kind); const it=arr&&arr[snap.idx]; if(!it) return;
+            if (snap.points) { for(let i=0;i<snap.points.length;i++){ it.points[i].x=snap.points[i].x+dx; it.points[i].y=snap.points[i].y+dy; } if(snap.kind==='shape') it.cacheDirty=true; }
+            else { it.x=snap.x+dx; it.y=snap.y+dy; }
+        });
+        markSeatCachesDirty(); hasUnsavedChanges=true; render();
+    }
+    function doCopy() {
+        const refs=getSelectionRefs(); if(!refs.length) return;
+        const page=getActivePage();
+        let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity; const items=[];
+        refs.forEach(r=>{ const it=arrFor(page,r.kind)&&arrFor(page,r.kind)[r.idx]; if(!it) return;
+            const b=itemBBox(r.kind,it,page); if(b.minX<mnx)mnx=b.minX; if(b.minY<mny)mny=b.minY; if(b.maxX>mxx)mxx=b.maxX; if(b.maxY>mxy)mxy=b.maxY;
+            items.push({kind:r.kind, data:JSON.parse(JSON.stringify(it))}); });
+        if(!items.length) return;
+        clipboardData={ items, srcPPF: page.pixelsPerFoot||0, anchorX:(mnx+mxx)/2, anchorY:(mny+mxy)/2 };
+    }
+    function beginPaste() {
+        if (!clipboardData || !clipboardData.items || !clipboardData.items.length || mode!=='idle') return;
+        const w=toWorld(mousePos);
+        pastePreview={ items:clipboardData.items, srcPPF:clipboardData.srcPPF, anchorX:clipboardData.anchorX, anchorY:clipboardData.anchorY, cursorX:w.x, cursorY:w.y };
+        mode='paste-place'; updateUI(); render();
+    }
+    function commitPaste(world) {
+        if (!pastePreview) return;
+        saveState();
+        const page=getActivePage();
+        const ratio=(page.pixelsPerFoot>0 && pastePreview.srcPPF>0)?(page.pixelsPerFoot/pastePreview.srcPPF):1;
+        const ax=pastePreview.anchorX, ay=pastePreview.anchorY; const refs=[];
+        pastePreview.items.forEach(({kind,data})=>{
+            const clone=JSON.parse(JSON.stringify(data));
+            const tx=(x)=>world.x+(x-ax)*ratio, ty=(y)=>world.y+(y-ay)*ratio;
+            if (clone.points) { clone.points.forEach(p=>{ const nx=tx(p.x), ny=ty(p.y); p.x=nx; p.y=ny; }); }
+            else { const nx=tx(clone.x), ny=ty(clone.y); clone.x=nx; clone.y=ny; }
+            if (kind==='screen') { clone.radius=(clone.radius||60)*ratio; clone.width=(clone.width||16)*ratio; }
+            if (kind==='text') { clone.size=(clone.size||24)*ratio; }
+            if (kind==='shape') clone.cacheDirty=true;
+            const arr=arrFor(page,kind); arr.push(clone); refs.push({kind, idx:arr.length-1});
+        });
+        pastePreview=null; setMode('idle'); multiSel=refs;
+        markSeatCachesDirty(); triggerUpdate(); updateUI(); render();
+    }
+    function deleteSelection() {
+        const refs=getSelectionRefs(); if(!refs.length) return false;
+        saveState(); const page=getActivePage(); const byKind={};
+        refs.forEach(r=>{ (byKind[r.kind]=byKind[r.kind]||[]).push(r.idx); });
+        Object.keys(byKind).forEach(kind=>{ const arr=arrFor(page,kind); if(!arr) return; byKind[kind].sort((a,b)=>b-a).forEach(idx=>arr.splice(idx,1)); });
+        clearSelections(); markSeatCachesDirty(); triggerUpdate(); updateUI(); render(); return true;
+    }
+    function drawSelectionOverlay(c2, v) {
+        const page=getActivePage(); if(!page) return;
+        c2.save(); c2.setTransform(1,0,0,1,0,0); c2.translate(v.x,v.y); c2.scale(v.zoom,v.zoom);
+        const lw=1.5/v.zoom, dash=[6/v.zoom,4/v.zoom], pad=4/v.zoom;
+
+        if (multiSel.length) {
+            c2.strokeStyle='#00d0ff'; c2.lineWidth=lw; c2.setLineDash(dash);
+            multiSel.forEach(r=>{ const arr=arrFor(page,r.kind); const it=arr&&arr[r.idx]; if(!it) return; const b=itemBBox(r.kind,it,page); c2.strokeRect(b.minX-pad,b.minY-pad,(b.maxX-b.minX)+2*pad,(b.maxY-b.minY)+2*pad); });
+            c2.setLineDash([]);
+        }
+        if (isMarqueeSelecting && marquee) {
+            const x0=Math.min(marquee.x0,marquee.x1), y0=Math.min(marquee.y0,marquee.y1), w=Math.abs(marquee.x1-marquee.x0), h=Math.abs(marquee.y1-marquee.y0);
+            c2.fillStyle='rgba(0,152,255,0.12)'; c2.fillRect(x0,y0,w,h);
+            c2.strokeStyle='#0098ff'; c2.lineWidth=lw; c2.setLineDash([5/v.zoom,3/v.zoom]); c2.strokeRect(x0,y0,w,h); c2.setLineDash([]);
+        }
+        if (mode==='paste-place' && pastePreview && pastePreview.cursorX!=null) {
+            const ratio=(page.pixelsPerFoot>0 && pastePreview.srcPPF>0)?(page.pixelsPerFoot/pastePreview.srcPPF):1;
+            const ax=pastePreview.anchorX, ay=pastePreview.anchorY, cx=pastePreview.cursorX, cy=pastePreview.cursorY;
+            const tx=(x)=>cx+(x-ax)*ratio, ty=(y)=>cy+(y-ay)*ratio;
+            c2.strokeStyle='#4caf50'; c2.lineWidth=lw; c2.setLineDash([5/v.zoom,3/v.zoom]); c2.globalAlpha=0.95;
+            pastePreview.items.forEach(({kind,data})=>{ const b=itemBBox(kind,data,page); const X0=tx(b.minX),Y0=ty(b.minY),X1=tx(b.maxX),Y1=ty(b.maxY); c2.strokeRect(Math.min(X0,X1),Math.min(Y0,Y1),Math.abs(X1-X0),Math.abs(Y1-Y0)); });
+            c2.setLineDash([]); c2.globalAlpha=1;
+            const m=9/v.zoom; c2.beginPath(); c2.moveTo(cx-m,cy); c2.lineTo(cx+m,cy); c2.moveTo(cx,cy-m); c2.lineTo(cx,cy+m); c2.stroke();
+        }
+        c2.restore();
+    }
 
     // ─── GEOMETRY & HIT TESTING ─────────────────────────────────────────────────
     function toWorld(m) { return { x: (m.x - view.x) / view.zoom, y: (m.y - view.y) / view.zoom }; }
@@ -11328,7 +11556,7 @@ const I18N_STRINGS = {
     canvas.onwheel = (e) => {
         e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const m = getMousePos(e); const world = toWorld(m);
-        view.zoom *= delta; view.x = m.x - world.x * view.zoom; view.y = m.y - world.y * view.zoom; render();
+        view.zoom *= delta; view.x = m.x - world.x * view.zoom; view.y = m.y - world.y * view.zoom; beginInteract(); render();
     };
 
     // Hide crosshair when leaving the viewport area
@@ -11359,6 +11587,7 @@ const I18N_STRINGS = {
             view.y += m.y - lastMouse.y;
             lastMouse = m;
             mousePos = m;
+            beginInteract();
             // Trigger a render immediately on the next frame
             render();
         }
@@ -11371,6 +11600,8 @@ const I18N_STRINGS = {
         let world = toWorld(getMousePos(e)); const page = getActivePage();
 
         if (e.button === 1 || e.button === 2) { e.preventDefault(); isPanning = true; lastMouse = getMousePos(e); return; }
+
+        if (mode === 'paste-place') { if (e.button === 0) commitPaste(world); return; }
 
         if (page.seatLegend && page.seatLegend.show) {
             let activeSeatIndices = [];
@@ -11390,8 +11621,8 @@ const I18N_STRINGS = {
 
         if (page.legend && page.legend.show) {
             let signCounts = {}; let measureTotals = {};
-            if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) { signCounts[s.typeIndex ?? 0] = (signCounts[s.typeIndex ?? 0] || 0) + 1; } }); }
-            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
+            if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0) && itemIsCounted(s, page)) { signCounts[s.typeIndex ?? 0] = (signCounts[s.typeIndex ?? 0] || 0) + 1; } }); }
+            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx) || !itemIsCounted(m, page)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
             let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
             if (items.length > 0 || mItems.length > 0) {
                 measureCtx.font = "16px Arial"; let maxW=0; 
@@ -11430,6 +11661,19 @@ const I18N_STRINGS = {
         }
         
         if (mode === 'idle') {
+            {
+                const _add = (e.ctrlKey || e.metaKey), _sub = e.shiftKey;
+                if (_add || _sub) {
+                    const _hit = hitRefAt(world);
+                    if (_hit) { syncSingleIntoMulti(); if (_add) addRef(_hit.kind,_hit.idx); else removeRef(_hit.kind,_hit.idx); clearSingleSelection(); updateUI(); render(); }
+                    return;
+                }
+                if (multiSel.length) {
+                    const _hit = hitRefAt(world);
+                    if (_hit && selRefHas(_hit.kind,_hit.idx)) { beginGroupDrag(world); return; }
+                    multiSel = [];
+                }
+            }
             const hitPt = getHitShapePoint(world);
             if (hitPt !== -1) { isDraggingShapePoint = true; project.draggingShapePointTarget = hitPt.type; draggingShapePointIndex = hitPt.i; saveState(); return; }
 
@@ -11469,7 +11713,7 @@ const I18N_STRINGS = {
                 else { clearSelections(); activeTab = shape.type === 'area' ? 'area' : 'obs'; selectedShapeIndex = hitShape; isDraggingShape = true; hasDraggedShape = false; project.dragStartMouse = {x: world.x, y: world.y}; project.dragStartPoints = JSON.parse(JSON.stringify(page.shapes[hitShape].points)); updateUI(); render(); return; }
             }
 
-            clearSelections(); updateUI(); render();
+            clearSelections(); isMarqueeSelecting = true; marquee = { x0: world.x, y0: world.y, x1: world.x, y1: world.y }; updateUI(); render();
         }
 
         // ─── FIX #11: Apply Shift-snap on actual click, not just preview ─────────
@@ -11663,13 +11907,18 @@ const I18N_STRINGS = {
     //     run per animation frame. The crosshair listener above runs every event
     //     for snappy tracking; this one batches the expensive work. ───────────────
     let _heavyMoveScheduled = false;
+    let _lastHoverHit = 0;
     let _lastMoveEvent = null;
     function _runHeavyMouseMove(e) {
-        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend')) {
+        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isMarqueeSelecting || isDraggingGroup || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend')) {
             _releaseDrags(); return;
         }
 
         mousePos = getMousePos(e); let world = toWorld(mousePos);
+
+        if (isMarqueeSelecting && marquee) { marquee.x1 = world.x; marquee.y1 = world.y; render(); return; }
+        if (mode === 'paste-place' && pastePreview) { pastePreview.cursorX = world.x; pastePreview.cursorY = world.y; render(); return; }
+        if (isDraggingGroup) { applyGroupDrag(world); return; }
 
         // Freehand stroke capture — append a new point each move while the
         // button is held. Skip if too close to the previous point so we don't
@@ -11693,7 +11942,10 @@ const I18N_STRINGS = {
             setCrosshairActive(false);
         }
         
+        const _prevHoverSig = hoveredShapeIndex+'|'+hoveredSignIndex+'|'+hoveredLineIndex+'|'+hoveredScreenIndex+'|'+hoveredTextIndex+'|'+hoveredMeasureIndex+'|'+hoveredAttendantIndex;
         if (mode === 'idle') {
+            if (performance.now() - _lastHoverHit > 33) {
+            _lastHoverHit = performance.now();
             hoveredAttendantIndex = getHitAttendant(world);
             if (hoveredAttendantIndex !== -1) { hoveredScreenIndex = -1; hoveredShapeIndex = -1; hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredTextIndex = -1; hoveredMeasureIndex = -1; }
             else {
@@ -11722,6 +11974,7 @@ const I18N_STRINGS = {
                         }
                     }
                 }
+            }
             }
             }
         } else { hoveredShapeIndex = -1; hoveredSignIndex = -1; hoveredLineIndex = -1; hoveredScreenIndex = -1; hoveredTextIndex = -1; hoveredMeasureIndex = -1; hoveredAttendantIndex = -1; }
@@ -11783,6 +12036,12 @@ const I18N_STRINGS = {
         // response. Skip the heavy rAF render if we're panning — the lightweight path
         // already called render(). Just return to avoid double work.
         if (isPanning) { return; }
+        // Plain hover (idle, no drag): only repaint when the highlighted item changes,
+        // so moving the cursor over seats neither redraws them nor blurs them.
+        if (mode === 'idle') {
+            const _hoverSig = hoveredShapeIndex+'|'+hoveredSignIndex+'|'+hoveredLineIndex+'|'+hoveredScreenIndex+'|'+hoveredTextIndex+'|'+hoveredMeasureIndex+'|'+hoveredAttendantIndex;
+            if (_hoverSig === _prevHoverSig) return;
+        }
         render();
     }
 
@@ -11802,6 +12061,17 @@ const I18N_STRINGS = {
 
     window.onmouseup = (e) => {
         isPanning = false;
+        if (isMarqueeSelecting) {
+            isMarqueeSelecting = false;
+            if (marquee) {
+                const movedPx = Math.hypot((marquee.x1-marquee.x0)*view.zoom, (marquee.y1-marquee.y0)*view.zoom);
+                const rect = { minX:Math.min(marquee.x0,marquee.x1), minY:Math.min(marquee.y0,marquee.y1), maxX:Math.max(marquee.x0,marquee.x1), maxY:Math.max(marquee.y0,marquee.y1) };
+                marquee = null;
+                if (movedPx >= 4) selectInRect(rect);
+            }
+            updateUI(); render(); return;
+        }
+        if (isDraggingGroup) { isDraggingGroup = false; if (hasDraggedGroup) { markSeatCachesDirty(); updateUI(); triggerUpdate(); } return; }
         // Click-and-drag commit for box / ellipse — 2-point bounding-box shapes.
         // Project the cursor through grid/shift snaps and commit the second
         // corner. Drags under 5 screen pixels are treated as accidental and reset
@@ -12444,16 +12714,15 @@ const I18N_STRINGS = {
                     const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
                     s.cachedSeats.forEach(seat => {
                         cCtx.save(); cCtx.translate(seat.x, seat.y); cCtx.rotate(seat.rot);
-                        cCtx.fillStyle = seat.fill || st.color;
+                        cCtx.fillStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? '#d8d8d8' : (seat.fill || st.color);
                         cCtx.fillRect(-cw/2, -rd/2, cw, rd); 
-                        cCtx.strokeStyle = "rgba(0,0,0,0.85)"; 
-                        cCtx.lineWidth = 1.5; 
+                        cCtx.strokeStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'rgba(150,150,150,0.55)' : "rgba(0,0,0,0.85)"; 
+                        cCtx.lineWidth = 0.4; 
                         cCtx.strokeRect(-cw/2, -rd/2, cw, rd); 
                         cCtx.restore();
                     });
                 }
-                globalPageTotal += s.count; 
-                if (globalTypeTotals[s.seatTypeIndex ?? 0] !== undefined) globalTypeTotals[s.seatTypeIndex ?? 0] += s.count;
+                if (itemIsCounted(s, page)) { globalPageTotal += s.count; if (globalTypeTotals[s.seatTypeIndex ?? 0] !== undefined) globalTypeTotals[s.seatTypeIndex ?? 0] += s.count; }
             }
         });
         needsCacheUpdate = false;
@@ -12461,6 +12730,8 @@ const I18N_STRINGS = {
         updateTotalsUI();
     }
 
+    let _interacting = false, _interactTimer = null;
+    function beginInteract() { _interacting = true; if (_interactTimer) clearTimeout(_interactTimer); _interactTimer = setTimeout(() => { _interacting = false; render(); }, 130); }
     let renderPending = false;
     function render(targetCtx = ctx, v = view, isLive = true) {
         if (!isLive) return; 
@@ -12578,8 +12849,27 @@ const I18N_STRINGS = {
         }
 
         if (needsCacheUpdate) updateCache();
-        targetCtx.drawImage(layerCache, 0, 0);
-
+        // Seats: blit the fast bitmap cache while actively interacting (pan/zoom/drag) for smoothness,
+        // then snap to crisp vectors once settled. updateCache builds the cache + runs the layout
+        // rebuild (gated by cacheDirty) and the totals tally above.
+        const _fastSeats = isLive && (_interacting || isPanning || isMarqueeSelecting || isDraggingGroup || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isDraggingShapePoint);
+        if (_fastSeats) {
+            targetCtx.drawImage(layerCache, 0, 0);
+        } else {
+            page.shapes.forEach(s => {
+                if (s.type !== 'area' || !page.pixelsPerFoot || !s.cachedSeats) return;
+                if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
+                const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+                const cw = sst.w * page.pixelsPerFoot, rd = sst.d * page.pixelsPerFoot;
+                for (let si = 0; si < s.cachedSeats.length; si++) {
+                    const seat = s.cachedSeats[si];
+                    targetCtx.save(); targetCtx.translate(seat.x, seat.y); targetCtx.rotate(seat.rot);
+                    targetCtx.fillStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? '#d8d8d8' : (seat.fill || sst.color); targetCtx.fillRect(-cw/2, -rd/2, cw, rd);
+                    targetCtx.strokeStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'rgba(150,150,150,0.55)' : 'rgba(0,0,0,0.85)'; targetCtx.lineWidth = 0.4; targetCtx.strokeRect(-cw/2, -rd/2, cw, rd);
+                    targetCtx.restore();
+                }
+            });
+        }
         if (uiState.showScreens && hasScreens) {
             activeScreens.forEach((sc, i) => {
                 const rotRad = sc.rot * Math.PI / 180;
@@ -12603,11 +12893,12 @@ const I18N_STRINGS = {
         }
 
         page.shapes.forEach((s, i) => {
+            targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
             if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
             const isSelected = (isLive && i === selectedShapeIndex); const isHovered = (isLive && i === hoveredShapeIndex);
             targetCtx.beginPath(); s.points.forEach((p, idx) => idx===0 ? targetCtx.moveTo(p.x,p.y) : targetCtx.lineTo(p.x,p.y)); targetCtx.closePath();
-            if (s.type === 'area') { targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : st.stroke); targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke(); }
+            if (s.type === 'area') { const showOutline = isSelected || isHovered || (isLive && selRefHas('shape', i)); if (showOutline) { targetCtx.strokeStyle = (isSelected || (isLive && selRefHas('shape', i))) ? '#2ecc71' : '#f1c40f'; targetCtx.lineWidth = 4 / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke(); } }
             else if (s.type === 'obs') { targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#e74c3c'); targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke(); }
             else if (s.type === 'aisle') { targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#f1c40f'); targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([10 / v.zoom, 10 / v.zoom]); targetCtx.stroke(); targetCtx.fillStyle = 'rgba(241, 196, 15, 0.1)'; targetCtx.fill(); targetCtx.setLineDash([]); }
             if (isSelected) { s.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 6 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
@@ -12639,6 +12930,7 @@ const I18N_STRINGS = {
                 const typeIdx = m.typeIndex ?? 0;
                 // Per-type visibility gate — whole type can be toggled off.
                 if (uiState.hiddenMeasureTypes.includes(typeIdx)) return;
+                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(m, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
                 const isSelected = (isLive && i === selectedMeasureIndex); const isHovered = (isLive && i === hoveredMeasureIndex);
                 const mt = project.measureTypes[typeIdx] || project.measureTypes[0];
                 let activeColor = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : mt.color);
@@ -12703,6 +12995,7 @@ const I18N_STRINGS = {
 
         if (page.lines) {
             page.lines.forEach((l, i) => {
+                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(l, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
                 if (!lineVisible(l)) return;
                 const isSelected = (isLive && i === selectedLineIndex); const isHovered = (isLive && i === hoveredLineIndex);
                 let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
@@ -12950,6 +13243,7 @@ const I18N_STRINGS = {
 
         if (page.texts && uiState.showTexts !== false) {
             page.texts.forEach((t, i) => {
+                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(t, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
                 // Hide the text we're currently editing — the textarea overlay
                 // shows it instead. Otherwise we'd see canvas text ghosting
                 // behind the editor.
@@ -12985,6 +13279,7 @@ const I18N_STRINGS = {
 
         if (page.signs && uiState.showSigns) {
             page.signs.forEach((s, i) => {
+                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
                 if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
                 const radius = s.size || st.size;
@@ -12996,6 +13291,7 @@ const I18N_STRINGS = {
             });
         }
 
+        targetCtx.filter = 'none';
         // Attendant posts render on top of signs/screens
         drawAttendantPosts(targetCtx, v, isLive);
 
@@ -13032,8 +13328,8 @@ const I18N_STRINGS = {
 
         if (page.legend && page.legend.show) {
             let signCounts = {}; let measureTotals = {}; let grandTotal = 0;
-            if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) { let idx = s.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
-            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
+            if (page.signs && uiState.showSigns) { page.signs.forEach(s => { if (!uiState.hiddenSignTypes.includes(s.typeIndex ?? 0) && itemIsCounted(s, page)) { let idx = s.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
+            if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx) || !itemIsCounted(m, page)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
             let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
             if (items.length > 0 || mItems.length > 0) {
                 targetCtx.save();
@@ -13410,6 +13706,7 @@ const I18N_STRINGS = {
                 }
             }
         }
+        if (isLive) drawSelectionOverlay(targetCtx, v);
     }
 
     // ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
@@ -13472,6 +13769,7 @@ const I18N_STRINGS = {
         project.pages.forEach(p => {
             (p.shapes || []).forEach(s => {
                 if (s.type !== 'area') return;
+                if (s.noCount || p.excludeFromTotals) return;
                 const typeIdx = s.seatTypeIndex ?? 0;
                 const typeName = (project.seatTypes[typeIdx] && project.seatTypes[typeIdx].name) || `Type ${typeIdx + 1}`;
                 chairRows.push([p.name, typeName, s.name || '', s.count || 0]);
@@ -13496,7 +13794,7 @@ const I18N_STRINGS = {
             // Signs: group by type, count how many on this page.
             if (p.signs && p.signs.length > 0) {
                 project.signTypes.forEach((st, typeIdx) => {
-                    const count = p.signs.filter(sg => (sg.typeIndex ?? 0) === typeIdx).length;
+                    const count = p.excludeFromTotals ? 0 : p.signs.filter(sg => (sg.typeIndex ?? 0) === typeIdx && !sg.noCount).length;
                     if (count > 0) {
                         keyRows.push([
                             p.name,
@@ -13516,7 +13814,7 @@ const I18N_STRINGS = {
                     let count = 0;
                     let totalFt = 0;
                     p.measures.forEach(m => {
-                        if ((m.typeIndex ?? 0) !== typeIdx) return;
+                        if ((m.typeIndex ?? 0) !== typeIdx || m.noCount || p.excludeFromTotals) return;
                         count++;
                         let pxLen = 0;
                         for (let k = 1; k < m.points.length; k++) {
@@ -14775,7 +15073,7 @@ const I18N_STRINGS = {
                     let pageRows = ''; let hasAreas = false; let pageTotal = 0;
                     project.seatTypes.forEach((st, typeIdx) => {
                         let typeSubtotal = 0; let typeRows = '';
-                        p.shapes.forEach(s => { if(s.type === 'area' && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) { typeRows += `<tr><td style="padding-left: 20px;">${escapeHTML(s.name)}</td><td>${fmtNum(s.count)}</td></tr>`; typeSubtotal += s.count; } });
+                        p.shapes.forEach(s => { if(s.type === 'area' && itemIsCounted(s, p) && (s.seatTypeIndex === typeIdx || (s.seatTypeIndex === undefined && typeIdx === 0))) { typeRows += `<tr><td style="padding-left: 20px;">${escapeHTML(s.name)}</td><td>${fmtNum(s.count)}</td></tr>`; typeSubtotal += s.count; } });
                         if (typeRows !== '') {
                             hasAreas = true;
                             pageRows += `<tr style="background: #f0f0f0 !important; font-weight: bold; font-size: 0.9em;"><td colspan="2" style="padding-left: 10px; color: #555;">${escapeHTML(t('print.summary.group.suffix', { name: st.name }))}</td></tr>`;
@@ -15248,16 +15546,23 @@ const I18N_STRINGS = {
                     page.shapes.forEach(s => {
                         const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                         if (s.type === 'area' && page.pixelsPerFoot && s.cachedSeats) {
-                            pageTypeTotals[s.seatTypeIndex ?? 0] += s.count;
-                            if (uiState.showSeats && !uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) {
-                                const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
-                                s.cachedSeats.forEach(seat => { rCtx.save(); rCtx.translate(seat.x, seat.y); rCtx.rotate(seat.rot); rCtx.fillStyle = seat.fill || st.color; rCtx.fillRect(-cw/2, -rd/2, cw, rd); rCtx.strokeStyle = "rgba(0,0,0,0.85)"; rCtx.lineWidth = 1.5; rCtx.strokeRect(-cw/2, -rd/2, cw, rd); rCtx.restore(); });
-                            }
+                            if (itemIsCounted(s, page)) pageTypeTotals[s.seatTypeIndex ?? 0] += s.count;
                         }
                     });
                     const rasterBgDataUrl = rasterCanvas.toDataURL('image/jpeg', 0.85);
                     let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" preserveAspectRatio="xMidYMid meet" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
                     svg += `<image href="${rasterBgDataUrl}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
+                    // Crisp vector seats (previously baked into the JPEG raster → blurry)
+                    page.shapes.forEach(s => {
+                        if (s.type !== "area" || !page.pixelsPerFoot || !s.cachedSeats) return;
+                        if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
+                        const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+                        const cw = sst.w * page.pixelsPerFoot, rd = sst.d * page.pixelsPerFoot;
+                        s.cachedSeats.forEach(seat => {
+                            const deg = seat.rot * 180 / Math.PI;
+                            svg += `<g transform="translate(${seat.x.toFixed(2)},${seat.y.toFixed(2)}) rotate(${deg.toFixed(2)})"><rect x="${(-cw/2).toFixed(2)}" y="${(-rd/2).toFixed(2)}" width="${cw.toFixed(2)}" height="${rd.toFixed(2)}" fill="${escapeHTML(seat.fill || sst.color)}" stroke="rgba(0,0,0,0.85)" stroke-width="0.4" /></g>`;
+                        });
+                    });
                     if (uiState.showScreens && hasScreens) {
                         activeScreens.forEach((sc) => {
                             const rotRad = sc.rot * Math.PI / 180; const sw = sc.width !== undefined ? sc.width : 16; const screenW = page.pixelsPerFoot > 0 ? sw * page.pixelsPerFoot : sw * 10;
@@ -15579,8 +15884,8 @@ const I18N_STRINGS = {
                     if (page.legend && page.legend.show) {
                         let legendX = page.legend.x; let legendY = page.legend.y; let s = (page.legend.scale || 1); 
                         let signCounts = {}; let measureTotals = {}; let grandTotal = 0;
-                        if (page.signs && uiState.showSigns) { page.signs.forEach(sign => { if (!uiState.hiddenSignTypes.includes(sign.typeIndex ?? 0)) { let idx = sign.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
-                        if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
+                        if (page.signs && uiState.showSigns) { page.signs.forEach(sign => { if (!uiState.hiddenSignTypes.includes(sign.typeIndex ?? 0) && itemIsCounted(sign, page)) { let idx = sign.typeIndex ?? 0; signCounts[idx] = (signCounts[idx] || 0) + 1; grandTotal++; } }); }
+                        if (page.measures && uiState.showMeasures !== false) { page.measures.forEach(m => { const idx = m.typeIndex ?? 0; if (uiState.hiddenMeasureTypes.includes(idx) || !itemIsCounted(m, page)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); let ft = page.pixelsPerFoot ? pxLen / page.pixelsPerFoot : 0; measureTotals[idx] = (measureTotals[idx] || 0) + ft; }); }
                         let items = Object.keys(signCounts).map(Number); let mItems = Object.keys(measureTotals).map(Number);
                         if (items.length > 0 || mItems.length > 0) {
                             measureCtx.font = "16px Arial"; let maxW=0; items.forEach(idx=>{ const st = project.signTypes[idx] || project.signTypes[0]; let w=measureCtx.measureText(st.name).width + measureCtx.measureText(fmtNum(signCounts[idx])).width; if(w>maxW)maxW=w; }); mItems.forEach(idx=>{ const mt = project.measureTypes[idx] || project.measureTypes[0]; let w=measureCtx.measureText(mt.name).width + measureCtx.measureText(formatLength(measureTotals[idx])).width; if(w>maxW)maxW=w; });
