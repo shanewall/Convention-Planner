@@ -2715,6 +2715,8 @@ const I18N_STRINGS = {
         "ctx.delete": "✕ Delete",
         "ctx.exclude_counts": "🚫 Exclude from counts",
         "ctx.include_counts": "✓ Include in counts",
+        "ctx.add_vertex": "➕ Add vertex here",
+        "ctx.remove_vertex": "➖ Remove vertex",
         "ctx.items_selected": "selected",
         "layers.dim_nocount": "Dim not-counted items",
         "nocount.badge": "not counted",
@@ -3390,6 +3392,8 @@ const I18N_STRINGS = {
         "ctx.delete": "❌ Eliminar",
         "ctx.exclude_counts": "🚫 Excluir del conteo",
         "ctx.include_counts": "✓ Incluir en el conteo",
+        "ctx.add_vertex": "➕ Añadir vértice aquí",
+        "ctx.remove_vertex": "➖ Eliminar vértice",
         "ctx.items_selected": "seleccionados",
         "layers.dim_nocount": "Atenuar elementos no contados",
         "nocount.badge": "no contado",
@@ -4048,7 +4052,22 @@ const I18N_STRINGS = {
         if (item.kind === 'attendant') deleteAttendantPost(item.index);
     }
 
-    function showCanvasContextMenu(clientX, clientY) {
+    // Which selected items support vertex add/remove, and the rules for each.
+    // Closed shapes need >=3 points (still a polygon); open paths need >=2.
+    // Fixed-point line types (box, ellipse, dimension, callout, counter) are
+    // defined by an exact point count, so they're excluded.
+    function getVertexEditability(item) {
+        if (!item || !item.ref || !Array.isArray(item.ref.points)) return null;
+        if (item.kind === 'shape') return { closed: true, minPts: 3 };
+        if (item.kind === 'measure') return { closed: false, minPts: 2 };
+        if (item.kind === 'line') {
+            const tp = item.ref.type;
+            if (tp === 'polyline' || tp === 'freehand') return { closed: false, minPts: 2 };
+            if (tp === 'polygon' || tp === 'cloud' || tp === 'area-measure') return { closed: true, minPts: 3 };
+        }
+        return null;
+    }
+    function showCanvasContextMenu(clientX, clientY, worldPt) {
         const refs = getSelectionRefs();
         if (!refs.length) return false;
         const isGroup = multiSel.length > 0;
@@ -4059,7 +4078,43 @@ const I18N_STRINGS = {
         const headerName = isGroup
             ? (multiSel.length + ' ' + t('ctx.items_selected'))
             : (item.name ? `${item.label}: ${item.name}` : item.label);
+        // Vertex add/remove: only for a single selected point-based item, and
+        // only when the right-click landed on one of its vertices (remove) or
+        // on a segment between them (add at the projected point).
+        let _vtxAction = null;
+        if (!isGroup && worldPt && item) {
+            const ve = getVertexEditability(item);
+            if (ve) {
+                const pts = item.ref.points;
+                const vThrSq = sqr(12 / view.zoom);
+                let hitV = -1;
+                for (let i = 0; i < pts.length; i++) { if (dist2(worldPt, pts[i]) < vThrSq) { hitV = i; break; } }
+                if (hitV !== -1) {
+                    if (pts.length > ve.minPts) _vtxAction = { mode: 'remove', ptIdx: hitV };
+                } else {
+                    const sThrSq = sqr(10 / view.zoom);
+                    const n = pts.length; const segCount = ve.closed ? n : n - 1;
+                    let best = null, bestD = sThrSq;
+                    for (let si = 0; si < segCount; si++) {
+                        const a = pts[si], b = pts[(si + 1) % n];
+                        const d = distToSegmentSquared(worldPt, a, b);
+                        if (d < bestD) {
+                            // Projection of the click onto the segment, clamped.
+                            const l2 = dist2(a, b);
+                            let tt = l2 === 0 ? 0 : ((worldPt.x - a.x) * (b.x - a.x) + (worldPt.y - a.y) * (b.y - a.y)) / l2;
+                            tt = Math.max(0, Math.min(1, tt));
+                            best = { mode: 'add', segIdx: si, pt: { x: a.x + tt * (b.x - a.x), y: a.y + tt * (b.y - a.y) } };
+                            bestD = d;
+                        }
+                    }
+                    if (best) _vtxAction = best;
+                }
+            }
+        }
         let html = `<div class="ctx-menu-header">${escapeHTML(headerName)}</div>`;
+        if (_vtxAction) {
+            html += `<div class="ctx-menu-item" data-ctx-action="${_vtxAction.mode === 'remove' ? 'remove-vertex' : 'add-vertex'}">${escapeHTML(_vtxAction.mode === 'remove' ? t('ctx.remove_vertex') : t('ctx.add_vertex'))}</div>`;
+        }
         if (!isGroup) {
             if (item.kind === 'text') html += `<div class="ctx-menu-item" data-ctx-action="edit-text">${escapeHTML(t('ctx.edit_text'))}</div>`;
             else if (item.kind === 'attendant') html += `<div class="ctx-menu-item" data-ctx-action="edit-attendant">${escapeHTML(t('ctx.edit_properties'))}</div>`;
@@ -4096,6 +4151,18 @@ const I18N_STRINGS = {
                 else if (action === 'duplicate') { duplicateSelectedItem(); }
                 else if (action === 'toggle-nocount') { setNotCountedOnSelection(!allNC); }
                 else if (action === 'delete') { if (isGroup) deleteSelection(); else deleteSelectedItem(); }
+                else if (action === 'add-vertex' && _vtxAction) {
+                    saveState();
+                    item.ref.points.splice(_vtxAction.segIdx + 1, 0, _vtxAction.pt);
+                    if (item.kind === 'shape') { item.ref.cacheDirty = true; markSeatCachesDirty(); }
+                    hasUnsavedChanges = true; triggerUpdate(); updateUI(); render();
+                }
+                else if (action === 'remove-vertex' && _vtxAction) {
+                    saveState();
+                    item.ref.points.splice(_vtxAction.ptIdx, 1);
+                    if (item.kind === 'shape') { item.ref.cacheDirty = true; markSeatCachesDirty(); }
+                    hasUnsavedChanges = true; triggerUpdate(); updateUI(); render();
+                }
             });
         });
         return true;
@@ -4109,7 +4176,7 @@ const I18N_STRINGS = {
         if (item || multiSel.length) {
             // We need to cancel the pan that mousedown(button=2) just kicked off
             isPanning = false;
-            showCanvasContextMenu(e.clientX, e.clientY);
+            showCanvasContextMenu(e.clientX, e.clientY, toWorld(getMousePos(e)));
         }
     });
     
@@ -7282,7 +7349,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.2.0";
+    const APP_VERSION = "2.3.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7571,7 +7638,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.2.0-release";
+    const ANNOUNCEMENT_VERSION = "2.3.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7579,6 +7646,23 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.3.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Vertex editing, plus paper-size options restored for report printing:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Add &amp; remove vertices.</strong> Select any point-based item — seat areas, obstacles, aisles, polymeasures, polylines, polygons, clouds, freehand paths, and area measures — then right-click a vertex to <em>remove</em> it, or right-click anywhere along an edge to <em>add</em> a vertex exactly on that edge. New points are immediately draggable, seat areas refill on the spot, and both actions undo with Ctrl+Z. Shapes are protected from over-deletion (closed shapes keep at least 3 points, open paths at least 2).</li>
+                    <li><strong>Report printing fix.</strong> The Chair Summary, Key Item Report, and Shift Schedule once again offer <em>paper size and orientation</em> before printing — they had lost those options in the 2.1 print overhaul. The Shift Schedule defaults to landscape; the layout print dialog is unchanged.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Edición de vértices, y opciones de papel restauradas al imprimir informes:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Añadir y eliminar vértices.</strong> Seleccione cualquier elemento basado en puntos — áreas de asientos, obstáculos, pasillos, polimedidas, polilíneas, polígonos, nubes, trazos a mano alzada y medidas de área — y haga clic derecho sobre un vértice para <em>eliminarlo</em>, o clic derecho sobre un borde para <em>añadir</em> un vértice exactamente sobre ese borde. Los puntos nuevos se pueden arrastrar de inmediato, las áreas de asientos se rellenan al instante y ambas acciones se deshacen con Ctrl+Z. Las formas están protegidas (las cerradas mantienen al menos 3 puntos, las abiertas al menos 2).</li>
+                    <li><strong>Corrección al imprimir informes.</strong> El Resumen de Sillas, el Informe de Elementos Clave y el Horario de Turnos vuelven a ofrecer <em>tamaño de papel y orientación</em> antes de imprimir — habían perdido esas opciones en la renovación de impresión de la 2.1. El Horario de Turnos usa horizontal por defecto; el diálogo de impresión del plano no cambia.</li>
+                </ul>
+            `
+        },
         {
             version: "2.2.0",
             en: `
