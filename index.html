@@ -8,6 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007acc%22/><text x=%2250%22 y=%2268%22 font-size=%2255%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22>CP</text></svg>">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <!-- SheetJS for Excel (.xlsx) export of chair/key item data. Loaded from CDN;
          falls back gracefully if offline — exportToExcel() checks for window.XLSX
          and shows a toast if unavailable. -->
@@ -1359,13 +1360,24 @@
                     <option value="letter">Letter (8.5 × 11 in)</option>
                     <option value="legal">Legal (8.5 × 14 in)</option>
                     <option value="tabloid">Tabloid / Ledger (11 × 17 in)</option>
+                    <option value="ansiC">ANSI C (17 × 22 in)</option>
+                    <option value="ansiD">ANSI D (22 × 34 in)</option>
+                    <option value="ansiE">ANSI E (34 × 44 in)</option>
                 </optgroup>
                 <optgroup label="ISO A Paper Sizes" data-i18n-label="modal.newpage.preset.group.iso">
+                    <option value="a5">A5 (148 × 210 mm)</option>
                     <option value="a4">A4 (210 × 297 mm)</option>
                     <option value="a3">A3 (297 × 420 mm)</option>
                     <option value="a2">A2 (420 × 594 mm)</option>
                     <option value="a1">A1 (594 × 841 mm)</option>
                     <option value="a0">A0 (841 × 1189 mm)</option>
+                </optgroup>
+                <optgroup label="ISO B Paper Sizes" data-i18n-label="modal.newpage.preset.group.isob">
+                    <option value="isoB4">ISO B4 (250 × 353 mm)</option>
+                    <option value="isoB3">ISO B3 (353 × 500 mm)</option>
+                    <option value="isoB2">ISO B2 (500 × 707 mm)</option>
+                    <option value="isoB1">ISO B1 (707 × 1000 mm)</option>
+                    <option value="isoB0">ISO B0 (1000 × 1414 mm)</option>
                 </optgroup>
                 <optgroup label="Architectural Sheets" data-i18n-label="modal.newpage.preset.group.arch">
                     <option value="archA">Arch A (9 × 12 in)</option>
@@ -1373,6 +1385,7 @@
                     <option value="archC">Arch C (18 × 24 in)</option>
                     <option value="archD">Arch D (24 × 36 in)</option>
                     <option value="archE">Arch E (36 × 48 in)</option>
+                    <option value="archE1">Arch E1 (30 × 42 in)</option>
                 </optgroup>
             </select>
         </div>
@@ -1388,7 +1401,9 @@
             <select id="print-scale-select" style="width: 100%;">
                 <option value="fit" data-i18n="modal.print.scale.fit">Fit to page (no specific scale)</option>
                 <optgroup label="Imperial (Architectural)" data-i18n-label="modal.newpage.scale.group.imperial">
+                    <option value="imp_1_32">1/32" = 1'</option>
                     <option value="imp_1_16">1/16" = 1'</option>
+                    <option value="imp_3_32">3/32" = 1'</option>
                     <option value="imp_1_8">1/8" = 1'</option>
                     <option value="imp_3_16">3/16" = 1'</option>
                     <option value="imp_1_4">1/4" = 1'</option>
@@ -1398,8 +1413,21 @@
                     <option value="imp_1">1" = 1'</option>
                     <option value="imp_1_5">1 1/2" = 1'</option>
                     <option value="imp_3">3" = 1'</option>
+                    <option value="imp_6">6" = 1'</option>
+                    <option value="imp_12">12" = 1' (full size)</option>
+                </optgroup>
+                <optgroup label="Imperial (Engineering)" data-i18n-label="modal.newpage.scale.group.eng">
+                    <option value="eng_10">1" = 10'</option>
+                    <option value="eng_20">1" = 20'</option>
+                    <option value="eng_30">1" = 30'</option>
+                    <option value="eng_40">1" = 40'</option>
+                    <option value="eng_50">1" = 50'</option>
+                    <option value="eng_60">1" = 60'</option>
+                    <option value="eng_100">1" = 100'</option>
                 </optgroup>
                 <optgroup label="Metric" data-i18n-label="modal.newpage.scale.group.metric">
+                    <option value="met_1">1:1</option>
+                    <option value="met_2">1:2</option>
                     <option value="met_5">1:5</option>
                     <option value="met_10">1:10</option>
                     <option value="met_20">1:20</option>
@@ -1408,11 +1436,20 @@
                     <option value="met_75">1:75</option>
                     <option value="met_100">1:100</option>
                     <option value="met_200">1:200</option>
+                    <option value="met_250">1:250</option>
                     <option value="met_500">1:500</option>
                     <option value="met_1000">1:1000</option>
+                    <option value="met_2000">1:2000</option>
+                    <option value="met_5000">1:5000</option>
                 </optgroup>
             </select>
             <div id="print-scale-warning" style="font-size: 0.75em; color: #e67e22; margin-top: 4px; display: none;"></div>
+        </div>
+        <div id="print-opt-annots-group" style="margin-bottom: 12px; display:none;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
+                <input type="checkbox" id="print-include-annots" checked style="width:auto; margin:0;">
+                <span data-i18n="modal.print.include_annots">Include markups already on the sheet (PDF comments)</span>
+            </label>
         </div>
         <div id="print-opt-titleblock-group" style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
@@ -1422,6 +1459,8 @@
         </div>
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
             <button onclick="hidePrintOptionsModal()" class="secondary" data-i18n="modal.print.cancel">Cancel</button>
+            <button id="print-export-markup-btn" onclick="applyPrintOptionsModal('markup')" class="secondary" data-i18n="modal.print.markup" title="Original PDF sheet with your markup added on top">Markup PDF</button>
+            <button id="print-export-pdf-btn" onclick="applyPrintOptionsModal(true)" class="secondary" data-i18n="modal.print.exportpdf" title="Vector PDF — crisp blueprint at any size">Save as PDF</button>
             <button onclick="applyPrintOptionsModal()" data-i18n="modal.print.confirm">Print</button>
         </div>
     </div>
@@ -1466,13 +1505,24 @@
                         <option value="letter">Letter (8.5 × 11 in)</option>
                         <option value="legal">Legal (8.5 × 14 in)</option>
                         <option value="tabloid">Tabloid / Ledger (11 × 17 in)</option>
+                        <option value="ansiC">ANSI C (17 × 22 in)</option>
+                        <option value="ansiD">ANSI D (22 × 34 in)</option>
+                        <option value="ansiE">ANSI E (34 × 44 in)</option>
                     </optgroup>
                     <optgroup label="ISO A Paper Sizes" data-i18n-label="modal.newpage.preset.group.iso">
+                        <option value="a5">A5 (148 × 210 mm)</option>
                         <option value="a4">A4 (210 × 297 mm)</option>
                         <option value="a3">A3 (297 × 420 mm)</option>
                         <option value="a2">A2 (420 × 594 mm)</option>
                         <option value="a1">A1 (594 × 841 mm)</option>
                         <option value="a0">A0 (841 × 1189 mm)</option>
+                    </optgroup>
+                    <optgroup label="ISO B Paper Sizes" data-i18n-label="modal.newpage.preset.group.isob">
+                        <option value="isoB4">ISO B4 (250 × 353 mm)</option>
+                        <option value="isoB3">ISO B3 (353 × 500 mm)</option>
+                        <option value="isoB2">ISO B2 (500 × 707 mm)</option>
+                        <option value="isoB1">ISO B1 (707 × 1000 mm)</option>
+                        <option value="isoB0">ISO B0 (1000 × 1414 mm)</option>
                     </optgroup>
                     <optgroup label="Architectural Sheets" data-i18n-label="modal.newpage.preset.group.arch">
                         <option value="archA">Arch A (9 × 12 in)</option>
@@ -1480,6 +1530,7 @@
                         <option value="archC">Arch C (18 × 24 in)</option>
                         <option value="archD">Arch D (24 × 36 in)</option>
                         <option value="archE">Arch E (36 × 48 in)</option>
+                        <option value="archE1">Arch E1 (30 × 42 in)</option>
                     </optgroup>
                 </select>
             </div>
@@ -1511,18 +1562,33 @@
                 <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="modal.newpage.scale">Drawing scale</label>
                 <select id="newpage-sheet-scale" style="width: 100%;">
                     <optgroup label="Imperial (Architectural)" data-i18n-label="modal.newpage.scale.group.imperial">
+                        <option value="imp_1_32">1/32" = 1'</option>
                         <option value="imp_1_16">1/16" = 1'</option>
+                        <option value="imp_3_32">3/32" = 1'</option>
                         <option value="imp_1_8">1/8" = 1'</option>
                         <option value="imp_3_16">3/16" = 1'</option>
-                        <option value="imp_1_4" selected>1/4" = 1'</option>
+                        <option value="imp_1_4">1/4" = 1'</option>
                         <option value="imp_3_8">3/8" = 1'</option>
                         <option value="imp_1_2">1/2" = 1'</option>
                         <option value="imp_3_4">3/4" = 1'</option>
                         <option value="imp_1">1" = 1'</option>
                         <option value="imp_1_5">1 1/2" = 1'</option>
                         <option value="imp_3">3" = 1'</option>
+                        <option value="imp_6">6" = 1'</option>
+                        <option value="imp_12">12" = 1' (full size)</option>
+                    </optgroup>
+                    <optgroup label="Imperial (Engineering)" data-i18n-label="modal.newpage.scale.group.eng">
+                        <option value="eng_10">1" = 10'</option>
+                        <option value="eng_20">1" = 20'</option>
+                        <option value="eng_30">1" = 30'</option>
+                        <option value="eng_40">1" = 40'</option>
+                        <option value="eng_50">1" = 50'</option>
+                        <option value="eng_60">1" = 60'</option>
+                        <option value="eng_100">1" = 100'</option>
                     </optgroup>
                     <optgroup label="Metric" data-i18n-label="modal.newpage.scale.group.metric">
+                        <option value="met_1">1:1</option>
+                        <option value="met_2">1:2</option>
                         <option value="met_5">1:5</option>
                         <option value="met_10">1:10</option>
                         <option value="met_20">1:20</option>
@@ -1531,8 +1597,11 @@
                         <option value="met_75">1:75</option>
                         <option value="met_100">1:100</option>
                         <option value="met_200">1:200</option>
+                        <option value="met_250">1:250</option>
                         <option value="met_500">1:500</option>
                         <option value="met_1000">1:1000</option>
+                        <option value="met_2000">1:2000</option>
+                        <option value="met_5000">1:5000</option>
                     </optgroup>
                 </select>
                 <div style="font-size: 0.75em; color: #888; margin-top: 4px;" data-i18n="modal.newpage.scale.hint">Determines how big real-world items appear on the sheet. Can be changed later from the Project tab.</div>
@@ -1544,6 +1613,24 @@
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
             <button onclick="hideNewPageModal()" class="secondary" data-i18n="modal.newpage.cancel">Cancel</button>
             <button onclick="applyNewPageModal()" data-i18n="modal.newpage.create">Create Page</button>
+        </div>
+    </div>
+</div>
+
+<div id="pdf-import-modal" class="modal-overlay" onclick="if(event.target===this) cancelPdfImportModal()">
+    <div class="modal-card" role="dialog">
+        <h2 data-i18n="pdfimport.title">PDF Sheet Settings</h2>
+        <p style="font-size:0.9em; color:#ccc; margin: 4px 0 12px;"><span data-i18n="pdfimport.sheet">Sheet size:</span> <strong id="pdf-import-size"></strong></p>
+        <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:0.75em; color:#aaa; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="pdfimport.scale">Drawing scale</label>
+            <select id="pdf-import-scale" class="text-input-dark" style="width:100%;">
+                <option value="" data-i18n="pdfimport.skip">Not sure — set scale manually later</option>
+                <!-- options populated at runtime from DRAWING_SCALES -->
+            </select>
+        </div>
+        <label class="layer-toggle" style="margin-bottom:14px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="pdf-import-annots" checked style="width:auto; margin:0;"> <span data-i18n="pdfimport.annots">Include markups already on the sheet (comments, stamps)</span></label>
+        <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button onclick="applyPdfImportModal()" data-i18n="pdfimport.apply">Apply</button>
         </div>
     </div>
 </div>
@@ -2555,6 +2642,8 @@ const I18N_STRINGS = {
         "modal.newpage.scale": "Drawing scale",
         "modal.newpage.scale.hint": "Determines how big real-world items appear on the sheet. Can be changed later from the Project tab.",
         "modal.newpage.scale.group.imperial": "Imperial (Architectural)",
+        "modal.newpage.scale.group.eng": "Imperial (Engineering)",
+        "modal.newpage.preset.group.isob": "ISO B Paper Sizes",
         "modal.newpage.scale.group.metric": "Metric",
         "modal.newpage.blueprint.hint": "The page will be created blank. After it opens, use the Upload Blueprint button in the Project tab's Background & Scale section to attach your image or PDF.",
         "modal.newpage.cancel": "Cancel",
@@ -2591,6 +2680,19 @@ const I18N_STRINGS = {
         "prompt.callout.text": "Callout text:",
         "modal.print.title": "Print Layout",
         "modal.print.title.report": "Print Report",
+        "modal.print.exportpdf": "Save as PDF",
+        "modal.print.markup": "Markup PDF",
+        "print.markup.nopdf": "This page has no imported PDF to mark up. Re-upload the blueprint PDF first.",
+        "pdfimport.title": "PDF Sheet Settings",
+        "pdfimport.sheet": "Sheet size:",
+        "pdfimport.scale": "Drawing scale",
+        "pdfimport.skip": "Not sure \u2014 set scale manually later",
+        "pdfimport.apply": "Apply",
+        "pdfimport.annots": "Include markups already on the sheet (comments, stamps)",
+        "modal.print.include_annots": "Include markups already on the sheet (PDF comments)",
+        "canvas.seats.noscale": "\u26a0 Set scale for seats",
+        "print.exportpdf.failed": "PDF export failed. Try the regular Print instead.",
+        "print.scale.fit": "Fit to page",
         "modal.print.paper": "Paper size",
         "modal.print.orientation": "Orientation",
         "modal.print.scale": "Print scale",
@@ -3268,6 +3370,19 @@ const I18N_STRINGS = {
         "prompt.callout.text": "Texto de la llamada:",
         "modal.print.title": "Imprimir Plano",
         "modal.print.title.report": "Imprimir Informe",
+        "modal.print.exportpdf": "Guardar como PDF",
+        "modal.print.markup": "PDF de Marcado",
+        "print.markup.nopdf": "Esta p\u00e1gina no tiene un PDF importado para marcar. Vuelva a subir el PDF del plano primero.",
+        "pdfimport.title": "Configuraci\u00f3n de la Hoja PDF",
+        "pdfimport.sheet": "Tama\u00f1o de hoja:",
+        "pdfimport.scale": "Escala de dibujo",
+        "pdfimport.skip": "No estoy seguro \u2014 definir la escala manualmente despu\u00e9s",
+        "pdfimport.apply": "Aplicar",
+        "pdfimport.annots": "Incluir marcas ya existentes en la hoja (comentarios, sellos)",
+        "modal.print.include_annots": "Incluir marcas ya existentes en la hoja (comentarios PDF)",
+        "canvas.seats.noscale": "\u26a0 Defina la escala para los asientos",
+        "print.exportpdf.failed": "La exportaci\u00f3n a PDF fall\u00f3. Pruebe la impresi\u00f3n normal.",
+        "print.scale.fit": "Ajustar a la p\u00e1gina",
         "modal.print.paper": "Tamaño de papel",
         "modal.print.orientation": "Orientación",
         "modal.print.scale": "Escala de impresión",
@@ -4335,6 +4450,66 @@ const I18N_STRINGS = {
     let _textEditingNewPos = null; // {x, y} for new-placement mode
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
     let bgImage = new Image();
+    // ─── CRISP PDF UNDERLAY ───────────────────────────────────────────────
+    // The blueprint raster (page.imgData) is fixed-resolution, so it blurs
+    // when zoomed past 1:1. When the page kept its source PDF (page.pdfData),
+    // we re-render just the visible region at the current zoom with PDF.js
+    // after pan/zoom settles, and drawScene overlays it on the raster.
+    let _crispBg = null;          // {pageIdx, sig, rect:{x,y,w,h}, canvas}
+    let _crispTimer = null;
+    let _crispToken = 0;
+    let _crispDoc = { key: null, promise: null };
+    const CRISP_MAX_PIXELS = 4096 * 4096;
+    function invalidateCrispBg() { _crispBg = null; _crispToken++; }
+    function scheduleCrispBg() {
+        if (_crispTimer) clearTimeout(_crispTimer);
+        _crispTimer = setTimeout(_updateCrispBg, 200);
+    }
+    function _b64ToU8(b64) { const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
+    async function _updateCrispBg() {
+        const pageIdx = project.activePageIndex;
+        const page = getActivePage();
+        if (!page || !page.pdfData || !bgImage.src || !bgImage.width) { _crispBg = null; return; }
+        // At zoom <= 1 the base raster is already at (or above) screen
+        // resolution, so there's nothing to gain.
+        if (view.zoom <= 1.02) { _crispBg = null; return; }
+        // Visible world rect, clamped to the blueprint.
+        let x0 = (0 - view.x) / view.zoom, y0 = (0 - view.y) / view.zoom;
+        let x1 = (canvas.width - view.x) / view.zoom, y1 = (canvas.height - view.y) / view.zoom;
+        x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
+        x1 = Math.min(bgImage.width, Math.ceil(x1)); y1 = Math.min(bgImage.height, Math.ceil(y1));
+        const w = x1 - x0, h = y1 - y0;
+        if (w <= 0 || h <= 0) { _crispBg = null; return; }
+        let k = view.zoom;
+        const kCap = Math.sqrt(CRISP_MAX_PIXELS / (w * h));
+        if (k > kCap) k = kCap;
+        if (k <= 1.02) { _crispBg = null; return; }
+        const sig = pageIdx + '|' + Math.round(view.zoom * 100) + '|' + x0 + '|' + y0 + '|' + x1 + '|' + y1;
+        if (_crispBg && _crispBg.sig === sig) return;
+        const token = ++_crispToken;
+        try {
+            const docKey = pageIdx + ':' + page.pdfData.length;
+            if (_crispDoc.key !== docKey) {
+                _crispDoc = { key: docKey, promise: pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise };
+            }
+            const doc = await _crispDoc.promise;
+            if (token !== _crispToken) return;
+            const pdfPage = await doc.getPage(page.pdfPageNum || 1);
+            if (token !== _crispToken) return;
+            const baseScale = page.pdfBaseScale || 1;
+            const viewport = pdfPage.getViewport({ scale: baseScale * k });
+            const cw = Math.ceil(w * k), ch = Math.ceil(h * k);
+            const oc = document.createElement('canvas'); oc.width = cw; oc.height = ch;
+            const octx = oc.getContext('2d');
+            octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, cw, ch);
+            await pdfPage.render({ canvasContext: octx, viewport, transform: [1, 0, 0, 1, -x0 * k, -y0 * k], annotationMode: page.pdfShowAnnots !== false ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+            if (token !== _crispToken) return;
+            _crispBg = { pageIdx, sig, rect: { x: x0, y: y0, w, h }, canvas: oc };
+            render();
+        } catch (err) {
+            // RenderingCancelled and transient failures: just skip this pass.
+        }
+    }
     
     let undoStack = [], redoStack = [];
     
@@ -6208,11 +6383,14 @@ const I18N_STRINGS = {
             .map(r => `<option value="${escapeHTML(r.name)}">${r.notes ? escapeHTML(r.notes) : ''}</option>`)
             .join('');
 
-        const el = document.getElementById('att-roster-list'); if (!el) return;
-        el.innerHTML = '';
+        const _elDom = document.getElementById('att-roster-list'); if (!_elDom) return;
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         if (project.attendants.roster.length === 0) {
             el.innerHTML = `<li style="color:#888; font-style:italic; padding:8px; text-align:center;">${escapeHTML(t('att.roster.empty'))}</li>`;
-            return;
+            _elDom.innerHTML = el.innerHTML; return;
         }
         const rosterTotal = project.attendants.roster.length;
         project.attendants.roster.forEach((r, i) => {
@@ -6273,6 +6451,7 @@ const I18N_STRINGS = {
                     style="font-size:0.85em; color:#bbb;">
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     // ─── Attendant CSV import / export (existing) ─────────────────────────────
@@ -7349,7 +7528,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.3.0";
+    const APP_VERSION = "2.4.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7580,26 +7759,42 @@ const I18N_STRINGS = {
     // notation (1/4"=1' or 1:50). Metric conversion: 1:N means 1 mm paper = N mm
     // real, which is 12/N paper-inches per real-foot.
     const DRAWING_SCALES = [
-        { id: 'imp_1_16',  label: '1/16" = 1\'',  paperInPerFoot: 1/16,   group: 'imperial' },
-        { id: 'imp_1_8',   label: '1/8" = 1\'',   paperInPerFoot: 1/8,    group: 'imperial' },
-        { id: 'imp_3_16',  label: '3/16" = 1\'',  paperInPerFoot: 3/16,   group: 'imperial' },
-        { id: 'imp_1_4',   label: '1/4" = 1\'',   paperInPerFoot: 0.25,   group: 'imperial' },
-        { id: 'imp_3_8',   label: '3/8" = 1\'',   paperInPerFoot: 3/8,    group: 'imperial' },
-        { id: 'imp_1_2',   label: '1/2" = 1\'',   paperInPerFoot: 0.5,    group: 'imperial' },
-        { id: 'imp_3_4',   label: '3/4" = 1\'',   paperInPerFoot: 0.75,   group: 'imperial' },
-        { id: 'imp_1',     label: '1" = 1\'',     paperInPerFoot: 1.0,    group: 'imperial' },
-        { id: 'imp_1_5',   label: '1 1/2" = 1\'', paperInPerFoot: 1.5,    group: 'imperial' },
-        { id: 'imp_3',     label: '3" = 1\'',     paperInPerFoot: 3.0,    group: 'imperial' },
-        { id: 'met_5',     label: '1:5',          paperInPerFoot: 12/5,   group: 'metric'   },
-        { id: 'met_10',    label: '1:10',         paperInPerFoot: 12/10,  group: 'metric'   },
-        { id: 'met_20',    label: '1:20',         paperInPerFoot: 12/20,  group: 'metric'   },
-        { id: 'met_25',    label: '1:25',         paperInPerFoot: 12/25,  group: 'metric'   },
-        { id: 'met_50',    label: '1:50',         paperInPerFoot: 12/50,  group: 'metric'   },
-        { id: 'met_75',    label: '1:75',         paperInPerFoot: 12/75,  group: 'metric'   },
-        { id: 'met_100',   label: '1:100',        paperInPerFoot: 12/100, group: 'metric'   },
-        { id: 'met_200',   label: '1:200',        paperInPerFoot: 12/200, group: 'metric'   },
-        { id: 'met_500',   label: '1:500',        paperInPerFoot: 12/500, group: 'metric'   },
-        { id: 'met_1000',  label: '1:1000',       paperInPerFoot: 12/1000, group: 'metric'  }
+        { id: 'imp_1_32', label: "1/32\" = 1'", paperInPerFoot: 1/32, group: 'imperial' },
+        { id: 'imp_1_16', label: "1/16\" = 1'", paperInPerFoot: 1/16, group: 'imperial' },
+        { id: 'imp_3_32', label: "3/32\" = 1'", paperInPerFoot: 3/32, group: 'imperial' },
+        { id: 'imp_1_8', label: "1/8\" = 1'", paperInPerFoot: 1/8, group: 'imperial' },
+        { id: 'imp_3_16', label: "3/16\" = 1'", paperInPerFoot: 3/16, group: 'imperial' },
+        { id: 'imp_1_4', label: "1/4\" = 1'", paperInPerFoot: 0.25, group: 'imperial' },
+        { id: 'imp_3_8', label: "3/8\" = 1'", paperInPerFoot: 3/8, group: 'imperial' },
+        { id: 'imp_1_2', label: "1/2\" = 1'", paperInPerFoot: 0.5, group: 'imperial' },
+        { id: 'imp_3_4', label: "3/4\" = 1'", paperInPerFoot: 0.75, group: 'imperial' },
+        { id: 'imp_1', label: "1\" = 1'", paperInPerFoot: 1.0, group: 'imperial' },
+        { id: 'imp_1_5', label: "1 1/2\" = 1'", paperInPerFoot: 1.5, group: 'imperial' },
+        { id: 'imp_3', label: "3\" = 1'", paperInPerFoot: 3.0, group: 'imperial' },
+        { id: 'imp_6', label: "6\" = 1'", paperInPerFoot: 6.0, group: 'imperial' },
+        { id: 'imp_12', label: "12\" = 1' (full size)", paperInPerFoot: 12.0, group: 'imperial' },
+        { id: 'eng_10', label: "1\" = 10'", paperInPerFoot: 1/10, group: 'eng' },
+        { id: 'eng_20', label: "1\" = 20'", paperInPerFoot: 1/20, group: 'eng' },
+        { id: 'eng_30', label: "1\" = 30'", paperInPerFoot: 1/30, group: 'eng' },
+        { id: 'eng_40', label: "1\" = 40'", paperInPerFoot: 1/40, group: 'eng' },
+        { id: 'eng_50', label: "1\" = 50'", paperInPerFoot: 1/50, group: 'eng' },
+        { id: 'eng_60', label: "1\" = 60'", paperInPerFoot: 1/60, group: 'eng' },
+        { id: 'eng_100', label: "1\" = 100'", paperInPerFoot: 1/100, group: 'eng' },
+        { id: 'met_1', label: "1:1", paperInPerFoot: 12/1, group: 'metric' },
+        { id: 'met_2', label: "1:2", paperInPerFoot: 12/2, group: 'metric' },
+        { id: 'met_5', label: "1:5", paperInPerFoot: 12/5, group: 'metric' },
+        { id: 'met_10', label: "1:10", paperInPerFoot: 12/10, group: 'metric' },
+        { id: 'met_20', label: "1:20", paperInPerFoot: 12/20, group: 'metric' },
+        { id: 'met_25', label: "1:25", paperInPerFoot: 12/25, group: 'metric' },
+        { id: 'met_50', label: "1:50", paperInPerFoot: 12/50, group: 'metric' },
+        { id: 'met_75', label: "1:75", paperInPerFoot: 12/75, group: 'metric' },
+        { id: 'met_100', label: "1:100", paperInPerFoot: 12/100, group: 'metric' },
+        { id: 'met_200', label: "1:200", paperInPerFoot: 12/200, group: 'metric' },
+        { id: 'met_250', label: "1:250", paperInPerFoot: 12/250, group: 'metric' },
+        { id: 'met_500', label: "1:500", paperInPerFoot: 12/500, group: 'metric' },
+        { id: 'met_1000', label: "1:1000", paperInPerFoot: 12/1000, group: 'metric' },
+        { id: 'met_2000', label: "1:2000", paperInPerFoot: 12/2000, group: 'metric' },
+        { id: 'met_5000', label: "1:5000", paperInPerFoot: 12/5000, group: 'metric' }
     ];
 
     // Map a drawing scale value (paper_inches_per_foot) to its closest preset
@@ -7638,7 +7833,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.3.0-release";
+    const ANNOUNCEMENT_VERSION = "2.4.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7646,6 +7841,33 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.4.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>True vector PDF export, sharper blueprints, and big performance gains:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Save as PDF — fully vector.</strong> The <em>Save as PDF</em> button in the layout print dialog now produces a true vector PDF: the blueprint, every seat, area labels, measures, annotations, key items, attendants, legends, and the title bar stay razor-sharp at any zoom, and all text is selectable. No more fuzzy output at large paper sizes.</li>
+                    <li><strong>Markup PDF — round-trip a sheet.</strong> Pages imported from a PDF get a new <em>Markup PDF</em> button: it returns the <em>original</em> file — same sheet size, all pages intact, existing comments preserved as live annotations — with your Convention Planner content added on top as vector. Perfect for sending a marked-up sheet back to whoever supplied the drawing.</li>
+                    <li><strong>Sheet size &amp; drawing scale at import.</strong> Importing a PDF now shows its real sheet size and lets you pick the drawing scale (architect, engineer, or metric). Pick one and the page scale is set instantly and exactly — no manual Set Scale step.</li>
+                    <li><strong>Sheet markups, your choice.</strong> Sheets that arrive with existing markups (Bluebeam/Acrobat comments, stamps, clouds) can include or exclude them at import and again at print/export. In the vector export the sheet itself stays vector — only the markup ink is rendered as a high-resolution overlay.</li>
+                    <li><strong>Crisp blueprints on screen and in print.</strong> PDF backgrounds now re-render at your zoom level instead of magnifying a fixed snapshot, and print output renders them at print resolution. <em>Note: this applies to PDFs imported from this version on — existing projects keep their original background quality. To upgrade an existing page, simply re-upload its background PDF (your items and layout are untouched).</em></li>
+                    <li><strong>Full CAD paper &amp; scale lists.</strong> Paper sizes now include ANSI A–E, Arch A–E + E1, ISO A5–A0 and the ISO B series; drawing scales cover the complete AutoCAD/Revit sets — architectural 1/32″ through 12″ = 1′, engineering 1″ = 10′–100′, and metric 1:1 through 1:5000.</li>
+                    <li><strong>Much faster with many key items.</strong> Layouts with hundreds of placed key items no longer pause on every click, selection, or placement, and the “dim not counted” view now renders at full speed. Areas drawn before a scale is set now say <em>“⚠ Set scale for seats”</em> instead of a puzzling “0 seats”.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Exportación PDF totalmente vectorial, planos más nítidos y grandes mejoras de rendimiento:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Guardar como PDF — totalmente vectorial.</strong> El botón <em>Guardar como PDF</em> del diálogo de impresión ahora produce un PDF vectorial real: el plano, cada asiento, las etiquetas, medidas, anotaciones, artículos clave, asistentes, leyendas y la barra de título se mantienen nítidos a cualquier zoom, y todo el texto es seleccionable. Se acabó la salida borrosa en tamaños grandes.</li>
+                    <li><strong>PDF de Marcado — ida y vuelta de una hoja.</strong> Las páginas importadas desde un PDF tienen un nuevo botón <em>PDF de Marcado</em>: devuelve el archivo <em>original</em> — mismo tamaño de hoja, todas las páginas intactas, los comentarios existentes preservados como anotaciones — con su contenido de Convention Planner añadido encima como vector. Ideal para devolver una hoja marcada a quien le envió el plano.</li>
+                    <li><strong>Tamaño de hoja y escala al importar.</strong> Al importar un PDF se muestra su tamaño real de hoja y puede elegir la escala de dibujo (arquitectónica, de ingeniería o métrica). Al elegirla, la escala de la página se define al instante y con exactitud — sin el paso manual de Definir Escala.</li>
+                    <li><strong>Marcas de la hoja, usted decide.</strong> Las hojas que llegan con marcas existentes (comentarios de Bluebeam/Acrobat, sellos, nubes) pueden incluirlas o excluirlas al importar y de nuevo al imprimir/exportar. En la exportación vectorial la hoja permanece vectorial — solo la tinta de las marcas se procesa como una capa de alta resolución.</li>
+                    <li><strong>Planos nítidos en pantalla y al imprimir.</strong> Los fondos PDF ahora se procesan según su nivel de zoom en lugar de ampliar una captura fija, y la impresión los procesa a resolución de impresión. <em>Nota: esto aplica a los PDF importados a partir de esta versión — los proyectos existentes conservan su calidad original. Para actualizar una página existente, simplemente vuelva a subir su PDF de fondo (sus artículos y diseño no se tocan).</em></li>
+                    <li><strong>Listas CAD completas de papel y escalas.</strong> Los tamaños de papel ahora incluyen ANSI A–E, Arch A–E + E1, ISO A5–A0 y la serie ISO B; las escalas de dibujo cubren los conjuntos completos de AutoCAD/Revit — arquitectónicas de 1/32″ a 12″ = 1′, de ingeniería 1″ = 10′–100′, y métricas de 1:1 a 1:5000.</li>
+                    <li><strong>Mucho más rápido con muchos artículos clave.</strong> Los diseños con cientos de artículos clave colocados ya no se pausan en cada clic, selección o colocación, y la vista “atenuar no contados” ahora se procesa a máxima velocidad. Las áreas dibujadas antes de definir la escala ahora dicen <em>“⚠ Defina la escala para los asientos”</em> en lugar de un confuso “0 asientos”.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.3.0",
             en: `
@@ -8748,7 +8970,11 @@ const I18N_STRINGS = {
 
     // ─── LIST BUILDERS ───────────────────────────────────────────────────────────
     function buildPagesList() {
-        const el = document.getElementById('page-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('page-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         const total = project.pages.length;
         project.pages.forEach((p, i) => {
             const isActive = i === project.activePageIndex;
@@ -8760,6 +8986,7 @@ const I18N_STRINGS = {
                 </div>
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     // ─── Page tabs strip ──────────────────────────────────────────────────────
@@ -8853,7 +9080,11 @@ const I18N_STRINGS = {
     }
 
     function buildSeatProfiles() {
-        const el = document.getElementById('seat-type-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('seat-type-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         const total = project.seatTypes.length;
         project.seatTypes.forEach((st, i) => {
             const isAct = (i === project.activeSeatType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-area');
@@ -8863,10 +9094,15 @@ const I18N_STRINGS = {
                 ${isAct ? `<button class="btn-full btn-primary" style="margin-top:6px; ${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSeatType=${i}; setMode('draw-area');">✏️ Draw with this Profile</button>` : ''}
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildSignProfiles() {
-        const el = document.getElementById('sign-type-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('sign-type-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         const total = project.signTypes.length;
         project.signTypes.forEach((st, i) => {
             const isAct = (i === project.activeSignType) ? 'active' : ''; const isDrawing = (isAct && mode === 'draw-sign');
@@ -8875,10 +9111,15 @@ const I18N_STRINGS = {
                 ${isAct ? `<button class="btn-full btn-primary" style="margin-top:6px; ${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeSignType=${i}; setMode('draw-sign');">🎯 Place this Point</button>` : ''}
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildMeasureProfiles() {
-        const el = document.getElementById('measure-type-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('measure-type-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         if(!project.measureTypes) project.measureTypes = [];
         const total = project.measureTypes.length;
         project.measureTypes.forEach((mt, i) => {
@@ -8888,10 +9129,15 @@ const I18N_STRINGS = {
                 ${isAct ? `<button class="btn-full btn-primary" style="margin-top:6px; ${isDrawing ? 'background: #0098ff; border: 2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeMeasureType=${i}; setMode('draw-measure');">📏 Draw Polymeasure</button>` : ''}
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildAreaList() {
-        const el = document.getElementById('area-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('area-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         const shapes = getActivePage().shapes;
         const isArea = (s) => s.type === 'area';
 
@@ -8956,10 +9202,15 @@ const I18N_STRINGS = {
                 });
             }
         }
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildObsList() {
-        const el = document.getElementById('obs-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('obs-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         const shapes = getActivePage().shapes;
         const isObs = (s) => s.type === 'obs' || s.type === 'aisle';
         shapes.forEach((s, i) => {
@@ -8981,10 +9232,15 @@ const I18N_STRINGS = {
                 </li>`;
             }
         });
+        _elDom.innerHTML = el.innerHTML;
     }
     
     function buildPlacedSignsList() {
-        const el = document.getElementById('placed-sign-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('placed-sign-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         if (getActivePage().signs) {
             const signs = getActivePage().signs;
             // Group signs by their type index. We use the same pattern as
@@ -9142,10 +9398,15 @@ const I18N_STRINGS = {
                 });
             }
         }
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildScreenList() {
-        const el = document.getElementById('screen-list'); el.innerHTML = ''; const currentScreens = getActivePage().screens;
+        const _elDom = document.getElementById('screen-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' }; const currentScreens = getActivePage().screens;
         document.getElementById('no-screens-msg').style.display = currentScreens.length === 0 ? 'block' : 'none';
         const screenTotal = currentScreens.length;
         currentScreens.forEach((s, i) => {
@@ -9161,10 +9422,15 @@ const I18N_STRINGS = {
                 </div>
             </li>`;
         });
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildLinesList() {
-        const el = document.getElementById('line-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('line-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         if (getActivePage().lines) {
             const linesTotal = getActivePage().lines.length;
             getActivePage().lines.forEach((l, i) => {
@@ -9180,10 +9446,15 @@ const I18N_STRINGS = {
                 </li>`;
             });
         }
+        _elDom.innerHTML = el.innerHTML;
     }
 
     function buildTextList() {
-        const el = document.getElementById('text-list'); el.innerHTML = '';
+        const _elDom = document.getElementById('text-list');
+        // String buffer instead of the live element: innerHTML += on a real
+        // node re-parses the whole list every append (O(n²)) and froze the UI
+        // on item-heavy pages. Built once, assigned once at the end.
+        const el = { innerHTML: '' };
         if (getActivePage().texts) {
             const textsTotal = getActivePage().texts.length;
             getActivePage().texts.forEach((tx, i) => {
@@ -9199,6 +9470,7 @@ const I18N_STRINGS = {
                 </li>`;
             });
         }
+        _elDom.innerHTML = el.innerHTML;
     }
 
     // ─── PROPERTY UPDATES ────────────────────────────────────────────────────────
@@ -10276,16 +10548,26 @@ const I18N_STRINGS = {
         letter:  { w: 8.5,  h: 11.0,   unit: 'in' },
         legal:   { w: 8.5,  h: 14.0,   unit: 'in' },
         tabloid: { w: 11.0, h: 17.0,   unit: 'in' },
+        ansiC:   { w: 17,   h: 22,     unit: 'in' },
+        ansiD:   { w: 22,   h: 34,     unit: 'in' },
+        ansiE:   { w: 34,   h: 44,     unit: 'in' },
+        a5:      { w: 148,  h: 210,    unit: 'mm' },
         a4:      { w: 210,  h: 297,    unit: 'mm' },
         a3:      { w: 297,  h: 420,    unit: 'mm' },
         a2:      { w: 420,  h: 594,    unit: 'mm' },
         a1:      { w: 594,  h: 841,    unit: 'mm' },
         a0:      { w: 841,  h: 1189,   unit: 'mm' },
+        isoB4:   { w: 250,  h: 353,    unit: 'mm' },
+        isoB3:   { w: 353,  h: 500,    unit: 'mm' },
+        isoB2:   { w: 500,  h: 707,    unit: 'mm' },
+        isoB1:   { w: 707,  h: 1000,   unit: 'mm' },
+        isoB0:   { w: 1000, h: 1414,   unit: 'mm' },
         archA:   { w: 9,    h: 12,     unit: 'in' },
         archB:   { w: 12,   h: 18,     unit: 'in' },
         archC:   { w: 18,   h: 24,     unit: 'in' },
         archD:   { w: 24,   h: 36,     unit: 'in' },
-        archE:   { w: 36,   h: 48,     unit: 'in' }
+        archE:   { w: 36,   h: 48,     unit: 'in' },
+        archE1:  { w: 30,   h: 42,     unit: 'in' }
     };
 
     let _newPageOrientation = 'portrait';
@@ -10524,6 +10806,7 @@ const I18N_STRINGS = {
             if (!confirm(msg)) return;
             saveState();
             page.imgData = null;
+            delete page.pdfData; delete page.pdfPageNum; delete page.pdfBaseScale; delete page.pdfSheetWIn; delete page.pdfSheetHIn; delete page.pdfScaleInPerFt; delete page.pdfShowAnnots; invalidateCrispBg();
             // Also clear the in-memory bgImage so it doesn't keep drawing.
             bgImage.src = '';
         }
@@ -10885,24 +11168,84 @@ const I18N_STRINGS = {
         const label = document.getElementById('upload-label'); label.innerText = "Processing...";
         if (file.type === 'application/pdf') {
             try {
-                const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; const page = await pdf.getPage(1);
+                const arrayBuffer = await file.arrayBuffer();
+                // (sheet size read below once the PDF is parsed)
+                // Keep the original PDF bytes so the viewer can re-render the
+                // visible area at the current zoom (vector-crisp underlay).
+                const _pdfB64 = (() => { const u8 = new Uint8Array(arrayBuffer); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); })();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; const page = await pdf.getPage(1);
                 const baseViewport = page.getViewport({ scale: 1 }); const maxDimension = Math.max(baseViewport.width, baseViewport.height);
+                // PDF pages know their physical size (1 pt = 1/72 in). Offer
+                // the drawing scale up front so pixelsPerFoot is set without
+                // a manual Set Scale step.
+                const sheetWIn = baseViewport.width / 72, sheetHIn = baseViewport.height / 72;
+                const _impOpts = await showPdfImportModal(sheetWIn, sheetHIn);
+                const inPerFt = _impOpts.inPerFt;
                 let highScale = Math.min(6000 / maxDimension, 4.0); if (highScale < 2.0) highScale = 2.0; 
                 const viewport = page.getViewport({ scale: highScale });
                 const offscreenCanvas = document.createElement('canvas'); const offscreenCtx = offscreenCanvas.getContext('2d');
                 offscreenCanvas.width = viewport.width; offscreenCanvas.height = viewport.height;
                 offscreenCtx.fillStyle = '#ffffff'; offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                await page.render({ canvasContext: offscreenCtx, viewport: viewport }).promise;
-                getActivePage().imgData = offscreenCanvas.toDataURL('image/png'); switchPage(project.activePageIndex); label.innerText = t('project.upload.label');
+                await page.render({ canvasContext: offscreenCtx, viewport: viewport, annotationMode: _impOpts.showAnnots ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                const _tgt = getActivePage();
+                _tgt.imgData = offscreenCanvas.toDataURL('image/png');
+                _tgt.pdfData = _pdfB64; _tgt.pdfPageNum = 1; _tgt.pdfBaseScale = highScale;
+                _tgt.pdfSheetWIn = sheetWIn; _tgt.pdfSheetHIn = sheetHIn;
+                _tgt.pdfShowAnnots = _impOpts.showAnnots;
+                if (inPerFt) {
+                    _tgt.pdfScaleInPerFt = inPerFt;
+                    // world px per foot = (px per pt) * (pt per paper inch) * (paper inches per foot)
+                    _tgt.pixelsPerFoot = highScale * 72 * inPerFt;
+                } else { delete _tgt.pdfScaleInPerFt; }
+                invalidateCrispBg();
+                switchPage(project.activePageIndex); label.innerText = t('project.upload.label');
             } catch (err) { alert("Error PDF: " + err.message); label.innerText = t('project.upload.label'); }
         } else {
             const reader = new FileReader();
-            reader.onload = (e) => { getActivePage().imgData = e.target.result; switchPage(project.activePageIndex); label.innerText = t('project.upload.label'); };
+            reader.onload = (e) => { const _tg = getActivePage(); _tg.imgData = e.target.result; delete _tg.pdfData; delete _tg.pdfPageNum; delete _tg.pdfBaseScale; delete _tg.pdfSheetWIn; delete _tg.pdfSheetHIn; delete _tg.pdfScaleInPerFt; delete _tg.pdfShowAnnots; invalidateCrispBg(); switchPage(project.activePageIndex); label.innerText = t('project.upload.label'); };
             reader.readAsDataURL(file);
         }
         input.value = ''; 
     }
 
+    // PDF-import sheet settings modal (awaitable).
+    let _pdfImportResolve = null;
+    function showPdfImportModal(wIn, hIn) {
+        return new Promise(resolve => {
+            _pdfImportResolve = resolve;
+            const el = document.getElementById('pdf-import-size');
+            if (el) el.textContent = wIn.toFixed(1) + ' \u00d7 ' + hIn.toFixed(1) + ' in';
+            const ann = document.getElementById('pdf-import-annots');
+            if (ann) ann.checked = true;
+            const sel = document.getElementById('pdf-import-scale');
+            if (sel && !sel.dataset.populated) {
+                // Single source of truth: mirror DRAWING_SCALES so this list
+                // always matches the print-scale options.
+                sel.dataset.populated = '1';
+                [['imperial', 'Imperial (Architectural)'], ['eng', 'Imperial (Engineering)'], ['metric', 'Metric']].forEach(([gid, glabel]) => {
+                    const og = document.createElement('optgroup'); og.label = glabel;
+                    DRAWING_SCALES.filter(s => s.group === gid).forEach(s => {
+                        const o = document.createElement('option'); o.value = String(s.paperInPerFoot); o.textContent = s.label; og.appendChild(o);
+                    });
+                    sel.appendChild(og);
+                });
+            }
+            if (sel) sel.value = '';
+            document.getElementById('pdf-import-modal').classList.add('show');
+        });
+    }
+    function applyPdfImportModal() {
+        document.getElementById('pdf-import-modal').classList.remove('show');
+        const v = document.getElementById('pdf-import-scale').value;
+        const ann = document.getElementById('pdf-import-annots');
+        const r = _pdfImportResolve; _pdfImportResolve = null;
+        if (r) r({ inPerFt: v === '' ? null : parseFloat(v), showAnnots: ann ? ann.checked : true });
+    }
+    function cancelPdfImportModal() {
+        document.getElementById('pdf-import-modal').classList.remove('show');
+        const r = _pdfImportResolve; _pdfImportResolve = null;
+        if (r) r({ inPerFt: null, showAnnots: true });
+    }
     function init() {
         window.onresize = resize; resize();
         // After any print, clear the layout-print mode classes so the next
@@ -12903,6 +13246,13 @@ const I18N_STRINGS = {
         }
 
         if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
+        if (isLive && bgImage.src) {
+            if (_crispBg && _crispBg.pageIdx === project.activePageIndex && !_interacting) {
+                const r = _crispBg.rect;
+                targetCtx.drawImage(_crispBg.canvas, 0, 0, _crispBg.canvas.width, _crispBg.canvas.height, r.x, r.y, r.w, r.h);
+            }
+            scheduleCrispBg();
+        }
 
         // Grid overlay — screen-only drawing aid, never rendered for print
         // (the print code paths don't call drawScene so this is naturally
@@ -12968,11 +13318,12 @@ const I18N_STRINGS = {
                 if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                 const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                 const cw = sst.w * page.pixelsPerFoot, rd = sst.d * page.pixelsPerFoot;
+                const _dimSeatArea = uiState.dimNotCounted && !itemIsCounted(s, page); // hoisted: once per area, not twice per seat
                 for (let si = 0; si < s.cachedSeats.length; si++) {
                     const seat = s.cachedSeats[si];
                     targetCtx.save(); targetCtx.translate(seat.x, seat.y); targetCtx.rotate(seat.rot);
-                    targetCtx.fillStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? '#d8d8d8' : (seat.fill || sst.color); targetCtx.fillRect(-cw/2, -rd/2, cw, rd);
-                    targetCtx.strokeStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'rgba(150,150,150,0.55)' : 'rgba(0,0,0,0.85)'; targetCtx.lineWidth = 0.4; targetCtx.strokeRect(-cw/2, -rd/2, cw, rd);
+                    targetCtx.fillStyle = _dimSeatArea ? '#d8d8d8' : (seat.fill || sst.color); targetCtx.fillRect(-cw/2, -rd/2, cw, rd);
+                    targetCtx.strokeStyle = _dimSeatArea ? 'rgba(150,150,150,0.55)' : 'rgba(0,0,0,0.85)'; targetCtx.lineWidth = 0.4; targetCtx.strokeRect(-cw/2, -rd/2, cw, rd);
                     targetCtx.restore();
                 }
             });
@@ -12999,8 +13350,38 @@ const I18N_STRINGS = {
             });
         }
 
+        // Dim-mode rendering: every draw op under an active ctx.filter takes
+        // Chromium's slow path, so dimming hundreds of items crawled. Instead,
+        // dimmed items draw to an offscreen layer in their normal colors and
+        // that layer is composited with ONE filtered drawImage per frame.
+        const _dimActive = isLive && uiState.dimNotCounted;
+        const _mainCtx = targetCtx;
+        let _dimCtx = null;
+        const _getDimCtx = () => {
+            if (_dimCtx) return _dimCtx;
+            if (!window._dimLayerCanvas) window._dimLayerCanvas = document.createElement('canvas');
+            const dl = window._dimLayerCanvas;
+            if (dl.width !== _mainCtx.canvas.width || dl.height !== _mainCtx.canvas.height) { dl.width = _mainCtx.canvas.width; dl.height = _mainCtx.canvas.height; }
+            _dimCtx = dl.getContext('2d');
+            _dimCtx.setTransform(1, 0, 0, 1, 0, 0);
+            _dimCtx.clearRect(0, 0, dl.width, dl.height);
+            _dimCtx.setTransform(_mainCtx.getTransform());
+            return _dimCtx;
+        };
+        // Redirect drawing per item: dimmed -> offscreen layer, normal -> main.
+        const setDimFilter = (dim) => { targetCtx = (dim && _dimActive) ? _getDimCtx() : _mainCtx; };
+        const _flushDimLayer = () => {
+            targetCtx = _mainCtx;
+            if (!_dimCtx) return;
+            _mainCtx.save();
+            _mainCtx.setTransform(1, 0, 0, 1, 0, 0);
+            _mainCtx.filter = 'grayscale(100%) opacity(0.5)';
+            _mainCtx.drawImage(window._dimLayerCanvas, 0, 0);
+            _mainCtx.restore();
+            _dimCtx = null;
+        };
         page.shapes.forEach((s, i) => {
-            targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
+            setDimFilter(_dimActive && !itemIsCounted(s, page));
             if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
             const isSelected = (isLive && i === selectedShapeIndex); const isHovered = (isLive && i === hoveredShapeIndex);
@@ -13024,8 +13405,13 @@ const I18N_STRINGS = {
                 targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
                 if (s.type === 'area') {
                     targetCtx.font = `bold ${lblSize}px Arial`; targetCtx.strokeText(s.name, 0, nameOffset); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, nameOffset);
-                    targetCtx.font = `bold ${countSize}px Arial`; let countStr = s.count !== undefined ? tn("canvas.seats", s.count, { n: fmtNum(s.count) }) : tn("canvas.seats", 0, { n: fmtNum(0) });
-                    targetCtx.strokeText(countStr, 0, countOffset); targetCtx.fillStyle = "#ccc"; targetCtx.fillText(countStr, 0, countOffset);
+                    targetCtx.font = `bold ${countSize}px Arial`;
+                    // With no drawing scale the page can't lay out seats (they're
+                    // sized in real feet), so point at the fix instead of "0 seats".
+                    let countStr = (isLive && !page.pixelsPerFoot)
+                        ? t('canvas.seats.noscale')
+                        : (s.count !== undefined ? tn("canvas.seats", s.count, { n: fmtNum(s.count) }) : tn("canvas.seats", 0, { n: fmtNum(0) }));
+                    targetCtx.strokeText(countStr, 0, countOffset); targetCtx.fillStyle = (isLive && !page.pixelsPerFoot) ? "#f1c40f" : "#ccc"; targetCtx.fillText(countStr, 0, countOffset);
                 }
                 else { targetCtx.font = `bold ${lblSize}px Arial`; targetCtx.strokeText(s.name, 0, 0); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, 0); }
                 targetCtx.restore();
@@ -13037,7 +13423,7 @@ const I18N_STRINGS = {
                 const typeIdx = m.typeIndex ?? 0;
                 // Per-type visibility gate — whole type can be toggled off.
                 if (uiState.hiddenMeasureTypes.includes(typeIdx)) return;
-                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(m, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
+                setDimFilter(_dimActive && !itemIsCounted(m, page));
                 const isSelected = (isLive && i === selectedMeasureIndex); const isHovered = (isLive && i === hoveredMeasureIndex);
                 const mt = project.measureTypes[typeIdx] || project.measureTypes[0];
                 let activeColor = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : mt.color);
@@ -13102,7 +13488,7 @@ const I18N_STRINGS = {
 
         if (page.lines) {
             page.lines.forEach((l, i) => {
-                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(l, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
+                setDimFilter(_dimActive && !itemIsCounted(l, page));
                 if (!lineVisible(l)) return;
                 const isSelected = (isLive && i === selectedLineIndex); const isHovered = (isLive && i === hoveredLineIndex);
                 let defaultColor = l.type === 'dimension' ? '#f39c12' : '#3498db'; let activeColor = l.color || defaultColor; let activeThick = l.thickness || 2;
@@ -13348,9 +13734,10 @@ const I18N_STRINGS = {
             });
         }
 
+        setDimFilter(false);
         if (page.texts && uiState.showTexts !== false) {
             page.texts.forEach((t, i) => {
-                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(t, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
+                setDimFilter(_dimActive && !itemIsCounted(t, page));
                 // Hide the text we're currently editing — the textarea overlay
                 // shows it instead. Otherwise we'd see canvas text ghosting
                 // behind the editor.
@@ -13384,9 +13771,10 @@ const I18N_STRINGS = {
             });
         }
 
+        setDimFilter(false);
         if (page.signs && uiState.showSigns) {
             page.signs.forEach((s, i) => {
-                targetCtx.filter = (isLive && uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'grayscale(100%) opacity(0.5)' : 'none';
+                setDimFilter(_dimActive && !itemIsCounted(s, page));
                 if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
                 const radius = s.size || st.size;
@@ -13398,7 +13786,7 @@ const I18N_STRINGS = {
             });
         }
 
-        targetCtx.filter = 'none';
+        _flushDimLayer();
         // Attendant posts render on top of signs/screens
         drawAttendantPosts(targetCtx, v, isLive);
 
@@ -14953,6 +15341,15 @@ const I18N_STRINGS = {
         const scaleGroup = document.getElementById('print-opt-scale-group');
         const tbGroup = document.getElementById('print-opt-titleblock-group');
         if (scaleGroup) scaleGroup.style.display = isLayout ? 'block' : 'none';
+        const expBtn = document.getElementById('print-export-pdf-btn');
+        if (expBtn) expBtn.style.display = isLayout ? '' : 'none';
+        const expMBtn = document.getElementById('print-export-markup-btn');
+        if (expMBtn) expMBtn.style.display = (isLayout && getActivePage() && getActivePage().pdfData) ? '' : 'none';
+        const annGroup = document.getElementById('print-opt-annots-group');
+        const annBox = document.getElementById('print-include-annots');
+        const _pgAnn = getActivePage();
+        if (annGroup) annGroup.style.display = (isLayout && _pgAnn && _pgAnn.pdfData) ? 'block' : 'none';
+        if (annBox && _pgAnn) annBox.checked = _pgAnn.pdfShowAnnots !== false;
         if (tbGroup) tbGroup.style.display = isLayout ? 'block' : 'none';
         const titleEl = document.getElementById('print-options-title');
         if (titleEl) titleEl.textContent = isLayout ? t('modal.print.title') : t('modal.print.title.report');
@@ -15018,7 +15415,7 @@ const I18N_STRINGS = {
         l.style.background = _printOrientation === 'landscape' ? '#2E75B6' : '#555';
     }
 
-    function applyPrintOptionsModal() {
+    function applyPrintOptionsModal(exportPdf) {
         const paperKey = document.getElementById('print-paper-size').value;
         const preset = SHEET_PRESETS[paperKey];
         if (!preset) return;
@@ -15041,7 +15438,9 @@ const I18N_STRINGS = {
             paperKey:       paperKey,
             orientation:    _printOrientation,
             printScale:     scaleVal,   // null = Fit to page
-            showTitleBlock: document.getElementById('print-title-block').checked
+            showTitleBlock: document.getElementById('print-title-block').checked,
+            includePdfAnnots: document.getElementById('print-include-annots') ? document.getElementById('print-include-annots').checked : true,
+            exportPdf:      (exportPdf === true || exportPdf === 'markup') ? exportPdf : false
         };
         hidePrintOptionsModal();
         printReport(_printOptionsType, _printSchedFilters, _printSchedSel, opts);
@@ -15050,6 +15449,761 @@ const I18N_STRINGS = {
     // Scale bar — a horizontal ruler with tick marks, drawn at the correct
     // print scale. Used in the margin of a scale-printed Layout. Picks a
     // "nice" length so the major tick increments are 1, 2, 5, 10, etc.
+    // ─── VECTOR PDF EXPORT ────────────────────────────────────────────────
+    // Composes a real PDF: the original blueprint PDF page is embedded as
+    // live vector content (crisp at any size), the SVG overlay (seats, signs,
+    // measures, text, legends) is rasterized at high resolution with a
+    // transparent background on top, plus a simple vector title strip.
+    function _drawConesInto(ctx, page, screens) {
+        screens.forEach((sc) => {
+            const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
+            const rotRad = sc.rot * Math.PI / 180; const beamDeg = sc.beamAngle !== undefined ? sc.beamAngle : 120; const halfBeamRad = (beamDeg / 2) * Math.PI / 180;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(sc.x, sc.y); ctx.arc(sc.x, sc.y, radiusPixels, rotRad - halfBeamRad, rotRad + halfBeamRad); ctx.closePath();
+            ctx.fillStyle = 'rgba(241, 196, 15, 0.15)'; ctx.fill(); ctx.clip();
+            page.shapes.filter(s => s.type === 'obs').forEach(obs => {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                for (let j = 0; j < obs.points.length; j++) { let p1 = obs.points[j]; let p2 = obs.points[(j + 1) % obs.points.length]; let extDist = radiusPixels + 100; let a1 = Math.atan2(p1.y - sc.y, p1.x - sc.x); let a2 = Math.atan2(p2.y - sc.y, p2.x - sc.x); let p1e = { x: p1.x + Math.cos(a1)*extDist, y: p1.y + Math.sin(a1)*extDist }; let p2e = { x: p2.x + Math.cos(a2)*extDist, y: p2.y + Math.sin(a2)*extDist }; ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p2e.x, p2e.y); ctx.lineTo(p1e.x, p1e.y); ctx.closePath(); ctx.fill(); }
+            });
+            ctx.restore();
+        });
+    }
+    // Title band sizing for the PDF export (pure math; pt units).
+    function _titleBandHeightPt(page, printOpts) {
+        const tb = buildTitleBlockHTML(page, printOpts); // reuse the auto-fit fontPt
+        const f = tb.fontPt || TB_BASE_FONT_PT;
+        const textH = f * 1.1 + 0.75 + (f * 0.5) * 1.2 + 1.5 + (f * TB_META_SCALE) * 1.2;
+        return { fontPt: f, heightPt: Math.ceil(Math.max(45, textH) + 10.5) };
+    }
+    // CSS color -> pdf-lib rgb (hex #rgb/#rrggbb and rgb()/rgba()).
+    const _PDF_NAMED_COLORS = { black: '#000000', white: '#ffffff', red: '#ff0000', green: '#008000', blue: '#0000ff', gray: '#808080', grey: '#808080', yellow: '#ffff00', orange: '#ffa500', purple: '#800080', pink: '#ffc0cb', cyan: '#00ffff', magenta: '#ff00ff', silver: '#c0c0c0', brown: '#a52a2a' };
+    function _pdfColor(str, fallback) {
+        str = (str || '').trim(); let m;
+        if (_PDF_NAMED_COLORS[str.toLowerCase()]) str = _PDF_NAMED_COLORS[str.toLowerCase()];
+        if ((m = str.match(/^#([0-9a-f]{3})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h[0]+h[0],16)/255, parseInt(h[1]+h[1],16)/255, parseInt(h[2]+h[2],16)/255); }
+        if ((m = str.match(/^#([0-9a-f]{6})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255); }
+        if ((m = str.match(/^rgba?\(([^)]+)\)$/i))) { const p2 = m[1].split(',').map(Number); return PDFLib.rgb((p2[0]||0)/255, (p2[1]||0)/255, (p2[2]||0)/255); }
+        // Unknown colors fall back to black (a wrong-but-dark line beats a
+        // mystery green one); callers with a better default pass it in.
+        return fallback || PDFLib.rgb(0, 0, 0);
+    }
+    // Outlined text via the PDF native text-stroke rendering mode (Tr 1):
+    // a real vector outline under the fill, like the SVG's stroke+fill pair.
+    // Offset-copy emulation smears at small sizes, so it's only the fallback
+    // if this pdf-lib build doesn't expose the needed operators.
+    // The standard PDF fonts (Helvetica) use WinAnsi encoding: Latin-1 plus a
+    // few extras. Anything outside that (Greek Σ, emoji, CJK...) makes
+    // font.encode throw and kills the export. Map what we can, drop the rest.
+    const _WINANSI_EXTRA = '\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178';
+    function _winAnsi(txt) {
+        txt = String(txt == null ? '' : txt);
+        txt = txt.split('\u03a3').join('Total'); // cumulative-total sigma
+        txt = txt.split('\u2605').join('*');     // persistent-post star
+        txt = txt.split('\u2192').join('->');    // supervisor chain arrow
+        let out2 = '';
+        for (const ch of txt) {
+            const cc = ch.codePointAt(0);
+            if ((cc >= 0x20 && cc <= 0x7e) || (cc >= 0xa0 && cc <= 0xff) || _WINANSI_EXTRA.indexOf(ch) !== -1) out2 += ch;
+        }
+        return out2;
+    }
+    function _vecOutlinedText(out, font, txt, x, y, size, fill, outline, strokeW, rotate) {
+        txt = _winAnsi(txt); if (!txt) return;
+        const opts = { x, y, size, font, color: fill };
+        if (rotate) opts.rotate = rotate;
+        if (outline && strokeW > 0.01) {
+            const hasOps = PDFLib.setTextRenderingMode && PDFLib.setStrokingColor && PDFLib.setLineWidth && PDFLib.pushGraphicsState && PDFLib.popGraphicsState;
+            if (hasOps) {
+                const trOutline = PDFLib.TextRenderingMode ? PDFLib.TextRenderingMode.Outline : 1;
+                const trFill = PDFLib.TextRenderingMode ? PDFLib.TextRenderingMode.Fill : 0;
+                out.pushOperators(PDFLib.pushGraphicsState(), PDFLib.setLineWidth(strokeW), PDFLib.setStrokingColor(outline));
+                if (PDFLib.setLineJoin) out.pushOperators(PDFLib.setLineJoin(1)); // round joins: no miter spikes on glyph corners
+                out.pushOperators(PDFLib.setTextRenderingMode(trOutline));
+                out.drawText(txt, Object.assign({}, opts, { color: outline }));
+                out.pushOperators(PDFLib.setTextRenderingMode(trFill), PDFLib.popGraphicsState());
+            } else {
+                const o = strokeW / 2;
+                for (let i = 0; i < 12; i++) {
+                    const a = i * Math.PI / 6;
+                    out.drawText(txt, Object.assign({}, opts, { x: x + Math.cos(a) * o, y: y + Math.sin(a) * o, color: outline }));
+                }
+            }
+        }
+        out.drawText(txt, opts);
+    }
+    // Draws the title band as TRUE VECTOR content (text via Helvetica, logo
+    // as embedded image or a drawn CP mark) — crisp at any zoom, no canvases.
+    async function _drawTitleBandVector(doc, out, page, printOpts, band, M, PW, PH) {
+        const f = band.fontPt, subPt = f * 0.5, metaPt = f * TB_META_SCALE;
+        const H = band.heightPt, W = PW - 2 * M;
+        const PADX = 9, PADY = 4.5, LOGO = 45, GAP = 11.25;
+        const top = PH - M, bot = top - H;
+        const white = PDFLib.rgb(1, 1, 1), black = PDFLib.rgb(0, 0, 0), gray = PDFLib.rgb(0.4, 0.4, 0.4), dgray = PDFLib.rgb(0.27, 0.27, 0.27);
+        out.drawRectangle({ x: M, y: bot, width: W, height: H, color: white });
+        out.drawRectangle({ x: M, y: bot, width: W, height: 1.5, color: black });
+        const helvB = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const helv = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const contentH = H - PADY * 2 - 1.5;
+        const logoTop = top - PADY - (contentH - LOGO) / 2;
+        let drewLogo = false;
+        if (project.logoData && /^data:image\/(png|jpe?g)/i.test(project.logoData)) {
+            try {
+                const bytes = _b64ToU8(project.logoData.split(',')[1]);
+                const img = /png/i.test(project.logoData.slice(0, 20)) ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+                const fit = Math.min(LOGO / img.width, LOGO / img.height);
+                const dw = img.width * fit, dh = img.height * fit;
+                out.drawImage(img, { x: M + PADX + (LOGO - dw) / 2, y: logoTop - LOGO + (LOGO - dh) / 2, width: dw, height: dh });
+                drewLogo = true;
+            } catch (e) { /* fall through to the default mark */ }
+        }
+        if (!drewLogo) {
+            out.drawSvgPath('M20 0 h60 a20 20 0 0 1 20 20 v60 a20 20 0 0 1 -20 20 h-60 a20 20 0 0 1 -20 -20 v-60 a20 20 0 0 1 20 -20 z', { x: M + PADX, y: logoTop, scale: LOGO / 100, color: PDFLib.rgb(0, 0.478, 0.8) });
+            const cpSize = LOGO * 0.5;
+            const cpW = helvB.widthOfTextAtSize('CP', cpSize);
+            out.drawText('CP', { x: M + PADX + (LOGO - cpW) / 2, y: logoTop - LOGO * 0.66, size: cpSize, font: helvB, color: white });
+        }
+        const proj = _winAnsi(project.title || '');
+        const pageName = _winAnsi(page ? (page.name || '') : '');
+        const date = _winAnsi(fmtDate(new Date()));
+        const scaleLabel = (printOpts.printScale !== null) ? formatDrawingScale(printOpts.printScale) : (t('print.scale.nts') || 'Not to scale');
+        const metaParts = [_winAnsi((t('print.titleblock.scale') || 'Scale:') + ' ' + scaleLabel)];
+        const activeShift = getActiveShift();
+        if (activeShift && uiState.showShiftInPrint !== false) metaParts.push(_winAnsi(t('print.layout.shift_indicator', { n: activeShift.number, description: activeShift.description ? ' \u2014 ' + activeShift.description : '' })));
+        const subText = _winAnsi((t('print.subtitle') || 'Convention Planner').toUpperCase());
+        const textH = f * 1.1 + 0.75 + subPt * 1.2 + 1.5 + metaPt * 1.2;
+        let ty = top - PADY - (contentH - textH) / 2;
+        const tx = M + PADX + LOGO + GAP;
+        const dateW = helvB.widthOfTextAtSize(date, metaPt);
+        out.drawText(date, { x: PW - M - PADX - dateW, y: ty - f * 0.55 - metaPt * 0.35, size: metaPt, font: helvB, color: black });
+        const avail = (PW - M - PADX - dateW - GAP) - tx;
+        let titleStr = proj, tTrunc = false;
+        while (titleStr && helvB.widthOfTextAtSize(titleStr + '\u2026', f) > avail && titleStr.length > 1) { titleStr = titleStr.slice(0, -1); tTrunc = true; }
+        if (tTrunc) titleStr += '\u2026';
+        out.drawText(titleStr, { x: tx, y: ty - f * 0.88, size: f, font: helvB, color: black });
+        if (pageName && !tTrunc) {
+            let rest = (proj ? ' \u2014 ' : '') + pageName, rTrunc = false;
+            const px0 = tx + helvB.widthOfTextAtSize(titleStr, f);
+            const ravail = avail - (px0 - tx);
+            while (rest && helv.widthOfTextAtSize(rest + '\u2026', f) > ravail && rest.length > 1) { rest = rest.slice(0, -1); rTrunc = true; }
+            if (rTrunc) rest += '\u2026';
+            out.drawText(rest, { x: px0, y: ty - f * 0.88, size: f, font: helv, color: dgray });
+        }
+        ty -= f * 1.1 + 0.75;
+        let sx = tx;
+        for (const ch2 of subText) { out.drawText(ch2, { x: sx, y: ty - subPt * 0.88, size: subPt, font: helvB, color: gray }); sx += helvB.widthOfTextAtSize(ch2, subPt) + 1.1; }
+        ty -= subPt * 1.2 + 1.5;
+        let mx = tx;
+        metaParts.forEach(part => { out.drawText(part, { x: mx, y: ty - metaPt * 0.88, size: metaPt, font: helv, color: black }); mx += helv.widthOfTextAtSize(part, metaPt) + 10.5; });
+    }
+    // Vector screen cones: wedge fill + obstacle shadows clipped to the
+    // wedge via PDF clipping operators. Mirrors the raster cone math.
+    function _drawVectorCones(out, page, g, screens) {
+        if (!screens || !screens.length) return;
+        const s2 = g.sc, PX = wx => g.ox + wx * s2, PY = wy => g.boxY + g.ch - wy * s2;
+        screens.forEach(scn => {
+            const r = page.pixelsPerFoot > 0 ? (scn.radius ?? 60) * page.pixelsPerFoot : (scn.radius * 10 || 200);
+            const rot = scn.rot * Math.PI / 180;
+            const half = ((scn.beamAngle !== undefined ? scn.beamAngle : 120) / 2) * Math.PI / 180;
+            const a0 = rot - half, a1 = rot + half, STEPS = 36;
+            const pts = [[scn.x, scn.y]];
+            for (let i2 = 0; i2 <= STEPS; i2++) { const a = a0 + (a1 - a0) * i2 / STEPS; pts.push([scn.x + Math.cos(a) * r, scn.y + Math.sin(a) * r]); }
+            const d = 'M ' + pts.map(p2 => p2[0] + ' ' + p2[1]).join(' L ') + ' Z';
+            out.drawSvgPath(d, { x: g.ox, y: g.boxY + g.ch, scale: s2, color: PDFLib.rgb(241/255, 196/255, 15/255), opacity: 0.15 });
+            const obsList = page.shapes.filter(o2 => o2.type === 'obs');
+            if (!obsList.length) return;
+            out.pushOperators(PDFLib.pushGraphicsState(), PDFLib.moveTo(PX(pts[0][0]), PY(pts[0][1])));
+            for (let i2 = 1; i2 < pts.length; i2++) out.pushOperators(PDFLib.lineTo(PX(pts[i2][0]), PY(pts[i2][1])));
+            out.pushOperators(PDFLib.closePath(), PDFLib.clip(), PDFLib.endPath());
+            obsList.forEach(obs => {
+                for (let j = 0; j < obs.points.length; j++) {
+                    const p1 = obs.points[j], p2 = obs.points[(j + 1) % obs.points.length];
+                    const ext = r + 100;
+                    const A1 = Math.atan2(p1.y - scn.y, p1.x - scn.x), A2 = Math.atan2(p2.y - scn.y, p2.x - scn.x);
+                    const e1 = { x: p1.x + Math.cos(A1) * ext, y: p1.y + Math.sin(A1) * ext };
+                    const e2 = { x: p2.x + Math.cos(A2) * ext, y: p2.y + Math.sin(A2) * ext };
+                    out.drawSvgPath(`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${e2.x} ${e2.y} L ${e1.x} ${e1.y} Z`, { x: g.ox, y: g.boxY + g.ch, scale: s2, color: PDFLib.rgb(0, 0, 0), opacity: 0.2 });
+                }
+            });
+            out.pushOperators(PDFLib.popGraphicsState());
+        });
+    }
+    // All on-drawing content as true vector PDF: obstacle outlines, screen
+    // icons, measures, every annotation type, texts, signs, attendants.
+    // Mirrors the print SVG geometry exactly (same guards, sizes, offsets).
+    async function _drawVectorLayers(doc, out, page, g) {
+        const s2 = g.sc, PX = wx => g.ox + wx * s2, PY = wy => g.boxY + g.ch - wy * s2;
+        const helv2 = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const helvB2 = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const RND = PDFLib.LineCapStyle.Round;
+        const vPath = (d, o) => out.drawSvgPath(d, Object.assign({ x: g.ox, y: g.boxY + g.ch, scale: s2 }, o));
+        const polyD = (pts2, close) => 'M ' + pts2.map(p2 => p2.x + ' ' + p2.y).join(' L ') + (close ? ' Z' : '');
+        // Outlined/rotated text. rotDeg/world coords are y-down (canvas space);
+        // anchor: middle|start; central: dominant-baseline central.
+        const vText = (txt, wx, wy, worldSize, o) => {
+            txt = _winAnsi(txt); if (!txt) return;
+            o = o || {};
+            const font2 = o.bold === false ? helv2 : helvB2;
+            const sizePt = worldSize * s2;
+            const wPt = font2.widthOfTextAtSize(txt, sizePt);
+            const th = (o.rotDeg || 0) * Math.PI / 180;
+            const cosT = Math.cos(th), sinT = Math.sin(th);
+            let dx = 0;
+            const anchor = o.anchor || 'middle';
+            if (anchor === 'middle') dx = -(wPt / s2) / 2; else if (anchor === 'end') dx = -(wPt / s2);
+            const dy = o.central ? worldSize * 0.36 : 0;
+            const lx = wx + dx * cosT - dy * sinT;
+            const ly = wy + dx * sinT + dy * cosT;
+            const x = PX(lx), y = PY(ly);
+            const rot = PDFLib.degrees(-(o.rotDeg || 0));
+            _vecOutlinedText(out, font2, txt, x, y, sizePt, _pdfColor(o.fill, PDFLib.rgb(0, 0, 0)), (o.outline && o.outlineW) ? _pdfColor(o.outline) : null, (o.outlineW || 0) * s2, rot);
+        };
+        // Rotated-group offset: svg rotates about (cx,cy) with the text at a
+        // small local offset; fold that offset through the rotation.
+        const rotPt = (cx2, cy2, dx2, dy2, thRad) => ({ x: cx2 + dx2 * Math.cos(thRad) - dy2 * Math.sin(thRad), y: cy2 + dx2 * Math.sin(thRad) + dy2 * Math.cos(thRad) });
+        const vArrowhead = (tipX, tipY, ang, thick2, color2) => {
+            const size3 = thick2 * 4, halfBase = size3 * 0.4;
+            const cosA = Math.cos(ang), sinA = Math.sin(ang);
+            const bx = tipX - size3 * cosA, by = tipY - size3 * sinA;
+            const x2 = bx - halfBase * (-sinA), y2 = by - halfBase * cosA;
+            const x3 = bx + halfBase * (-sinA), y3 = by + halfBase * cosA;
+            vPath(`M ${tipX} ${tipY} L ${x2} ${y2} L ${x3} ${y3} Z`, { color: _pdfColor(color2) });
+        };
+        // ── Obstacle outlines + screen icons (z-order mirrors the print) ──
+        if (uiState.showAreaLabels !== false) {
+            page.shapes.forEach(s => {
+                if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
+                if (s.type === 'aisle' || s.type === 'area') return;
+                vPath(polyD(s.points, true), { borderColor: _pdfColor('#e74c3c'), borderWidth: 2 });
+            });
+        }
+        if (uiState.showScreens && page.screens) {
+            page.screens.filter(sn => sn.active).forEach(scn => {
+                const rotRad = scn.rot * Math.PI / 180;
+                const sw = scn.width !== undefined ? scn.width : 16;
+                const screenW = page.pixelsPerFoot > 0 ? sw * page.pixelsPerFoot : sw * 10;
+                const lX = scn.x + Math.cos(rotRad - Math.PI / 2) * (screenW / 2), lY = scn.y + Math.sin(rotRad - Math.PI / 2) * (screenW / 2);
+                const rX = scn.x + Math.cos(rotRad + Math.PI / 2) * (screenW / 2), rY = scn.y + Math.sin(rotRad + Math.PI / 2) * (screenW / 2);
+                vPath(`M ${lX} ${lY} L ${rX} ${rY}`, { borderColor: _pdfColor(COLORS.screen), borderWidth: 6, borderLineCap: RND });
+                out.drawCircle({ x: PX(scn.x), y: PY(scn.y), size: 8 * s2, color: PDFLib.rgb(1, 1, 1), borderColor: _pdfColor(COLORS.screen), borderWidth: 2 * s2 });
+                vPath(`M ${scn.x} ${scn.y} L ${scn.x + Math.cos(rotRad) * 20} ${scn.y + Math.sin(rotRad) * 20}`, { borderColor: _pdfColor(COLORS.screen), borderWidth: 2 });
+                const scLblPx = (scn.labelSize || 16);
+                vText(scn.name, scn.x, scn.y - scLblPx * 1.25, scLblPx, { fill: '#ffffff', outline: '#000000', outlineW: 4 });
+            });
+        }
+        // ── Measures ──
+        setDimFilter(false);
+        if (page.measures && uiState.showMeasures !== false) {
+            page.measures.forEach(m => {
+                const typeIdx = m.typeIndex ?? 0;
+                if (uiState.hiddenMeasureTypes.includes(typeIdx)) return;
+                const mt = project.measureTypes[typeIdx] || project.measureTypes[0];
+                const thick = mt.thickness || 4;
+                vPath(polyD(pointsForStroke(m.points, m.arrowStart, m.arrowEnd, thick), false), { borderColor: _pdfColor(mt.color), borderWidth: thick, borderLineCap: RND });
+                if ((m.arrowStart || m.arrowEnd) && m.points.length >= 2) {
+                    if (m.arrowStart) { const p0 = m.points[0], p1 = m.points[1]; vArrowhead(p0.x, p0.y, Math.atan2(p0.y - p1.y, p0.x - p1.x), thick, mt.color); }
+                    if (m.arrowEnd) { const pN = m.points[m.points.length - 1], pP = m.points[m.points.length - 2]; vArrowhead(pN.x, pN.y, Math.atan2(pN.y - pP.y, pN.x - pP.x), thick, mt.color); }
+                }
+                const effShowLabels = m.showLabels !== undefined ? m.showLabels : (mt.showLabels !== false);
+                if (!effShowLabels) return;
+                const baseLabelSize = m.labelSize ?? mt.labelSize ?? 13;
+                for (let k2 = 1; k2 < m.points.length; k2++) {
+                    const p1 = m.points[k2 - 1], p2 = m.points[k2];
+                    const segPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    const segLen = page.pixelsPerFoot ? formatLength(segPx / page.pixelsPerFoot) : Math.round(segPx) + ' px';
+                    const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
+                    let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
+                    const ap = rotPt(mx2, my2, 0, -6, textAng * Math.PI / 180);
+                    vText(segLen, ap.x, ap.y, baseLabelSize, { fill: mt.color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                }
+                if (m.points.length > 2) {
+                    let pxLen = 0; for (let k2 = 1; k2 < m.points.length; k2++) pxLen += Math.hypot(m.points[k2].x - m.points[k2 - 1].x, m.points[k2].y - m.points[k2 - 1].y);
+                    const lenFt = page.pixelsPerFoot ? '\u03a3 ' + formatLength(pxLen / page.pixelsPerFoot) : '\u03a3 ' + Math.round(pxLen) + ' px';
+                    const lastPt = m.points[m.points.length - 1];
+                    vText(lenFt, lastPt.x, lastPt.y - 10, baseLabelSize + 1, { fill: mt.color, outline: '#ffffff', outlineW: 3 });
+                }
+            });
+        }
+        // ── Annotation lines (all types) ──
+        setDimFilter(false);
+        if (page.lines) {
+            page.lines.forEach(l => {
+                if (!lineVisible(l)) return;
+                const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db');
+                const thick = l.thickness || 2;
+                const fillOp = (l.fillOpacity !== undefined && l.fillOpacity !== null) ? l.fillOpacity : 1;
+                if ((l.type === 'box' || l.type === 'ellipse') && l.points.length === 2) {
+                    const p1 = l.points[0], p2 = l.points[1];
+                    const x = Math.min(p1.x, p2.x), y = Math.min(p1.y, p2.y);
+                    const w = Math.abs(p2.x - p1.x), h = Math.abs(p2.y - p1.y);
+                    const common = { borderColor: _pdfColor(color), borderWidth: thick * s2 };
+                    if (l.fill) { common.color = _pdfColor(l.fill); common.opacity = fillOp; }
+                    if (l.type === 'box') out.drawRectangle(Object.assign({ x: PX(x), y: PY(y + h), width: w * s2, height: h * s2 }, common));
+                    else out.drawEllipse(Object.assign({ x: PX(x + w / 2), y: PY(y + h / 2), xScale: (w / 2) * s2, yScale: (h / 2) * s2 }, common));
+                    return;
+                }
+                if (l.type === 'cloud' && l.points.length >= 3) {
+                    const bumps = buildCloudBumpsForPolygon(l.points);
+                    if (bumps.length > 0) {
+                        let d = `M ${bumps[0].p1.x} ${bumps[0].p1.y}`;
+                        bumps.forEach(b => { d += ` C ${b.c1.x} ${b.c1.y} ${b.c2.x} ${b.c2.y} ${b.p2.x} ${b.p2.y}`; });
+                        d += ' Z';
+                        const o2 = { borderColor: _pdfColor(color), borderWidth: thick };
+                        if (l.fill) { o2.color = _pdfColor(l.fill); o2.opacity = fillOp; }
+                        vPath(d, o2);
+                    }
+                    return;
+                }
+                if ((l.type === 'polygon' || l.type === 'area-measure') && l.points.length >= 3) {
+                    const o2 = { borderColor: _pdfColor(color), borderWidth: thick };
+                    if (l.fill) { o2.color = _pdfColor(l.fill); o2.opacity = fillOp; }
+                    vPath(polyD(l.points, true), o2);
+                    if (l.type === 'area-measure') {
+                        const c2 = polygonCentroidPx(l.points);
+                        const aPx = polygonAreaPx(l.points), pPx = polygonPerimeterPx(l.points);
+                        let line1, line2;
+                        if (page.pixelsPerFoot > 0) {
+                            line1 = `${fmtNum(Math.round(aPx / (page.pixelsPerFoot * page.pixelsPerFoot)))} ${t('unit.sqft') || 'sq ft'}`;
+                            line2 = `${formatLength(pPx / page.pixelsPerFoot)} ${t('unit.perimeter') || 'perim'}`;
+                        } else { line1 = `${Math.round(aPx)} px\u00b2`; line2 = `${Math.round(pPx)} px perim`; }
+                        const fs = l.labelSize || 16, yOff = fs * 0.6;
+                        vText(line1, c2.x, c2.y - yOff, fs, { fill: color, outline: '#ffffff', outlineW: 4 });
+                        vText(line2, c2.x, c2.y + yOff + fs * 0.4, fs, { fill: color, outline: '#ffffff', outlineW: 4 });
+                    }
+                    return;
+                }
+                if (l.type === 'callout' && l.points.length === 2) {
+                    const a = l.points[0], lp = l.points[1];
+                    vPath(`M ${a.x} ${a.y} L ${lp.x} ${lp.y}`, { borderColor: _pdfColor(color), borderWidth: thick });
+                    out.drawCircle({ x: PX(a.x), y: PY(a.y), size: 3 * s2, color: _pdfColor(color) });
+                    const fs = l.labelSize || 16, padding = fs * 0.4;
+                    const lines = (l.text || '').split('\n');
+                    let maxLen = 0; lines.forEach(ln => { if (ln.length > maxLen) maxLen = ln.length; });
+                    const boxW = maxLen * fs * 0.55 + padding * 2, boxH = lines.length * fs * 1.2 + padding * 2;
+                    out.drawRectangle({ x: PX(lp.x), y: PY(lp.y + boxH), width: boxW * s2, height: boxH * s2, color: PDFLib.rgb(1, 1, 1), opacity: 0.95, borderColor: _pdfColor(color), borderWidth: thick * s2 });
+                    lines.forEach((ln, i2) => { vText(ln, lp.x + padding, lp.y + padding + (i2 + 0.85) * fs * 1.2, fs, { fill: color, anchor: 'start', bold: false }); });
+                    return;
+                }
+                if (l.type === 'counter' && l.points.length === 1) {
+                    const p = l.points[0], size3 = l.size || 24, fs = l.textSize || Math.floor(size3 * 0.55);
+                    out.drawCircle({ x: PX(p.x), y: PY(p.y), size: (size3 / 2) * s2, color: _pdfColor(color), borderColor: PDFLib.rgb(1, 1, 1), borderWidth: 2 * s2 });
+                    vText(l.label || '?', p.x, p.y + fs * 0.35, fs, { fill: '#ffffff' });
+                    return;
+                }
+                vPath(polyD(pointsForStroke(l.points, l.arrowStart, l.arrowEnd, thick), false), { borderColor: _pdfColor(color), borderWidth: thick, borderLineCap: RND });
+                if ((l.arrowStart || l.arrowEnd) && l.points.length >= 2) {
+                    if (l.arrowStart) { const p0 = l.points[0], p1 = l.points[1]; vArrowhead(p0.x, p0.y, Math.atan2(p0.y - p1.y, p0.x - p1.x), thick, color); }
+                    if (l.arrowEnd) { const pN = l.points[l.points.length - 1], pP = l.points[l.points.length - 2]; vArrowhead(pN.x, pN.y, Math.atan2(pN.y - pP.y, pN.x - pP.x), thick, color); }
+                }
+                if (l.type === 'dimension' && l.points.length === 2) {
+                    const p1 = l.points[0], p2 = l.points[1], ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    const tickLen = 12 + (thick / 2);
+                    vPath(`M ${p1.x - Math.sin(ang) * tickLen} ${p1.y + Math.cos(ang) * tickLen} L ${p1.x + Math.sin(ang) * tickLen} ${p1.y - Math.cos(ang) * tickLen}`, { borderColor: _pdfColor(color), borderWidth: thick, borderLineCap: RND });
+                    vPath(`M ${p2.x - Math.sin(ang) * tickLen} ${p2.y + Math.cos(ang) * tickLen} L ${p2.x + Math.sin(ang) * tickLen} ${p2.y - Math.cos(ang) * tickLen}`, { borderColor: _pdfColor(color), borderWidth: thick, borderLineCap: RND });
+                    const distFt = page.pixelsPerFoot ? formatLength(Math.hypot(p2.x - p1.x, p2.y - p1.y) / page.pixelsPerFoot) : Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y)) + ' px';
+                    const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
+                    let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
+                    const fs = l.labelSize || 16;
+                    const ap = rotPt(mx2, my2, 0, -5, textAng * Math.PI / 180);
+                    vText(distFt, ap.x, ap.y, fs, { fill: color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                }
+                if (l.type === 'polyline' && l.showDims && l.points.length >= 2) {
+                    const segLabelSize = l.labelSize || 13;
+                    for (let k2 = 1; k2 < l.points.length; k2++) {
+                        const p1 = l.points[k2 - 1], p2 = l.points[k2];
+                        const segPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                        const segLen = page.pixelsPerFoot ? formatLength(segPx / page.pixelsPerFoot) : Math.round(segPx) + ' px';
+                        const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                        const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
+                        let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
+                        const ap = rotPt(mx2, my2, 0, -6, textAng * Math.PI / 180);
+                        vText(segLen, ap.x, ap.y, segLabelSize, { fill: color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                    }
+                    if (l.points.length > 2) {
+                        let pxLen = 0; for (let k2 = 1; k2 < l.points.length; k2++) pxLen += Math.hypot(l.points[k2].x - l.points[k2 - 1].x, l.points[k2].y - l.points[k2 - 1].y);
+                        const lenStr = page.pixelsPerFoot ? '\u03a3 ' + formatLength(pxLen / page.pixelsPerFoot) : '\u03a3 ' + Math.round(pxLen) + ' px';
+                        const lastPt = l.points[l.points.length - 1];
+                        vText(lenStr, lastPt.x, lastPt.y - 10, segLabelSize + 1, { fill: color, outline: '#000000', outlineW: 3 });
+                    }
+                }
+            });
+        }
+        // ── Text annotations (multiline, centered) ──
+        if (page.texts && uiState.showTexts !== false) {
+            page.texts.forEach(tx2 => {
+                const color = tx2.color || '#000000'; const sizeWorld = tx2.size || 24;
+                const lines = (tx2.text || '').split('\n');
+                const lineHeight = sizeWorld * 1.1;
+                const topY = tx2.y - ((lineHeight * lines.length) / 2) + (lineHeight / 2);
+                lines.forEach((ln, li) => { vText(ln, tx2.x, topY + li * lineHeight, sizeWorld, { fill: color, central: true }); });
+            });
+        }
+        // ── Key-item signs ──
+        if (page.signs && page.signs.length > 0 && uiState.showSigns) {
+            page.signs.forEach(s => {
+                if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
+                const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; const radius = s.size || st.size;
+                out.drawCircle({ x: PX(s.x), y: PY(s.y), size: radius * s2, color: _pdfColor(st.color), borderColor: PDFLib.rgb(1, 1, 1), borderWidth: 2 * s2 });
+                if (st.label) vText(st.label, s.x, s.y, radius, { fill: '#ffffff', outline: '#000000', outlineW: 3, central: true });
+            });
+        }
+        // ── Attendant posts ──
+        if (uiState.showAttendants && project.attendants && project.attendants.posts.length > 0) {
+            getVisibleAttendantPosts().forEach(p => {
+                const at = getAttendantTypeFor(p);
+                out.drawCircle({ x: PX(p.x), y: PY(p.y), size: at.dotSize * s2, color: _pdfColor(at.dotColor), borderColor: PDFLib.rgb(1, 1, 1), borderWidth: 2 * s2 });
+                if (p.number) vText(p.number, p.x, p.y, at.dotSize, { fill: '#ffffff', outline: '#000000', outlineW: 2, central: true });
+                const name = getAssignedName(p);
+                if (name) vText(name, p.x + at.dotSize + 4, p.y, at.labelSize, { fill: at.labelColor, outline: '#ffffff', outlineW: 3, central: true, anchor: 'start' });
+            });
+        }
+    }
+    // Replays the legend SVG fragments (flat <g translate scale> groups of
+    // rect/line/circle/polyline/text) as true vector PDF content. The legend
+    // builders stay the single source of truth; this just re-renders their
+    // output, so the PDF always matches the print exactly.
+    async function _replayLegendSvg(doc, out, frag, g) {
+        if (!frag) return;
+        const s2 = g.sc, PX = wx => g.ox + wx * s2, PY = wy => g.boxY + g.ch - wy * s2;
+        const helv2 = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const helvB2 = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const helvO2 = await doc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
+        const dom = new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">' + frag + '</svg>', 'image/svg+xml');
+        if (dom.querySelector('parsererror')) { console.warn('Legend replay: parse error, skipping'); return; }
+        const num = (el, name, dflt) => { const v = parseFloat(el.getAttribute(name)); return isNaN(v) ? (dflt || 0) : v; };
+        const colA = (str) => {
+            str = (str || '').trim();
+            const m = str.match(/^rgba?\(([^)]+)\)$/i);
+            if (m) { const p2 = m[1].split(',').map(Number); return { c: PDFLib.rgb((p2[0] || 0) / 255, (p2[1] || 0) / 255, (p2[2] || 0) / 255), a: p2.length > 3 ? p2[3] : 1 }; }
+            if (!str || str === 'none') return null;
+            return { c: _pdfColor(str), a: 1 };
+        };
+        Array.from(dom.documentElement.children).forEach(gEl => {
+            if (gEl.tagName.toLowerCase() !== 'g') return;
+            const tr = gEl.getAttribute('transform') || '';
+            const tm = tr.match(/translate\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
+            const sm = tr.match(/scale\(\s*([-\d.]+)/);
+            const gx = tm ? parseFloat(tm[1]) : 0, gy = tm ? parseFloat(tm[2]) : 0;
+            const gs = sm ? parseFloat(sm[1]) : 1;
+            const LX = lx => gx + lx * gs, LY = ly => gy + ly * gs;
+            Array.from(gEl.children).forEach(el => {
+                const tag = el.tagName.toLowerCase();
+                if (tag === 'rect') {
+                    const x = LX(num(el, 'x')), y = LY(num(el, 'y'));
+                    const w = num(el, 'width') * gs, h = num(el, 'height') * gs;
+                    const rx = num(el, 'rx') * gs;
+                    const fill = colA(el.getAttribute('fill')), stroke = colA(el.getAttribute('stroke'));
+                    const swv = num(el, 'stroke-width', 1) * gs;
+                    if (rx > 0.01) {
+                        const k2 = rx * 0.4477; // 1 - kappa
+                        const d = `M ${x + rx} ${y} L ${x + w - rx} ${y} C ${x + w - k2} ${y} ${x + w} ${y + k2} ${x + w} ${y + rx} L ${x + w} ${y + h - rx} C ${x + w} ${y + h - k2} ${x + w - k2} ${y + h} ${x + w - rx} ${y + h} L ${x + rx} ${y + h} C ${x + k2} ${y + h} ${x} ${y + h - k2} ${x} ${y + h - rx} L ${x} ${y + rx} C ${x} ${y + k2} ${x + k2} ${y} ${x + rx} ${y} Z`;
+                        const o2 = { x: g.ox, y: g.boxY + g.ch, scale: s2 };
+                        if (fill) { o2.color = fill.c; o2.opacity = fill.a; }
+                        if (stroke) { o2.borderColor = stroke.c; o2.borderWidth = swv; o2.borderOpacity = stroke.a; }
+                        out.drawSvgPath(d, o2);
+                    } else {
+                        const o2 = { x: PX(x), y: PY(y + h), width: w * s2, height: h * s2 };
+                        if (fill) { o2.color = fill.c; o2.opacity = fill.a; }
+                        if (stroke) { o2.borderColor = stroke.c; o2.borderWidth = swv * s2; o2.borderOpacity = stroke.a; }
+                        out.drawRectangle(o2);
+                    }
+                } else if (tag === 'line') {
+                    const stroke = colA(el.getAttribute('stroke')) || { c: PDFLib.rgb(0, 0, 0), a: 1 };
+                    out.drawLine({ start: { x: PX(LX(num(el, 'x1'))), y: PY(LY(num(el, 'y1'))) }, end: { x: PX(LX(num(el, 'x2'))), y: PY(LY(num(el, 'y2'))) }, thickness: Math.max(0.1, num(el, 'stroke-width', 1) * gs * s2), color: stroke.c, opacity: stroke.a });
+                } else if (tag === 'circle') {
+                    const fill = colA(el.getAttribute('fill')), stroke = colA(el.getAttribute('stroke'));
+                    const o2 = { x: PX(LX(num(el, 'cx'))), y: PY(LY(num(el, 'cy'))), size: num(el, 'r') * gs * s2 };
+                    if (fill) { o2.color = fill.c; o2.opacity = fill.a; }
+                    if (stroke) { o2.borderColor = stroke.c; o2.borderWidth = num(el, 'stroke-width', 1) * gs * s2; }
+                    out.drawCircle(o2);
+                } else if (tag === 'polyline') {
+                    const stroke = colA(el.getAttribute('stroke')) || { c: PDFLib.rgb(0, 0, 0), a: 1 };
+                    const pts2 = (el.getAttribute('points') || '').trim().split(/\s+/).map(pr => pr.split(',').map(Number)).filter(p2 => p2.length === 2 && !isNaN(p2[0]));
+                    if (pts2.length >= 2) out.drawSvgPath('M ' + pts2.map(p2 => LX(p2[0]) + ' ' + LY(p2[1])).join(' L '), { x: g.ox, y: g.boxY + g.ch, scale: s2, borderColor: stroke.c, borderWidth: num(el, 'stroke-width', 1) * gs });
+                } else if (tag === 'text') {
+                    const clean = _winAnsi(el.textContent || ''); if (!clean) return;
+                    const fsz = (parseFloat(el.getAttribute('font-size')) || 16) * gs;
+                    const bold = (el.getAttribute('font-weight') || '') === 'bold';
+                    const italic = (el.getAttribute('font-style') || '') === 'italic';
+                    const font2 = italic ? helvO2 : (bold ? helvB2 : helv2);
+                    const anchor = el.getAttribute('text-anchor') || 'start';
+                    const db = el.getAttribute('dominant-baseline') || '';
+                    const central = db === 'central' || db === 'middle';
+                    const sizePt = fsz * s2;
+                    const wPt = font2.widthOfTextAtSize(clean, sizePt);
+                    let wx = LX(num(el, 'x')), wy = LY(num(el, 'y'));
+                    if (anchor === 'middle') wx -= (wPt / s2) / 2; else if (anchor === 'end') wx -= wPt / s2;
+                    if (central) wy += fsz * 0.36;
+                    const x = PX(wx), y = PY(wy);
+                    const fillRaw = el.getAttribute('fill'), strokeRaw = el.getAttribute('stroke');
+                    if (strokeRaw && strokeRaw !== 'none' && (!fillRaw || fillRaw === 'none')) {
+                        const scol = _pdfColor(strokeRaw);
+                        _vecOutlinedText(out, font2, clean, x, y, sizePt, scol, scol, num(el, 'stroke-width', 2) * gs * s2);
+                    } else {
+                        const fcol = colA(fillRaw) || { c: PDFLib.rgb(0, 0, 0), a: 1 };
+                        out.drawText(clean, { x, y, size: sizePt, font: font2, color: fcol.c, opacity: fcol.a });
+                    }
+                }
+            });
+        });
+    }
+    // Seats and area labels, reusable by both the composed-paper export
+    // and the markup-on-original export. g maps world px -> PDF pt.
+    function _drawVectorSeats(out, page, g) {
+        const sc = g.sc, ox = g.ox, boxY = g.boxY, ch = g.ch;
+        // ── Seats: true vector rectangles — crisp at any zoom ──
+        if (uiState.showSeats && page.pixelsPerFoot) {
+            const seatBw = Math.max(0.02, 0.4 * sc);
+            const seatBlack = PDFLib.rgb(0, 0, 0);
+            page.shapes.forEach(s => {
+                if (s.type !== 'area' || !s.cachedSeats) return;
+                if (uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
+                const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
+                const wPt = sst.w * page.pixelsPerFoot * sc, hPt = sst.d * page.pixelsPerFoot * sc;
+                s.cachedSeats.forEach(seat => {
+                    const cxPt = ox + seat.x * sc, cyPt = boxY + ch - seat.y * sc;
+                    const phi = -(seat.rot || 0); // y-flip: canvas CW -> PDF CCW
+                    const cosP = Math.cos(phi), sinP = Math.sin(phi);
+                    const x0 = cxPt + (-wPt / 2) * cosP - (-hPt / 2) * sinP;
+                    const y0 = cyPt + (-wPt / 2) * sinP + (-hPt / 2) * cosP;
+                    out.drawRectangle({ x: x0, y: y0, width: wPt, height: hPt, rotate: PDFLib.radians(phi), color: _pdfColor(seat.fill || sst.color), borderColor: seatBlack, borderOpacity: 0.85, borderWidth: seatBw });
+                });
+            });
+        }
+    }
+    async function _drawVectorAreaLabels(doc, out, page, g) {
+        const sc = g.sc, ox = g.ox, boxY = g.boxY, ch = g.ch;
+        // ── Area/obstacle labels: vector text with outline ──
+        if (uiState.showAreaLabels !== false) {
+            const lblFont = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            const lblBlack = PDFLib.rgb(0, 0, 0);
+            // Real stroked-text outline (matches the SVG stroke-width 4).
+            const drawOutlined = (txt, wcx, wcy, worldSize, fill) => {
+                txt = _winAnsi(txt); if (!txt) return;
+                const sizePt = worldSize * sc;
+                const w = lblFont.widthOfTextAtSize(txt, sizePt);
+                const x = ox + wcx * sc - w / 2;
+                const yB = boxY + ch - wcy * sc - sizePt * 0.36; // central baseline
+                _vecOutlinedText(out, lblFont, txt, x, yB, sizePt, fill, lblBlack, 4 * sc);
+            };
+            const lblWhite = PDFLib.rgb(1, 1, 1), lblGray = PDFLib.rgb(0.8, 0.8, 0.8);
+            page.shapes.forEach(s => {
+                if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
+                if (s.type === 'aisle') return;
+                let sX = 0, sY = 0; s.points.forEach(pp => { sX += pp.x; sY += pp.y; });
+                const cen = { x: sX / s.points.length, y: sY / s.points.length };
+                const lblSize = (s.labelSize || 18);
+                const countSize = Math.max(8, lblSize - 4);
+                if (s.type === 'area') {
+                    drawOutlined(s.name || '', cen.x, cen.y - lblSize * 0.6, lblSize, lblWhite);
+                    const countStr = s.count !== undefined ? tn('canvas.seats', s.count, { n: fmtNum(s.count) }) : tn('canvas.seats', 0, { n: fmtNum(0) });
+                    drawOutlined(countStr, cen.x, cen.y + lblSize * 0.5, countSize, lblGray);
+                } else {
+                    drawOutlined(s.name || '', cen.x, cen.y, lblSize, lblWhite);
+                }
+            });
+        }
+    }
+    // Exports the ORIGINAL imported PDF with the Convention Planner markup
+    // drawn on top as vector content: same sheet, same pages, the annotated
+    // page gains seats/items/legends. For returning a marked-up sheet to
+    // whoever supplied the drawing.
+    async function exportMarkupPDF(p) {
+        const { page, legendSvg, activeScreens } = p;
+        if (!page.pdfData) { alert(t('print.markup.nopdf')); return; }
+        const srcDoc = await PDFLib.PDFDocument.load(_b64ToU8(page.pdfData), { ignoreEncryption: true });
+        const out = srcDoc.getPage((page.pdfPageNum || 1) - 1);
+        // When the sheet's own markups are excluded, drop its annotations
+        // (keeping links) so the output carries only CP content on the base sheet.
+        if (p.printOpts && p.printOpts.includePdfAnnots === false) {
+            try {
+                const NN = PDFLib.PDFName.of;
+                const ctx2 = srcDoc.context;
+                const arr = ctx2.lookup(out.node.get(NN('Annots')));
+                if (arr && arr.size && arr.size() > 0) {
+                    const keep = [];
+                    for (let i2 = 0; i2 < arr.size(); i2++) {
+                        const a2 = ctx2.lookup(arr.get(i2));
+                        if (a2 && a2.get && String(a2.get(NN('Subtype')) || '') === '/Link') keep.push(arr.get(i2));
+                    }
+                    out.node.set(NN('Annots'), ctx2.obj(keep));
+                }
+            } catch (e) { console.warn('Annotation strip failed', e); }
+        }
+        // World px = pdfBaseScale * PDF pt, so pt = world / baseScale, with
+        // the y-flip against the original page height.
+        const g = { sc: 1 / (page.pdfBaseScale || 1), ox: 0, boxY: 0, ch: out.getHeight() };
+        if (uiState.showScreens) _drawVectorCones(out, page, g, activeScreens || []);
+        _drawVectorSeats(out, page, g);
+        await _drawVectorAreaLabels(srcDoc, out, page, g);
+        await _drawVectorLayers(srcDoc, out, page, g);
+        await _replayLegendSvg(srcDoc, out, legendSvg, g);
+        const bytes = await srcDoc.save();
+        const name = ((project.title || 'layout') + ' - ' + (page.name || 'page') + ' - markup').replace(/[\\/:*?"<>|]+/g, '_') + '.pdf';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    }
+    async function exportLayoutVectorPDF(svgMarkup, p) {
+        const { page, printOpts, bgW, bgH, activeScreens } = p;
+        const PW = printOpts.paperWidthIn * 72, PH = printOpts.paperHeightIn * 72, M = 18;
+        const doc = await PDFLib.PDFDocument.create();
+        const out = doc.addPage([PW, PH]);
+        let tbInfo = null, tbH = 0;
+        if (printOpts.showTitleBlock) {
+            tbInfo = _titleBandHeightPt(page, printOpts);
+            tbH = tbInfo.heightPt;
+        }
+        const usableW = PW - 2 * M, usableH = PH - 2 * M - tbH;
+        // World px -> paper pt. Honors an exact drawing scale when chosen.
+        let sc;
+        if (printOpts.printScale !== null && page.pixelsPerFoot > 0) sc = (printOpts.printScale * 72) / page.pixelsPerFoot;
+        else sc = Math.min(usableW / bgW, usableH / bgH);
+        const cw = bgW * sc, ch = bgH * sc;
+        const ox = M + Math.max(0, (usableW - cw) / 2);
+        const oyTop = M + tbH + Math.max(0, (usableH - ch) / 2);
+        const boxY = PH - oyTop - ch; // pdf-lib origin is bottom-left
+        // ── Underlay ──
+        let underlayDone = false;
+        let _annotLayerNeeded = false;
+        if (page.pdfData) {
+            // pdf-lib parses the source PDF itself and is stricter than the
+            // pdf.js renderer: encrypted/permission-protected files (common in
+            // CAD exports) throw unless ignoreEncryption is set, and some
+            // exotic files fail outright. Try vector embed first.
+            try {
+                const srcDoc = await PDFLib.PDFDocument.load(_b64ToU8(page.pdfData), { ignoreEncryption: true });
+                // Detect markups (annotations beyond links/popups). The sheet
+                // content embeds as vector regardless; markups get their own
+                // transparent raster layer below, so only markup ink is raster.
+                let hasMarkupAnnots = false;
+                try {
+                    const NN = PDFLib.PDFName.of;
+                    const pg2 = srcDoc.getPage((page.pdfPageNum || 1) - 1);
+                    const annRaw = pg2.node.get(NN('Annots'));
+                    const arr = annRaw ? srcDoc.context.lookup(annRaw) : null;
+                    if (arr && arr.size && arr.size() > 0) {
+                        for (let i2 = 0; i2 < arr.size(); i2++) {
+                            const a2 = srcDoc.context.lookup(arr.get(i2));
+                            const st2 = a2 && a2.get ? String(a2.get(NN('Subtype')) || '') : '';
+                            if (st2 && st2 !== '/Link' && st2 !== '/Popup') { hasMarkupAnnots = true; break; }
+                        }
+                    }
+                } catch (e) { /* if unsure, treat as clean */ }
+                const [emb] = await doc.embedPdf(srcDoc, [(page.pdfPageNum || 1) - 1]);
+                const f = sc * (page.pdfBaseScale || 1);
+                out.drawPage(emb, { x: ox, y: boxY, xScale: f, yScale: f });
+                underlayDone = true;
+                _annotLayerNeeded = hasMarkupAnnots && (!printOpts || printOpts.includePdfAnnots !== false);
+            } catch (e) { console.warn('Vector underlay embed failed; using high-res raster fallback', e); }
+            if (!underlayDone) {
+                // Plan B: render the page with pdf.js (which handles these
+                // files fine) at high resolution and embed as an image.
+                const pdoc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
+                const pp = await pdoc.getPage(page.pdfPageNum || 1);
+                let rk = Math.max(1.5, (450 * (PW / 72)) / bgW);
+                rk = Math.min(rk, Math.sqrt((8192 * 8192) / (bgW * bgH)), 4);
+                const rc = document.createElement('canvas'); rc.width = Math.round(bgW * rk); rc.height = Math.round(bgH * rk);
+                const rctx = rc.getContext('2d'); rctx.fillStyle = '#ffffff'; rctx.fillRect(0, 0, rc.width, rc.height);
+                await pp.render({ canvasContext: rctx, viewport: pp.getViewport({ scale: (page.pdfBaseScale || 1) * rk }), annotationMode: (!printOpts || printOpts.includePdfAnnots !== false) ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                const png = await doc.embedPng(rc.toDataURL('image/png'));
+                out.drawImage(png, { x: ox, y: boxY, width: cw, height: ch });
+                underlayDone = true;
+            }
+        }
+        // ── Sheet markups as a transparent raster layer over the vector
+        // underlay: render the page via pdf.js with annotations on and off,
+        // keep only the pixels that differ. The sheet itself stays vector;
+        // only markup ink is raster, placed by the same renderer the screen
+        // uses, so positioning cannot drift. ──
+        if (underlayDone && _annotLayerNeeded) {
+            try {
+                const AMv = (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 });
+                const pdoc2 = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
+                const pp2 = await pdoc2.getPage(page.pdfPageNum || 1);
+                let rk2 = Math.max(1.5, (450 * (PW / 72)) / bgW);
+                rk2 = Math.min(rk2, Math.sqrt((6000 * 6000) / (bgW * bgH)), 4);
+                const w2 = Math.round(bgW * rk2), h2 = Math.round(bgH * rk2);
+                const renderPass = async (mode) => {
+                    const cnv = document.createElement('canvas'); cnv.width = w2; cnv.height = h2;
+                    const cx2 = cnv.getContext('2d', { willReadFrequently: true });
+                    cx2.fillStyle = '#ffffff'; cx2.fillRect(0, 0, w2, h2);
+                    await pp2.render({ canvasContext: cx2, viewport: pp2.getViewport({ scale: (page.pdfBaseScale || 1) * rk2 }), annotationMode: mode }).promise;
+                    return cx2.getImageData(0, 0, w2, h2);
+                };
+                const withA = await renderPass(AMv.ENABLE);
+                const withoutA = await renderPass(AMv.DISABLE);
+                const diffImg = new ImageData(w2, h2);
+                const dA = withA.data, dB = withoutA.data, dO = diffImg.data;
+                for (let i2 = 0; i2 < dA.length; i2 += 4) {
+                    const dd = Math.abs(dA[i2] - dB[i2]) + Math.abs(dA[i2 + 1] - dB[i2 + 1]) + Math.abs(dA[i2 + 2] - dB[i2 + 2]);
+                    if (dd > 12) { dO[i2] = dA[i2]; dO[i2 + 1] = dA[i2 + 1]; dO[i2 + 2] = dA[i2 + 2]; dO[i2 + 3] = 255; }
+                }
+                const oc2 = document.createElement('canvas'); oc2.width = w2; oc2.height = h2;
+                oc2.getContext('2d').putImageData(diffImg, 0, 0);
+                const annPng = await doc.embedPng(oc2.toDataURL('image/png'));
+                out.drawImage(annPng, { x: ox, y: boxY, width: cw, height: ch });
+            } catch (e) { console.warn('Annotation layer render failed; sheet markups may be missing from this export', e); }
+        }
+        if (!underlayDone && bgImage.src && bgImage.width) {
+            const bc = document.createElement('canvas'); bc.width = bgImage.width; bc.height = bgImage.height;
+            bc.getContext('2d').drawImage(bgImage, 0, 0);
+            const png = await doc.embedPng(bc.toDataURL('image/png'));
+            out.drawImage(png, { x: ox, y: boxY, width: cw, height: ch });
+        }
+        // ── Screen cones (under everything, like the print) ──
+        if (uiState.showScreens) _drawVectorCones(out, page, { sc, ox, boxY, ch }, activeScreens);
+        _drawVectorSeats(out, page, { sc, ox, boxY, ch });
+        await _drawVectorAreaLabels(doc, out, page, { sc, ox, boxY, ch });
+        // ── All other drawing content as vector ──
+        await _drawVectorLayers(doc, out, page, { sc, ox, boxY, ch });
+        // ── Raster overlay: only if anything is left in the SVG (normally
+        // nothing — every layer is vector now) ──
+        const _hasOverlay = /<(rect|circle|text|polyline|polygon|path|line|g|image)\b/.test(svgMarkup.replace(/^<svg[^>]*>/, ''));
+        if (_hasOverlay) {
+        // Resolution: aim 300 DPI on paper within a 64MP budget.
+        let k = 900 / 72;
+        k = Math.min(k, Math.sqrt((64e6) / (cw * ch)));
+        const ocw = Math.max(1, Math.round(cw * k)), och = Math.max(1, Math.round(ch * k));
+        const oc = document.createElement('canvas'); oc.width = ocw; oc.height = och;
+        const octx = oc.getContext('2d');
+        const worldToPx = (cw * k) / bgW;
+        const svgSized = svgMarkup.replace(/^<svg /, `<svg width="${ocw}" height="${och}" `);
+        const svgUrl = URL.createObjectURL(new Blob([svgSized], { type: 'image/svg+xml' }));
+        try {
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = svgUrl; });
+            octx.drawImage(img, 0, 0, ocw, och);
+        } finally { URL.revokeObjectURL(svgUrl); }
+        const ovPng = await doc.embedPng(oc.toDataURL('image/png'));
+        out.drawImage(ovPng, { x: ox, y: boxY, width: cw, height: ch });
+        }
+        // ── Legends: replayed as true vector content ──
+        await _replayLegendSvg(doc, out, p.legendSvg, { sc, ox, boxY, ch });
+        // ── Title bar: true vector text + logo; plain text strip on failure ──
+        if (printOpts.showTitleBlock && tbInfo) {
+            try { await _drawTitleBandVector(doc, out, page, printOpts, tbInfo, M, PW, PH); }
+            catch (e) {
+                console.warn('Vector title band failed; using text strip', e);
+                const font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                const fontR = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+                const yT = PH - M - 14;
+                const left = _winAnsi(`${project.title || ''}${project.title ? ' \u2014 ' : ''}${page.name || ''}`);
+                out.drawText(left, { x: M, y: yT, size: 12, font });
+                const scaleLbl = (printOpts.printScale !== null && page.pixelsPerFoot > 0) ? formatDrawingScale(printOpts.printScale) : t('print.scale.fit');
+                const right = _winAnsi(`${scaleLbl}   ${new Date().toLocaleDateString(currentLang === 'es' ? 'es' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+                const rw = fontR.widthOfTextAtSize(right, 10);
+                out.drawText(right, { x: PW - M - rw, y: yT, size: 10, font: fontR });
+            }
+        }
+        // ── Save & download ──
+        const bytes = await doc.save();
+        const name = ((project.title || 'layout') + ' - ' + (page.name || 'page')).replace(/[\\/:*?"<>|]+/g, '_') + '.pdf';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    }
     function buildScaleBarSVG(printScale, metric) {
         // printScale = paper_inches_per_real_foot. We want a scale bar that's
         // a clean number of real-world units long and fits in roughly 3-4 inches
@@ -15647,7 +16801,7 @@ const I18N_STRINGS = {
                     pageRuleEl.textContent = '';  // fall back to static @page rule
                 }
 
-                function buildAndPrint() {
+                async function buildAndPrint() {
                     const page = getActivePage();
                     // Determine intrinsic SVG dimensions. For blueprint pages
                     // use the image's pixel size; for sheet pages use the
@@ -15658,8 +16812,39 @@ const I18N_STRINGS = {
                         bgW = page.sheet.widthIn  * PIXELS_PER_PAPER_INCH;
                         bgH = page.sheet.heightIn * PIXELS_PER_PAPER_INCH;
                     } else { bgW = 2000; bgH = 2000; }
-                    const rasterCanvas = document.createElement('canvas'); rasterCanvas.width = bgW; rasterCanvas.height = bgH; const rCtx = rasterCanvas.getContext('2d');
-                    rCtx.fillStyle = '#ffffff'; rCtx.fillRect(0, 0, bgW, bgH); if (bgImage.src) rCtx.drawImage(bgImage, 0, 0);
+                    // For PDF-backed pages, render the print background straight
+                    // from the PDF at ~300 DPI for the chosen paper instead of
+                    // embedding the (lower-res) screen raster. pk = raster
+                    // pixels per world pixel; the SVG still places the image at
+                    // bgW x bgH world units, so geometry is unchanged.
+                    let pk = 1;
+                    if (page.pdfData && bgImage.src && !(printOpts && printOpts.exportPdf)) {
+                        // Target ~450 DPI on the printed page, but never less
+                        // than 1.5x the import raster (so the PDF re-render
+                        // always beats the screen raster), bounded by a 64MP
+                        // pixel budget and a 4x ceiling.
+                        const usableW = (printOpts && printOpts.paperWidthIn) ? Math.max(1, printOpts.paperWidthIn - 0.5) : 10.5;
+                        pk = Math.max(1.5, (450 * usableW) / bgW);
+                        pk = Math.min(pk, Math.sqrt((8192 * 8192) / (bgW * bgH)), 4);
+                        if (pk < 1) pk = 1;
+                    }
+                    const rasterCanvas = document.createElement('canvas'); rasterCanvas.width = Math.round(bgW * pk); rasterCanvas.height = Math.round(bgH * pk); const rCtx = rasterCanvas.getContext('2d');
+                    rCtx.fillStyle = '#ffffff'; rCtx.fillRect(0, 0, rasterCanvas.width, rasterCanvas.height);
+                    let pdfBgDone = false;
+                    if (page.pdfData && bgImage.src && pk > 1.001) {
+                        try {
+                            const doc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
+                            const pdfPage = await doc.getPage(page.pdfPageNum || 1);
+                            const viewport = pdfPage.getViewport({ scale: (page.pdfBaseScale || 1) * pk });
+                            const _annOn = (printOpts && printOpts.includePdfAnnots !== undefined) ? printOpts.includePdfAnnots : (page.pdfShowAnnots !== false);
+                            await pdfPage.render({ canvasContext: rCtx, viewport, annotationMode: _annOn ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                            pdfBgDone = true;
+                        } catch (err) { /* fall back to the raster below */ }
+                    }
+                    if (!pdfBgDone && bgImage.src) rCtx.drawImage(bgImage, 0, 0, rasterCanvas.width, rasterCanvas.height);
+                    // Cones below draw in world coordinates; scale them to the
+                    // high-res raster.
+                    rCtx.setTransform(pk, 0, 0, pk, 0, 0);
                     const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
                     if (uiState.showScreens && hasScreens) {
                         activeScreens.forEach((sc) => {
@@ -15681,11 +16866,15 @@ const I18N_STRINGS = {
                             if (itemIsCounted(s, page)) pageTypeTotals[s.seatTypeIndex ?? 0] += s.count;
                         }
                     });
-                    const rasterBgDataUrl = rasterCanvas.toDataURL('image/jpeg', 0.85);
+                    const rasterBgDataUrl = pdfBgDone ? rasterCanvas.toDataURL('image/png') : rasterCanvas.toDataURL('image/jpeg', 0.85);
                     let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bgW} ${bgH}" preserveAspectRatio="xMidYMid meet" style="print-color-adjust: exact; font-family: Arial, sans-serif;">`;
-                    svg += `<image href="${rasterBgDataUrl}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
-                    // Crisp vector seats (previously baked into the JPEG raster → blurry)
-                    page.shapes.forEach(s => {
+                    // In vector-PDF export the underlay is embedded as live PDF
+                    // content (or a separate image layer), so the SVG overlay
+                    // stays transparent.
+                    if (!(printOpts && printOpts.exportPdf)) svg += `<image href="${rasterBgDataUrl}" x="0" y="0" width="${bgW}" height="${bgH}" />`;
+                    // Crisp vector seats (previously baked into the JPEG raster → blurry).
+                    // In vector-PDF export, seats are drawn as true PDF rectangles instead.
+                    if (!(printOpts && printOpts.exportPdf)) page.shapes.forEach(s => {
                         if (s.type !== "area" || !page.pixelsPerFoot || !s.cachedSeats) return;
                         if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                         const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
@@ -15695,7 +16884,7 @@ const I18N_STRINGS = {
                             svg += `<g transform="translate(${seat.x.toFixed(2)},${seat.y.toFixed(2)}) rotate(${deg.toFixed(2)})"><rect x="${(-cw/2).toFixed(2)}" y="${(-rd/2).toFixed(2)}" width="${cw.toFixed(2)}" height="${rd.toFixed(2)}" fill="${escapeHTML(seat.fill || sst.color)}" stroke="rgba(0,0,0,0.85)" stroke-width="0.4" /></g>`;
                         });
                     });
-                    if (uiState.showScreens && hasScreens) {
+                    if (uiState.showScreens && hasScreens && !(printOpts && printOpts.exportPdf)) {
                         activeScreens.forEach((sc) => {
                             const rotRad = sc.rot * Math.PI / 180; const sw = sc.width !== undefined ? sc.width : 16; const screenW = page.pixelsPerFoot > 0 ? sw * page.pixelsPerFoot : sw * 10;
                             const leftX = sc.x + Math.cos(rotRad - Math.PI/2) * (screenW/2); const leftY = sc.y + Math.sin(rotRad - Math.PI/2) * (screenW/2); const rightX = sc.x + Math.cos(rotRad + Math.PI/2) * (screenW/2); const rightY = sc.y + Math.sin(rotRad + Math.PI/2) * (screenW/2);
@@ -15716,7 +16905,7 @@ const I18N_STRINGS = {
                             if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
                             if (s.type === 'aisle') return;
                             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0]; const pts = s.points.map(p => `${p.x},${p.y}`).join(' ');
-                            if (s.type !== 'area') svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?escapeHTML(st.stroke):'#e74c3c'}" stroke-width="2" />`;
+                            if (!(printOpts && printOpts.exportPdf) && s.type !== 'area') svg += `<polygon points="${pts}" fill="none" stroke="${s.type==='area'?escapeHTML(st.stroke):'#e74c3c'}" stroke-width="2" />`;
                             let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
                             // Per-instance label size (default 18). Seat-count
                             // renders 4 smaller. Vertical offsets scale with the
@@ -15725,6 +16914,7 @@ const I18N_STRINGS = {
                             const countSize = Math.max(8, lblSize - (4));
                             const nameOffset = -lblSize * 0.6;
                             const countOffset = lblSize * 0.5;
+                            if (printOpts && printOpts.exportPdf) return; // labels drawn as vector text in the PDF
                             if (s.type === 'area') {
                                 svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="4" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
                                 svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
@@ -15737,7 +16927,7 @@ const I18N_STRINGS = {
                             }
                         });
                     }
-                    if (page.measures && uiState.showMeasures !== false) {
+                    if (page.measures && uiState.showMeasures !== false && !(printOpts && printOpts.exportPdf)) {
                         page.measures.forEach(m => {
                             const typeIdx = m.typeIndex ?? 0;
                             // Skip whole types that are toggled off.
@@ -15794,7 +16984,7 @@ const I18N_STRINGS = {
                             }
                         });
                     }
-                    if (page.lines) {
+                    if (page.lines && !(printOpts && printOpts.exportPdf)) {
                         page.lines.forEach(l => {
                             if (!lineVisible(l)) return;
                             const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db');
@@ -15953,7 +17143,7 @@ const I18N_STRINGS = {
                             }
                         });
                     }
-                    if (page.texts && uiState.showTexts !== false) {
+                    if (page.texts && uiState.showTexts !== false && !(printOpts && printOpts.exportPdf)) {
                         page.texts.forEach(t => {
                             const color = t.color || '#000000'; const sizeWorld = t.size || 24;
                             const fontSize = sizeWorld;
@@ -15971,6 +17161,11 @@ const I18N_STRINGS = {
                             svg += `<text font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${escapeHTML(color)}">${tspans}</text>`;
                         });
                     }
+                    // Vector-PDF export: the legends below are replayed as
+                    // true vector content from this same SVG markup, so
+                    // capture them separately and keep the raster overlay empty.
+                    let _legendCapturePrefix = null;
+                    if (printOpts && printOpts.exportPdf) { _legendCapturePrefix = svg; svg = ''; }
                     if (page.seatLegend && page.seatLegend.show) {
                         let activeSeatIndices = []; project.seatTypes.forEach((st, i) => { if (pageTypeTotals[i] > 0) activeSeatIndices.push(i); });
                         if (activeSeatIndices.length > 0) {
@@ -15986,7 +17181,7 @@ const I18N_STRINGS = {
                             svg += `<line x1="15" y1="${yOffset - 15}" x2="${legendWidth - 15}" y2="${yOffset - 15}" stroke="#ccc" stroke-width="1" /><text x="15" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" dominant-baseline="central" fill="black">${escapeHTML(t("legend.seat.total"))}</text><text x="${legendWidth - 15}" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(grandTotal)}</text></g>`;
                         }
                     }
-                    if (page.signs && page.signs.length > 0 && uiState.showSigns) {
+                    if (page.signs && page.signs.length > 0 && uiState.showSigns && !(printOpts && printOpts.exportPdf)) {
                         page.signs.forEach(s => {
                             if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                             const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; const radius = s.size || st.size;
@@ -15996,7 +17191,7 @@ const I18N_STRINGS = {
                     }
 
                     // Attendant posts in print
-                    if (uiState.showAttendants && project.attendants && project.attendants.posts.length > 0) {
+                    if (uiState.showAttendants && project.attendants && project.attendants.posts.length > 0 && !(printOpts && printOpts.exportPdf)) {
                         const visibleAtt = getVisibleAttendantPosts();
                         visibleAtt.forEach(p => {
                             const at = getAttendantTypeFor(p);
@@ -16211,7 +17406,18 @@ const I18N_STRINGS = {
                         }
                     }
 
+                    let exportLegendSvg = '';
+                    if (_legendCapturePrefix !== null) { exportLegendSvg = svg; svg = _legendCapturePrefix; }
                     svg += `</svg>`;
+
+                    if (hasOptsForExport()) {
+                        const _expP = { page, printOpts, bgW, bgH, legendSvg: exportLegendSvg, activeScreens: (uiState.showScreens ? activeScreens : []) };
+                        ((printOpts.exportPdf === 'markup') ? exportMarkupPDF(_expP) : exportLayoutVectorPDF(svg, _expP))
+                            .catch(err => { console.error('PDF export failed', err); alert(t('print.exportpdf.failed') + (err && err.message ? '\n\n' + err.message : '')); })
+                            .finally(() => { document.body.className = ''; document.getElementById('svg-print-wrapper').innerHTML = ''; });
+                        return;
+                    }
+                    function hasOptsForExport() { return !!(printOpts && printOpts.exportPdf); }
 
                     // ── Scale-aware sizing ────────────────────────────────────
                     // For scaled prints: give the SVG intrinsic dimensions in
