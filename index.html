@@ -692,11 +692,21 @@
                 min-height: 0;
                 position: relative;
                 overflow: hidden;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             #svg-print-wrapper svg {
                 display: block;
-                width: 100%;
-                height: 100%;
+                /* Fit within the wrapper while PRESERVING aspect ratio.
+                   width/height:100% stretched the drawing to the box and
+                   squeezed non-matching paper aspects; max-* + auto + margin
+                   auto fits-and-centers without distortion. */
+                max-width: 100%;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                margin: auto;
             }
 
             /* The title bar — one full-width row at the top. Empty (and
@@ -1352,7 +1362,7 @@
      and the print runs directly with browser defaults. -->
 <div id="print-options-modal" class="modal-overlay" onclick="if(event.target===this) hidePrintOptionsModal()">
     <div class="modal-card" role="dialog" aria-labelledby="print-options-title" style="max-width: 480px;">
-        <h2 id="print-options-title" data-i18n="modal.print.title">Print Layout</h2>
+        <h2 id="print-options-title" data-i18n="modal.print.title">Export</h2>
         <div style="margin-bottom: 12px;">
             <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="modal.print.paper">Paper size</label>
             <select id="print-paper-size" style="width: 100%;">
@@ -1445,12 +1455,6 @@
             </select>
             <div id="print-scale-warning" style="font-size: 0.75em; color: #e67e22; margin-top: 4px; display: none;"></div>
         </div>
-        <div id="print-opt-annots-group" style="margin-bottom: 12px; display:none;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
-                <input type="checkbox" id="print-include-annots" checked style="width:auto; margin:0;">
-                <span data-i18n="modal.print.include_annots">Include markups already on the sheet (PDF comments)</span>
-            </label>
-        </div>
         <div id="print-opt-titleblock-group" style="margin-bottom: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #ddd;">
                 <input type="checkbox" id="print-title-block" style="width: auto; margin: 0;">
@@ -1459,8 +1463,7 @@
         </div>
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
             <button onclick="hidePrintOptionsModal()" class="secondary" data-i18n="modal.print.cancel">Cancel</button>
-            <button id="print-export-markup-btn" onclick="applyPrintOptionsModal('markup')" class="secondary" data-i18n="modal.print.markup" title="Original PDF sheet with your markup added on top">Markup PDF</button>
-            <button id="print-export-pdf-btn" onclick="applyPrintOptionsModal(true)" class="secondary" data-i18n="modal.print.exportpdf" title="Vector PDF — crisp blueprint at any size">Save as PDF</button>
+            <button id="print-export-pdf-btn" onclick="applyPrintOptionsModal(true)" data-i18n="modal.print.exportpdf" title="Vector PDF — crisp at any size">Vector PDF</button>
             <button onclick="applyPrintOptionsModal()" data-i18n="modal.print.confirm">Print</button>
         </div>
     </div>
@@ -1617,9 +1620,32 @@
     </div>
 </div>
 
+<div id="migration-modal" class="modal-overlay" onclick="if(event.target===this) dismissMigrationModal()">
+    <div class="modal-card" role="dialog" aria-labelledby="migration-title" style="max-width:440px; text-align:center;">
+        <div style="font-size:2.4em; margin-bottom:6px;">📍</div>
+        <h2 id="migration-title" data-i18n="migration.title" style="margin-top:0;">Convention Planner is moving</h2>
+        <p style="font-size:1.3em; font-weight:bold; color:#f0c040; margin:6px 0 2px;">July 1, 2026</p>
+        <p data-i18n="migration.body" style="font-size:0.95em; color:#ddd; line-height:1.5; margin:2px 0 10px;">the only home for Convention Planner will be:</p>
+        <p style="margin:14px 0;"><a href="https://app.conventionplanner.org" target="_blank" rel="noopener" style="font-size:1.15em; font-weight:bold; color:#4ea1ff; text-decoration:none;">app.conventionplanner.org</a></p>
+        <p data-i18n="migration.bookmark" style="font-size:0.85em; color:#aaa; margin:10px 0 0;">Please update your bookmark so you don't lose access.</p>
+        <div class="modal-actions" style="justify-content:center; margin-top:20px;">
+            <button onclick="dismissMigrationModal()" data-i18n="migration.gotit">Got it</button>
+        </div>
+    </div>
+</div>
 <div id="pdf-import-modal" class="modal-overlay" onclick="if(event.target===this) cancelPdfImportModal()">
     <div class="modal-card" role="dialog">
         <h2 data-i18n="pdfimport.title">PDF Sheet Settings</h2>
+        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:12px;">
+            <div style="width:400px; max-width:100%; height:300px; background:#1b1b1b; border:1px solid #444; border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <canvas id="pdf-import-preview" style="position:static !important; display:block; max-width:100%; max-height:100%;"></canvas>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                <button type="button" onclick="rotatePdfImportPreview(-90)" class="secondary" title="Rotate counter-clockwise" style="padding:4px 12px; font-size:1.1em;">↺ 90°</button>
+                <span style="font-size:0.8em; color:#aaa;"><span data-i18n="pdfimport.orientation">Orientation</span>: <strong id="pdf-import-rot">0°</strong></span>
+                <button type="button" onclick="rotatePdfImportPreview(90)" class="secondary" title="Rotate clockwise" style="padding:4px 12px; font-size:1.1em;">↻ 90°</button>
+            </div>
+        </div>
         <p style="font-size:0.9em; color:#ccc; margin: 4px 0 12px;"><span data-i18n="pdfimport.sheet">Sheet size:</span> <strong id="pdf-import-size"></strong></p>
         <div style="margin-bottom: 14px;">
             <label style="display:block; font-size:0.75em; color:#aaa; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="pdfimport.scale">Drawing scale</label>
@@ -1628,7 +1654,6 @@
                 <!-- options populated at runtime from DRAWING_SCALES -->
             </select>
         </div>
-        <label class="layer-toggle" style="margin-bottom:14px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="pdf-import-annots" checked style="width:auto; margin:0;"> <span data-i18n="pdfimport.annots">Include markups already on the sheet (comments, stamps)</span></label>
         <div class="modal-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
             <button onclick="applyPdfImportModal()" data-i18n="pdfimport.apply">Apply</button>
         </div>
@@ -1838,7 +1863,8 @@
     <div style="flex-grow: 1;"></div>
 
     <div class="ribbon-group-wrapper">
-        <div class="ribbon-group">
+        <div class="ribbon-group" style="display:flex; align-items:center; gap:8px;">
+            <span id="cp-migration-notice" data-i18n="notice.migration" title="Update your bookmark" style="font-size:0.72em; line-height:1.2; color:#f0c040; background:rgba(240,192,64,0.12); border:1px solid rgba(240,192,64,0.4); border-radius:5px; padding:4px 8px; max-width:200px; white-space:normal;">Heads up: starting July 1, 2026, the only home for Convention Planner will be app.conventionplanner.org</span>
             <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
@@ -2362,7 +2388,7 @@ const I18N_STRINGS = {
     en: {
         "btn.save": "💾 Save",
         "btn.open": "📁 Open",
-        "btn.print": "🖨️ Print",
+        "btn.print": "📤 Export",
         "ribbon.system": "System",
         "print.summary": "Chair Summary",
         "print.layout": "Layout",
@@ -2397,6 +2423,11 @@ const I18N_STRINGS = {
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
         "ribbon.help": "Help",
+        "notice.migration": "Heads up: starting July 1, 2026, the only home for Convention Planner will be app.conventionplanner.org",
+        "migration.title": "Convention Planner is moving",
+        "migration.body": "the only home for Convention Planner will be:",
+        "migration.bookmark": "Please update your bookmark so you don't lose access.",
+        "migration.gotit": "Got it",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
         "panel.title.area": "Seating Area Tools",
@@ -2678,14 +2709,15 @@ const I18N_STRINGS = {
         "ann.counter.next": "Counter — next number:",
         "ann.counter.reset": "Reset to 1",
         "prompt.callout.text": "Callout text:",
-        "modal.print.title": "Print Layout",
+        "modal.print.title": "Export",
         "modal.print.title.report": "Print Report",
-        "modal.print.exportpdf": "Save as PDF",
+        "modal.print.exportpdf": "Vector PDF",
         "modal.print.markup": "Markup PDF",
         "print.markup.nopdf": "This page has no imported PDF to mark up. Re-upload the blueprint PDF first.",
         "pdfimport.title": "PDF Sheet Settings",
         "pdfimport.sheet": "Sheet size:",
         "pdfimport.scale": "Drawing scale",
+        "pdfimport.orientation": "Orientation",
         "pdfimport.skip": "Not sure \u2014 set scale manually later",
         "pdfimport.apply": "Apply",
         "pdfimport.annots": "Include markups already on the sheet (comments, stamps)",
@@ -3054,7 +3086,7 @@ const I18N_STRINGS = {
     es: {
         "btn.save": "💾 Guardar",
         "btn.open": "📁 Abrir",
-        "btn.print": "🖨️ Imprimir",
+        "btn.print": "📤 Exportar",
         "ribbon.system": "Sistema",
         "print.summary": "Resumen de Sillas",
         "print.layout": "Plano",
@@ -3089,6 +3121,11 @@ const I18N_STRINGS = {
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
         "ribbon.help": "Ayuda",
+        "notice.migration": "Aviso: a partir del 1 de julio de 2026, el \u00fanico hogar de Convention Planner ser\u00e1 app.conventionplanner.org",
+        "migration.title": "Convention Planner se muda",
+        "migration.body": "el \u00fanico hogar de Convention Planner ser\u00e1:",
+        "migration.bookmark": "Actualice su marcador para no perder el acceso.",
+        "migration.gotit": "Entendido",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
         "panel.title.area": "Asientos - Herramientas",
@@ -3368,14 +3405,15 @@ const I18N_STRINGS = {
         "ann.counter.next": "Contador — siguiente número:",
         "ann.counter.reset": "Reiniciar a 1",
         "prompt.callout.text": "Texto de la llamada:",
-        "modal.print.title": "Imprimir Plano",
+        "modal.print.title": "Exportar",
         "modal.print.title.report": "Imprimir Informe",
-        "modal.print.exportpdf": "Guardar como PDF",
+        "modal.print.exportpdf": "PDF Vectorial",
         "modal.print.markup": "PDF de Marcado",
         "print.markup.nopdf": "Esta p\u00e1gina no tiene un PDF importado para marcar. Vuelva a subir el PDF del plano primero.",
         "pdfimport.title": "Configuraci\u00f3n de la Hoja PDF",
         "pdfimport.sheet": "Tama\u00f1o de hoja:",
         "pdfimport.scale": "Escala de dibujo",
+        "pdfimport.orientation": "Orientaci\u00f3n",
         "pdfimport.skip": "No estoy seguro \u2014 definir la escala manualmente despu\u00e9s",
         "pdfimport.apply": "Aplicar",
         "pdfimport.annots": "Incluir marcas ya existentes en la hoja (comentarios, sellos)",
@@ -4502,7 +4540,7 @@ const I18N_STRINGS = {
             const oc = document.createElement('canvas'); oc.width = cw; oc.height = ch;
             const octx = oc.getContext('2d');
             octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, cw, ch);
-            await pdfPage.render({ canvasContext: octx, viewport, transform: [1, 0, 0, 1, -x0 * k, -y0 * k], annotationMode: page.pdfShowAnnots !== false ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+            await pdfPage.render({ canvasContext: octx, viewport, transform: [1, 0, 0, 1, -x0 * k, -y0 * k] }).promise;
             if (token !== _crispToken) return;
             _crispBg = { pageIdx, sig, rect: { x: x0, y: y0, w, h }, canvas: oc };
             render();
@@ -7528,7 +7566,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.4.0";
+    const APP_VERSION = "2.4.1";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7833,7 +7871,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.4.0-release";
+    const ANNOUNCEMENT_VERSION = "2.4.1-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7841,6 +7879,29 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.4.1",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>New import preview, plus fixes for orientation, seat colors, and speed:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Rotate sheets on import.</strong> Importing a PDF now shows a live preview of the sheet with ↺ / ↻ buttons to rotate it 90° at a time — set the orientation you want and it's baked in, so the view, zoom, and export all match. No more sideways or upside-down sheets.</li>
+                    <li><strong>Correct orientation everywhere.</strong> Fixed sheets that could appear rotated or flip while zooming, and exports that came out upside down. Screen, crisp zoom, and PDF export now always agree.</li>
+                    <li><strong>Seat colors in dense halls.</strong> Fixed seats exporting as solid black blocks on large sheets — custom seat-type colors now render correctly, and dense seating shows as a clean colored grid.</li>
+                    <li><strong>Much faster with many items.</strong> Layouts with hundreds of key items no longer stutter on every click or selection, and the “dim not counted” view renders at full speed.</li>
+                    <li><strong>Simpler export.</strong> One <em>Export</em> dialog with <em>Vector PDF</em> and <em>Print</em> — cleaner and more predictable.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Nueva vista previa de importación, más correcciones de orientación, colores de asientos y velocidad:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Rotar hojas al importar.</strong> Al importar un PDF ahora se muestra una vista previa en vivo con botones ↺ / ↻ para rotarla de 90° en 90° — elija la orientación deseada y queda fijada, de modo que la vista, el zoom y la exportación coinciden. Se acabaron las hojas de lado o al revés.</li>
+                    <li><strong>Orientación correcta en todas partes.</strong> Se corrigieron hojas que podían aparecer giradas o voltearse al hacer zoom, y exportaciones que salían al revés. La pantalla, el zoom nítido y la exportación PDF ahora siempre coinciden.</li>
+                    <li><strong>Colores de asientos en salas densas.</strong> Se corrigieron los asientos que se exportaban como bloques negros sólidos en hojas grandes — los colores de tipos de asiento personalizados ahora se procesan correctamente, y los asientos densos se muestran como una cuadrícula de colores limpia.</li>
+                    <li><strong>Mucho más rápido con muchos artículos.</strong> Los diseños con cientos de artículos clave ya no se entrecortan en cada clic o selección, y la vista “atenuar no contados” se procesa a máxima velocidad.</li>
+                    <li><strong>Exportación más simple.</strong> Un solo diálogo <em>Exportar</em> con <em>PDF Vectorial</em> e <em>Imprimir</em> — más limpio y predecible.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.4.0",
             en: `
@@ -8363,6 +8424,27 @@ const I18N_STRINGS = {
     }
     // ─── END ANNOUNCEMENTS ──────────────────────────────────────────────────────
 
+    // Migration notice: app is consolidating to app.conventionplanner.org on
+    // July 1, 2026. Show once per browser session until that date, then stop.
+    const MIGRATION_DEADLINE = new Date('2026-07-01T00:00:00');
+    function showMigrationModalIfDue() {
+        try {
+            if (new Date() >= MIGRATION_DEADLINE) return false; // past the cutoff
+            if (sessionStorage.getItem('cpMigrationSeenThisSession') === '1') return false;
+            const m = document.getElementById('migration-modal');
+            if (!m) return false;
+            m.classList.add('show');
+            sessionStorage.setItem('cpMigrationSeenThisSession', '1');
+            return true;
+        } catch (e) { return false; }
+    }
+    function dismissMigrationModal() {
+        const m = document.getElementById('migration-modal');
+        if (m) m.classList.remove('show');
+        // After the migration modal closes, surface the version announcement
+        // (if new). Brief delay so the two modals don't overlap visually.
+        setTimeout(() => { if (typeof showAnnouncementIfNew === 'function') showAnnouncementIfNew(); }, 250);
+    }
     function showAnnouncementIfNew() {
         if (!ANNOUNCEMENT_VERSION) return;  // disabled
         // Per-language seen tracking. Each language has its own "last seen" key,
@@ -10806,7 +10888,7 @@ const I18N_STRINGS = {
             if (!confirm(msg)) return;
             saveState();
             page.imgData = null;
-            delete page.pdfData; delete page.pdfPageNum; delete page.pdfBaseScale; delete page.pdfSheetWIn; delete page.pdfSheetHIn; delete page.pdfScaleInPerFt; delete page.pdfShowAnnots; invalidateCrispBg();
+            delete page.pdfData; delete page.pdfPageNum; delete page.pdfBaseScale; delete page.pdfSheetWIn; delete page.pdfSheetHIn; delete page.pdfScaleInPerFt; invalidateCrispBg();
             // Also clear the in-memory bgImage so it doesn't keep drawing.
             bgImage.src = '';
         }
@@ -11172,26 +11254,59 @@ const I18N_STRINGS = {
                 // (sheet size read below once the PDF is parsed)
                 // Keep the original PDF bytes so the viewer can re-render the
                 // visible area at the current zoom (vector-crisp underlay).
-                const _pdfB64 = (() => { const u8 = new Uint8Array(arrayBuffer); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); })();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; const page = await pdf.getPage(1);
+                // pdf.js transfers (detaches) the ArrayBuffer it receives, which
+                // would break the normalization + base64 steps below. Give it a
+                // private copy and keep `arrayBuffer` intact for later use.
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise; const page = await pdf.getPage(1);
                 const baseViewport = page.getViewport({ scale: 1 }); const maxDimension = Math.max(baseViewport.width, baseViewport.height);
-                // PDF pages know their physical size (1 pt = 1/72 in). Offer
-                // the drawing scale up front so pixelsPerFoot is set without
-                // a manual Set Scale step.
                 const sheetWIn = baseViewport.width / 72, sheetHIn = baseViewport.height / 72;
-                const _impOpts = await showPdfImportModal(sheetWIn, sheetHIn);
+                // Preview + optional rotate (Bluebeam-style). The chosen angle
+                // is flattened into BOTH the snapshot and the stored PDF, so
+                // every downstream renderer reads one consistent orientation.
+                const _impOpts = await showPdfImportModal(sheetWIn, sheetHIn, page);
+                if (_impOpts.cancelled) { label.innerText = t('project.upload.label'); return; }
                 const inPerFt = _impOpts.inPerFt;
-                let highScale = Math.min(6000 / maxDimension, 4.0); if (highScale < 2.0) highScale = 2.0; 
-                const viewport = page.getViewport({ scale: highScale });
+                const _userRot = ((((_impOpts.rotation || 0) % 360) + 360) % 360);
+                let highScale = Math.min(6000 / maxDimension, 4.0); if (highScale < 2.0) highScale = 2.0;
+                // Snapshot at the chosen rotation (pdf.js applies page /Rotate +
+                // the user's choice via the rotation option).
+                const _baseRot = page.rotate || 0;
+                const viewport = page.getViewport({ scale: highScale, rotation: (_baseRot + _userRot) % 360 });
                 const offscreenCanvas = document.createElement('canvas'); const offscreenCtx = offscreenCanvas.getContext('2d');
                 offscreenCanvas.width = viewport.width; offscreenCanvas.height = viewport.height;
                 offscreenCtx.fillStyle = '#ffffff'; offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-                await page.render({ canvasContext: offscreenCtx, viewport: viewport, annotationMode: _impOpts.showAnnots ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                await page.render({ canvasContext: offscreenCtx, viewport: viewport }).promise;
+                // Build the stored PDF flattened to the SAME orientation: bake
+                // (page /Rotate + user rotation) into an upright Rotate=0 page.
+                let _normArrayBuffer = arrayBuffer;
+                try {
+                    const _srcDoc = await PDFLib.PDFDocument.load(arrayBuffer.slice(0), { ignoreEncryption: true });
+                    const _sp = _srcDoc.getPage(0);
+                    // pdf.js (_baseRot = page.rotate) is the authority on the
+                    // page's display rotation; the snapshot used it. Match it so
+                    // crisp/export (which read this PDF) agree with the snapshot.
+                    const _deg = ((_baseRot + _userRot) % 360 + 360) % 360;
+                    if (_deg !== 0) {
+                        const _nd = await PDFLib.PDFDocument.create();
+                        const [_emb] = await _nd.embedPdf(_srcDoc, [0]);
+                        const _rw = _emb.width, _rh = _emb.height;
+                        const _dw = (_deg % 180 === 0) ? _rw : _rh, _dh = (_deg % 180 === 0) ? _rh : _rw;
+                        const _np = _nd.addPage([_dw, _dh]);
+                        // pdf-lib degrees() rotates CCW; pdf.js getViewport
+                        // rotates CW. Use degrees(360-_deg) + verified offsets so
+                        // the flattened PDF matches the snapshot exactly.
+                        if (_deg === 90)       _np.drawPage(_emb, { x: 0,   y: _rw, rotate: PDFLib.degrees(270) });
+                        else if (_deg === 180) _np.drawPage(_emb, { x: _rw, y: _rh, rotate: PDFLib.degrees(180) });
+                        else if (_deg === 270) _np.drawPage(_emb, { x: _rh, y: 0,   rotate: PDFLib.degrees(90) });
+                        const _nb = await _nd.save();
+                        _normArrayBuffer = _nb.buffer.slice(_nb.byteOffset, _nb.byteOffset + _nb.byteLength);
+                    }
+                } catch (e) { console.warn('Rotation flatten skipped', e); }
+                const _pdfB64 = (() => { const u8 = new Uint8Array(_normArrayBuffer); if (!u8.length) throw new Error('PDF buffer empty after import'); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); })();
                 const _tgt = getActivePage();
                 _tgt.imgData = offscreenCanvas.toDataURL('image/png');
                 _tgt.pdfData = _pdfB64; _tgt.pdfPageNum = 1; _tgt.pdfBaseScale = highScale;
                 _tgt.pdfSheetWIn = sheetWIn; _tgt.pdfSheetHIn = sheetHIn;
-                _tgt.pdfShowAnnots = _impOpts.showAnnots;
                 if (inPerFt) {
                     _tgt.pdfScaleInPerFt = inPerFt;
                     // world px per foot = (px per pt) * (pt per paper inch) * (paper inches per foot)
@@ -11202,7 +11317,7 @@ const I18N_STRINGS = {
             } catch (err) { alert("Error PDF: " + err.message); label.innerText = t('project.upload.label'); }
         } else {
             const reader = new FileReader();
-            reader.onload = (e) => { const _tg = getActivePage(); _tg.imgData = e.target.result; delete _tg.pdfData; delete _tg.pdfPageNum; delete _tg.pdfBaseScale; delete _tg.pdfSheetWIn; delete _tg.pdfSheetHIn; delete _tg.pdfScaleInPerFt; delete _tg.pdfShowAnnots; invalidateCrispBg(); switchPage(project.activePageIndex); label.innerText = t('project.upload.label'); };
+            reader.onload = (e) => { const _tg = getActivePage(); _tg.imgData = e.target.result; delete _tg.pdfData; delete _tg.pdfPageNum; delete _tg.pdfBaseScale; delete _tg.pdfSheetWIn; delete _tg.pdfSheetHIn; delete _tg.pdfScaleInPerFt; invalidateCrispBg(); switchPage(project.activePageIndex); label.innerText = t('project.upload.label'); };
             reader.readAsDataURL(file);
         }
         input.value = ''; 
@@ -11210,13 +11325,54 @@ const I18N_STRINGS = {
 
     // PDF-import sheet settings modal (awaitable).
     let _pdfImportResolve = null;
-    function showPdfImportModal(wIn, hIn) {
+    let _pdfImportPage = null;   // pdf.js page for the preview
+    let _pdfImportRot = 0;       // chosen rotation, degrees CW
+    let _pdfImportBaseWIn = 0, _pdfImportBaseHIn = 0; // unrotated sheet size (in)
+    let _previewRenderTask = null;
+    let _previewBusy = false, _previewPending = false;
+    async function _renderPdfImportPreview() {
+        // pdf.js can't run two render() calls on one page at once. Serialize:
+        // if a render is in flight, mark pending and return; it reruns after.
+        if (_previewBusy) { _previewPending = true; return; }
+        _previewBusy = true;
+        try {
+            const cv = document.getElementById('pdf-import-preview');
+            if (!cv || !_pdfImportPage) return;
+            const base = _pdfImportPage.rotate || 0;
+            const rot = (base + _pdfImportRot) % 360;
+            const vp1 = _pdfImportPage.getViewport({ scale: 1, rotation: rot });
+            const BOX = 400, BOXH = 300;
+            const scale = Math.min(BOX / vp1.width, BOXH / vp1.height);
+            const vp = _pdfImportPage.getViewport({ scale, rotation: rot });
+            cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+            const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+            try {
+                if (_previewRenderTask) { try { _previewRenderTask.cancel(); } catch (e) {} }
+                _previewRenderTask = _pdfImportPage.render({ canvasContext: cx, viewport: vp });
+                await _previewRenderTask.promise;
+            } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.warn('Import preview render failed', e); }
+            const rotated = _pdfImportRot % 180 !== 0;
+            const wIn = rotated ? _pdfImportBaseHIn : _pdfImportBaseWIn;
+            const hIn = rotated ? _pdfImportBaseWIn : _pdfImportBaseHIn;
+            const sz = document.getElementById('pdf-import-size'); if (sz) sz.textContent = wIn.toFixed(1) + ' \u00d7 ' + hIn.toFixed(1) + ' in';
+            const rl = document.getElementById('pdf-import-rot'); if (rl) rl.textContent = (((_pdfImportRot % 360) + 360) % 360) + '\u00b0';
+        } finally {
+            _previewBusy = false;
+            if (_previewPending) { _previewPending = false; _renderPdfImportPreview(); }
+        }
+    }
+    function rotatePdfImportPreview(delta) {
+        _pdfImportRot = (((_pdfImportRot + delta) % 360) + 360) % 360;
+        _renderPdfImportPreview();
+    }
+    function showPdfImportModal(wIn, hIn, pdfPage) {
         return new Promise(resolve => {
             _pdfImportResolve = resolve;
+            _pdfImportPage = pdfPage || null;
+            _pdfImportRot = 0;
+            _pdfImportBaseWIn = wIn; _pdfImportBaseHIn = hIn;
             const el = document.getElementById('pdf-import-size');
             if (el) el.textContent = wIn.toFixed(1) + ' \u00d7 ' + hIn.toFixed(1) + ' in';
-            const ann = document.getElementById('pdf-import-annots');
-            if (ann) ann.checked = true;
             const sel = document.getElementById('pdf-import-scale');
             if (sel && !sel.dataset.populated) {
                 // Single source of truth: mirror DRAWING_SCALES so this list
@@ -11231,20 +11387,24 @@ const I18N_STRINGS = {
                 });
             }
             if (sel) sel.value = '';
+            const rl = document.getElementById('pdf-import-rot'); if (rl) rl.textContent = '0\u00b0';
             document.getElementById('pdf-import-modal').classList.add('show');
+            requestAnimationFrame(() => requestAnimationFrame(() => _renderPdfImportPreview()));
         });
     }
     function applyPdfImportModal() {
         document.getElementById('pdf-import-modal').classList.remove('show');
         const v = document.getElementById('pdf-import-scale').value;
-        const ann = document.getElementById('pdf-import-annots');
+        const rot = _pdfImportRot; const pg = _pdfImportPage;
+        _pdfImportPage = null;
         const r = _pdfImportResolve; _pdfImportResolve = null;
-        if (r) r({ inPerFt: v === '' ? null : parseFloat(v), showAnnots: ann ? ann.checked : true });
+        if (r) r({ inPerFt: v === '' ? null : parseFloat(v), rotation: rot });
     }
     function cancelPdfImportModal() {
         document.getElementById('pdf-import-modal').classList.remove('show');
+        _pdfImportPage = null;
         const r = _pdfImportResolve; _pdfImportResolve = null;
-        if (r) r({ inPerFt: null, showAnnots: true });
+        if (r) r({ inPerFt: null, rotation: 0, cancelled: true });
     }
     function init() {
         window.onresize = resize; resize();
@@ -11274,9 +11434,10 @@ const I18N_STRINGS = {
                 : 'Language: English. Click to switch.';
         }
         updateUI(); setMode('idle'); applyLogo();
-        // Show first-visit announcement (or new version of it) — runs after a
-        // brief delay handled inside the function so the page settles first.
-        showAnnouncementIfNew();
+        // Migration notice takes the first slot on load (once per session
+        // until July 1, 2026). If it shows, the version announcement is
+        // deferred until the user dismisses it; otherwise show it now.
+        if (!showMigrationModalIfDue()) showAnnouncementIfNew();
         // Apply auto-scale once the layout is settled.
         fitAppToViewport();
     }
@@ -15328,7 +15489,13 @@ const I18N_STRINGS = {
         let s = document.getElementById('print-page-rule');
         if (!s) { s = document.createElement('style'); s.id = 'print-page-rule'; document.head.appendChild(s); }
         if (printOpts && printOpts.paperWidthIn && printOpts.paperHeightIn) {
-            s.textContent = `@page { size: ${printOpts.paperWidthIn}in ${printOpts.paperHeightIn}in; margin: 0.25in; }`;
+            // Emit explicit dims; for landscape the engine can still rotate the
+            // sheet to portrait and rotate content. The CSS-standard cure is the
+            // named keyword with the BASE (portrait) preset size.
+            const _o = printOpts.orientation === 'landscape' ? 'landscape' : 'portrait';
+            const _pw = Math.min(printOpts.paperWidthIn, printOpts.paperHeightIn);
+            const _ph = Math.max(printOpts.paperWidthIn, printOpts.paperHeightIn);
+            s.textContent = `@page { size: ${_pw}in ${_ph}in ${_o}; margin: 0.25in; }`;
         } else { s.textContent = ''; }
     }
     function showPrintOptions(type, schedFilters, schedSel) {
@@ -15343,13 +15510,6 @@ const I18N_STRINGS = {
         if (scaleGroup) scaleGroup.style.display = isLayout ? 'block' : 'none';
         const expBtn = document.getElementById('print-export-pdf-btn');
         if (expBtn) expBtn.style.display = isLayout ? '' : 'none';
-        const expMBtn = document.getElementById('print-export-markup-btn');
-        if (expMBtn) expMBtn.style.display = (isLayout && getActivePage() && getActivePage().pdfData) ? '' : 'none';
-        const annGroup = document.getElementById('print-opt-annots-group');
-        const annBox = document.getElementById('print-include-annots');
-        const _pgAnn = getActivePage();
-        if (annGroup) annGroup.style.display = (isLayout && _pgAnn && _pgAnn.pdfData) ? 'block' : 'none';
-        if (annBox && _pgAnn) annBox.checked = _pgAnn.pdfShowAnnots !== false;
         if (tbGroup) tbGroup.style.display = isLayout ? 'block' : 'none';
         const titleEl = document.getElementById('print-options-title');
         if (titleEl) titleEl.textContent = isLayout ? t('modal.print.title') : t('modal.print.title.report');
@@ -15439,8 +15599,7 @@ const I18N_STRINGS = {
             orientation:    _printOrientation,
             printScale:     scaleVal,   // null = Fit to page
             showTitleBlock: document.getElementById('print-title-block').checked,
-            includePdfAnnots: document.getElementById('print-include-annots') ? document.getElementById('print-include-annots').checked : true,
-            exportPdf:      (exportPdf === true || exportPdf === 'markup') ? exportPdf : false
+            exportPdf:      (exportPdf === true) ? true : false
         };
         hidePrintOptionsModal();
         printReport(_printOptionsType, _printSchedFilters, _printSchedSel, opts);
@@ -15480,7 +15639,9 @@ const I18N_STRINGS = {
         str = (str || '').trim(); let m;
         if (_PDF_NAMED_COLORS[str.toLowerCase()]) str = _PDF_NAMED_COLORS[str.toLowerCase()];
         if ((m = str.match(/^#([0-9a-f]{3})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h[0]+h[0],16)/255, parseInt(h[1]+h[1],16)/255, parseInt(h[2]+h[2],16)/255); }
+        if ((m = str.match(/^#([0-9a-f]{8})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255); } // #rrggbbaa: drop alpha
         if ((m = str.match(/^#([0-9a-f]{6})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255); }
+        if ((m = str.match(/^#([0-9a-f]{4})$/i))) { const h = m[1]; return PDFLib.rgb(parseInt(h[0]+h[0],16)/255, parseInt(h[1]+h[1],16)/255, parseInt(h[2]+h[2],16)/255); } // #rgba: drop alpha
         if ((m = str.match(/^rgba?\(([^)]+)\)$/i))) { const p2 = m[1].split(',').map(Number); return PDFLib.rgb((p2[0]||0)/255, (p2[1]||0)/255, (p2[2]||0)/255); }
         // Unknown colors fall back to black (a wrong-but-dark line beats a
         // mystery green one); callers with a better default pass it in.
@@ -15690,7 +15851,6 @@ const I18N_STRINGS = {
             });
         }
         // ── Measures ──
-        setDimFilter(false);
         if (page.measures && uiState.showMeasures !== false) {
             page.measures.forEach(m => {
                 const typeIdx = m.typeIndex ?? 0;
@@ -15724,7 +15884,6 @@ const I18N_STRINGS = {
             });
         }
         // ── Annotation lines (all types) ──
-        setDimFilter(false);
         if (page.lines) {
             page.lines.forEach(l => {
                 if (!lineVisible(l)) return;
@@ -15952,13 +16111,16 @@ const I18N_STRINGS = {
         const sc = g.sc, ox = g.ox, boxY = g.boxY, ch = g.ch;
         // ── Seats: true vector rectangles — crisp at any zoom ──
         if (uiState.showSeats && page.pixelsPerFoot) {
-            const seatBw = Math.max(0.02, 0.4 * sc);
             const seatBlack = PDFLib.rgb(0, 0, 0);
             page.shapes.forEach(s => {
                 if (s.type !== 'area' || !s.cachedSeats) return;
                 if (uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                 const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                 const wPt = sst.w * page.pixelsPerFoot * sc, hPt = sst.d * page.pixelsPerFoot * sc;
+                // Border scaled to seat size: a fixed-width stroke swamps small,
+                // dense seats into a solid black mass. Use a fraction of the
+                // smaller drawn dimension, clamped so it never dominates.
+                const seatBw = Math.max(0.05, Math.min(0.6, Math.min(wPt, hPt) * 0.08));
                 s.cachedSeats.forEach(seat => {
                     const cxPt = ox + seat.x * sc, cyPt = boxY + ch - seat.y * sc;
                     const phi = -(seat.rot || 0); // y-flip: canvas CW -> PDF CCW
@@ -16007,43 +16169,6 @@ const I18N_STRINGS = {
     // drawn on top as vector content: same sheet, same pages, the annotated
     // page gains seats/items/legends. For returning a marked-up sheet to
     // whoever supplied the drawing.
-    async function exportMarkupPDF(p) {
-        const { page, legendSvg, activeScreens } = p;
-        if (!page.pdfData) { alert(t('print.markup.nopdf')); return; }
-        const srcDoc = await PDFLib.PDFDocument.load(_b64ToU8(page.pdfData), { ignoreEncryption: true });
-        const out = srcDoc.getPage((page.pdfPageNum || 1) - 1);
-        // When the sheet's own markups are excluded, drop its annotations
-        // (keeping links) so the output carries only CP content on the base sheet.
-        if (p.printOpts && p.printOpts.includePdfAnnots === false) {
-            try {
-                const NN = PDFLib.PDFName.of;
-                const ctx2 = srcDoc.context;
-                const arr = ctx2.lookup(out.node.get(NN('Annots')));
-                if (arr && arr.size && arr.size() > 0) {
-                    const keep = [];
-                    for (let i2 = 0; i2 < arr.size(); i2++) {
-                        const a2 = ctx2.lookup(arr.get(i2));
-                        if (a2 && a2.get && String(a2.get(NN('Subtype')) || '') === '/Link') keep.push(arr.get(i2));
-                    }
-                    out.node.set(NN('Annots'), ctx2.obj(keep));
-                }
-            } catch (e) { console.warn('Annotation strip failed', e); }
-        }
-        // World px = pdfBaseScale * PDF pt, so pt = world / baseScale, with
-        // the y-flip against the original page height.
-        const g = { sc: 1 / (page.pdfBaseScale || 1), ox: 0, boxY: 0, ch: out.getHeight() };
-        if (uiState.showScreens) _drawVectorCones(out, page, g, activeScreens || []);
-        _drawVectorSeats(out, page, g);
-        await _drawVectorAreaLabels(srcDoc, out, page, g);
-        await _drawVectorLayers(srcDoc, out, page, g);
-        await _replayLegendSvg(srcDoc, out, legendSvg, g);
-        const bytes = await srcDoc.save();
-        const name = ((project.title || 'layout') + ' - ' + (page.name || 'page') + ' - markup').replace(/[\\/:*?"<>|]+/g, '_') + '.pdf';
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-        a.download = name; document.body.appendChild(a); a.click();
-        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-    }
     async function exportLayoutVectorPDF(svgMarkup, p) {
         const { page, printOpts, bgW, bgH, activeScreens } = p;
         const PW = printOpts.paperWidthIn * 72, PH = printOpts.paperHeightIn * 72, M = 18;
@@ -16073,6 +16198,11 @@ const I18N_STRINGS = {
             // exotic files fail outright. Try vector embed first.
             try {
                 const srcDoc = await PDFLib.PDFDocument.load(_b64ToU8(page.pdfData), { ignoreEncryption: true });
+                // pdf-lib's embedPdf ignores the page /Rotate flag, but pdf.js
+                // (live view, Print, import snapshot) honors it. So a rotated
+                // source would embed mis-oriented as vector. Detect rotation and
+                // route those sheets through the pdf.js raster underlay below,
+                // which orients correctly. Unrotated sheets stay fully vector.
                 // Detect markups (annotations beyond links/popups). The sheet
                 // content embeds as vector regardless; markups get their own
                 // transparent raster layer below, so only markup ink is raster.
@@ -16090,11 +16220,13 @@ const I18N_STRINGS = {
                         }
                     }
                 } catch (e) { /* if unsure, treat as clean */ }
+                // pdfData is normalized to upright (Rotate=0) at import, so a
+                // plain vector embed is always correctly oriented.
                 const [emb] = await doc.embedPdf(srcDoc, [(page.pdfPageNum || 1) - 1]);
                 const f = sc * (page.pdfBaseScale || 1);
                 out.drawPage(emb, { x: ox, y: boxY, xScale: f, yScale: f });
                 underlayDone = true;
-                _annotLayerNeeded = hasMarkupAnnots && (!printOpts || printOpts.includePdfAnnots !== false);
+                _annotLayerNeeded = false; // markups are baked into the import snapshot; no separate layer
             } catch (e) { console.warn('Vector underlay embed failed; using high-res raster fallback', e); }
             if (!underlayDone) {
                 // Plan B: render the page with pdf.js (which handles these
@@ -16105,7 +16237,7 @@ const I18N_STRINGS = {
                 rk = Math.min(rk, Math.sqrt((8192 * 8192) / (bgW * bgH)), 4);
                 const rc = document.createElement('canvas'); rc.width = Math.round(bgW * rk); rc.height = Math.round(bgH * rk);
                 const rctx = rc.getContext('2d'); rctx.fillStyle = '#ffffff'; rctx.fillRect(0, 0, rc.width, rc.height);
-                await pp.render({ canvasContext: rctx, viewport: pp.getViewport({ scale: (page.pdfBaseScale || 1) * rk }), annotationMode: (!printOpts || printOpts.includePdfAnnots !== false) ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                await pp.render({ canvasContext: rctx, viewport: pp.getViewport({ scale: (page.pdfBaseScale || 1) * rk }), }).promise;
                 const png = await doc.embedPng(rc.toDataURL('image/png'));
                 out.drawImage(png, { x: ox, y: boxY, width: cw, height: ch });
                 underlayDone = true;
@@ -16796,7 +16928,10 @@ const I18N_STRINGS = {
                     return s;
                 })();
                 if (printOpts && printOpts.paperWidthIn && printOpts.paperHeightIn) {
-                    pageRuleEl.textContent = `@page { size: ${printOpts.paperWidthIn}in ${printOpts.paperHeightIn}in; margin: 0.25in; }`;
+                    const _o = printOpts.orientation === 'landscape' ? 'landscape' : 'portrait';
+                    const _pw = Math.min(printOpts.paperWidthIn, printOpts.paperHeightIn);
+                    const _ph = Math.max(printOpts.paperWidthIn, printOpts.paperHeightIn);
+                    pageRuleEl.textContent = `@page { size: ${_pw}in ${_ph}in ${_o}; margin: 0.25in; }`;
                 } else {
                     pageRuleEl.textContent = '';  // fall back to static @page rule
                 }
@@ -16836,8 +16971,7 @@ const I18N_STRINGS = {
                             const doc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
                             const pdfPage = await doc.getPage(page.pdfPageNum || 1);
                             const viewport = pdfPage.getViewport({ scale: (page.pdfBaseScale || 1) * pk });
-                            const _annOn = (printOpts && printOpts.includePdfAnnots !== undefined) ? printOpts.includePdfAnnots : (page.pdfShowAnnots !== false);
-                            await pdfPage.render({ canvasContext: rCtx, viewport, annotationMode: _annOn ? (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).ENABLE : (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 }).DISABLE }).promise;
+                            await pdfPage.render({ canvasContext: rCtx, viewport, }).promise;
                             pdfBgDone = true;
                         } catch (err) { /* fall back to the raster below */ }
                     }
@@ -17412,7 +17546,7 @@ const I18N_STRINGS = {
 
                     if (hasOptsForExport()) {
                         const _expP = { page, printOpts, bgW, bgH, legendSvg: exportLegendSvg, activeScreens: (uiState.showScreens ? activeScreens : []) };
-                        ((printOpts.exportPdf === 'markup') ? exportMarkupPDF(_expP) : exportLayoutVectorPDF(svg, _expP))
+                        exportLayoutVectorPDF(svg, _expP)
                             .catch(err => { console.error('PDF export failed', err); alert(t('print.exportpdf.failed') + (err && err.message ? '\n\n' + err.message : '')); })
                             .finally(() => { document.body.className = ''; document.getElementById('svg-print-wrapper').innerHTML = ''; });
                         return;
