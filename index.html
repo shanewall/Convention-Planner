@@ -1192,6 +1192,10 @@
                 </div>
                 <div id="item-edit-line-color-palette" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;"></div>
             </div>
+            <div id="item-edit-line-rot-group" style="margin-bottom: 12px; display:none;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.rotation">Rotation</label>
+                <input type="number" id="item-edit-line-rot" class="text-input-dark" style="width: 100%;" step="5">
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div>
                     <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.weight">Weight</label>
@@ -1283,6 +1287,10 @@
             <div style="margin-bottom: 12px;">
                 <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.size">Size</label>
                 <input type="number" id="item-edit-text-size" class="text-input-dark" style="width: 50%;" min="8" max="200" step="1">
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.rotation">Rotation</label>
+                <input type="number" id="item-edit-text-rot" class="text-input-dark" style="width: 50%;" step="5">
             </div>
         </div>
 
@@ -4269,7 +4277,10 @@ const I18N_STRINGS = {
             html += `<div class="ctx-menu-item" data-ctx-action="${_vtxAction.mode === 'remove' ? 'remove-vertex' : 'add-vertex'}">${escapeHTML(_vtxAction.mode === 'remove' ? t('ctx.remove_vertex') : t('ctx.add_vertex'))}</div>`;
         }
         if (!isGroup) {
-            if (item.kind === 'text') html += `<div class="ctx-menu-item" data-ctx-action="edit-text">${escapeHTML(t('ctx.edit_text'))}</div>`;
+            if (item.kind === 'text') {
+                html += `<div class="ctx-menu-item" data-ctx-action="edit-text">${escapeHTML(t('ctx.edit_text'))}</div>`;
+                html += `<div class="ctx-menu-item" data-ctx-action="edit-properties">${escapeHTML(t('ctx.edit_properties'))}</div>`;
+            }
             else if (item.kind === 'attendant') html += `<div class="ctx-menu-item" data-ctx-action="edit-attendant">${escapeHTML(t('ctx.edit_properties'))}</div>`;
             else html += `<div class="ctx-menu-item" data-ctx-action="edit-properties">${escapeHTML(t('ctx.edit_properties'))}</div>`;
             html += `<div class="ctx-menu-item" data-ctx-action="duplicate">${escapeHTML(t('ctx.duplicate'))}</div>`;
@@ -4535,7 +4546,9 @@ const I18N_STRINGS = {
             const pdfPage = await doc.getPage(page.pdfPageNum || 1);
             if (token !== _crispToken) return;
             const baseScale = page.pdfBaseScale || 1;
-            const viewport = pdfPage.getViewport({ scale: baseScale * k });
+            // Apply the stored display rotation (0 for old/non-rotated pages),
+            // matching how the snapshot was rendered.
+            const viewport = pdfPage.getViewport({ scale: baseScale * k, rotation: page.pdfRotation || 0 });
             const cw = Math.ceil(w * k), ch = Math.ceil(h * k);
             const oc = document.createElement('canvas'); oc.width = cw; oc.height = ch;
             const octx = oc.getContext('2d');
@@ -10056,6 +10069,14 @@ const I18N_STRINGS = {
                 document.getElementById('item-edit-line-labelSize-group').style.display = '';
                 document.getElementById('item-edit-line-labelSize').value = item.labelSize || 16;
             }
+            // Rotation applies to box & ellipse (center-based shapes).
+            const lineRotGroup = document.getElementById('item-edit-line-rot-group');
+            if (item.type === 'box' || item.type === 'ellipse') {
+                lineRotGroup.style.display = '';
+                document.getElementById('item-edit-line-rot').value = item.rot || 0;
+            } else {
+                lineRotGroup.style.display = 'none';
+            }
         } else if (kind === 'text') {
             document.getElementById('item-edit-text-fields').style.display = 'block';
             const color = item.color || '#000000';
@@ -10065,6 +10086,7 @@ const I18N_STRINGS = {
             _populatePaletteFor('item-edit-text-color-palette', 'item-edit-text-color', 'item-edit-text-color-hex');
             _wireColorSync('item-edit-text-color', 'item-edit-text-color-hex');
             document.getElementById('item-edit-text-size').value = item.size || 24;
+            document.getElementById('item-edit-text-rot').value = item.rot || 0;
         }
 
         // Wire save button (replace prior handler via cloneNode).
@@ -10225,6 +10247,11 @@ const I18N_STRINGS = {
                     delete item.fillOpacity;
                 }
             }
+            // Box/ellipse rotation (degrees). Normalize to 0..359; 0 means none.
+            if (item.type === 'box' || item.type === 'ellipse') {
+                const rv = parseFloat(document.getElementById('item-edit-line-rot').value);
+                if (!isNaN(rv)) { const n = ((rv % 360) + 360) % 360; if (n) item.rot = n; else delete item.rot; }
+            }
             // Callout text edit — preserve newlines.
             if (item.type === 'callout') {
                 item.text = document.getElementById('item-edit-line-callout-text').value;
@@ -10244,6 +10271,8 @@ const I18N_STRINGS = {
             item.color = document.getElementById('item-edit-text-color').value;
             const sz = parseInt(document.getElementById('item-edit-text-size').value, 10);
             if (!isNaN(sz) && sz > 0) item.size = sz;
+            const trv = parseFloat(document.getElementById('item-edit-text-rot').value);
+            if (!isNaN(trv)) { const n = ((trv % 360) + 360) % 360; if (n) item.rot = n; else delete item.rot; }
         }
 
         // Persist the not-counted toggle (control is hidden for other kinds).
@@ -11276,36 +11305,17 @@ const I18N_STRINGS = {
                 offscreenCanvas.width = viewport.width; offscreenCanvas.height = viewport.height;
                 offscreenCtx.fillStyle = '#ffffff'; offscreenCtx.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
                 await page.render({ canvasContext: offscreenCtx, viewport: viewport }).promise;
-                // Build the stored PDF flattened to the SAME orientation: bake
-                // (page /Rotate + user rotation) into an upright Rotate=0 page.
-                let _normArrayBuffer = arrayBuffer;
-                try {
-                    const _srcDoc = await PDFLib.PDFDocument.load(arrayBuffer.slice(0), { ignoreEncryption: true });
-                    const _sp = _srcDoc.getPage(0);
-                    // pdf.js (_baseRot = page.rotate) is the authority on the
-                    // page's display rotation; the snapshot used it. Match it so
-                    // crisp/export (which read this PDF) agree with the snapshot.
-                    const _deg = ((_baseRot + _userRot) % 360 + 360) % 360;
-                    if (_deg !== 0) {
-                        const _nd = await PDFLib.PDFDocument.create();
-                        const [_emb] = await _nd.embedPdf(_srcDoc, [0]);
-                        const _rw = _emb.width, _rh = _emb.height;
-                        const _dw = (_deg % 180 === 0) ? _rw : _rh, _dh = (_deg % 180 === 0) ? _rh : _rw;
-                        const _np = _nd.addPage([_dw, _dh]);
-                        // pdf-lib degrees() rotates CCW; pdf.js getViewport
-                        // rotates CW. Use degrees(360-_deg) + verified offsets so
-                        // the flattened PDF matches the snapshot exactly.
-                        if (_deg === 90)       _np.drawPage(_emb, { x: 0,   y: _rw, rotate: PDFLib.degrees(270) });
-                        else if (_deg === 180) _np.drawPage(_emb, { x: _rw, y: _rh, rotate: PDFLib.degrees(180) });
-                        else if (_deg === 270) _np.drawPage(_emb, { x: _rh, y: 0,   rotate: PDFLib.degrees(90) });
-                        const _nb = await _nd.save();
-                        _normArrayBuffer = _nb.buffer.slice(_nb.byteOffset, _nb.byteOffset + _nb.byteLength);
-                    }
-                } catch (e) { console.warn('Rotation flatten skipped', e); }
-                const _pdfB64 = (() => { const u8 = new Uint8Array(_normArrayBuffer); if (!u8.length) throw new Error('PDF buffer empty after import'); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); })();
+                // Store the ORIGINAL PDF bytes plus the chosen display rotation.
+                // No flatten: every underlay renderer (crisp zoom, vector export,
+                // print) re-applies pdfRotation through pdf.js the same way the
+                // snapshot did, so all paths share one coordinate system and can
+                // never drift apart. _pdfRotation is the total CW display angle.
+                const _pdfRotation = ((_baseRot + _userRot) % 360 + 360) % 360;
+                const _pdfB64 = (() => { const u8 = new Uint8Array(arrayBuffer); if (!u8.length) throw new Error('PDF buffer empty after import'); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); })();
                 const _tgt = getActivePage();
                 _tgt.imgData = offscreenCanvas.toDataURL('image/png');
                 _tgt.pdfData = _pdfB64; _tgt.pdfPageNum = 1; _tgt.pdfBaseScale = highScale;
+                _tgt.pdfRotation = _pdfRotation;
                 _tgt.pdfSheetWIn = sheetWIn; _tgt.pdfSheetHIn = sheetHIn;
                 if (inPerFt) {
                     _tgt.pdfScaleInPerFt = inPerFt;
@@ -13663,11 +13673,15 @@ const I18N_STRINGS = {
                     const p1 = l.points[0], p2 = l.points[1];
                     const x = Math.min(p1.x, p2.x), y = Math.min(p1.y, p2.y);
                     const w = Math.abs(p2.x - p1.x), h = Math.abs(p2.y - p1.y);
+                    // Optional rotation about the rectangle center.
+                    const _lr = l.rot ? (l.rot * Math.PI / 180) : 0;
+                    if (_lr) { targetCtx.save(); targetCtx.translate(x + w/2, y + h/2); targetCtx.rotate(_lr); targetCtx.translate(-(x + w/2), -(y + h/2)); }
                     targetCtx.beginPath();
                     if (l.type === 'box') targetCtx.rect(x, y, w, h);
                     else                  targetCtx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, Math.PI * 2);
                     if (l.fill) { targetCtx.fillStyle = applyOpacity(l.fill, l.fillOpacity); targetCtx.fill(); }
                     targetCtx.stroke();
+                    if (_lr) targetCtx.restore();
                     if (isSelected) {
                         l.points.forEach(p => {
                             targetCtx.beginPath();
@@ -13905,6 +13919,8 @@ const I18N_STRINGS = {
                 if (isLive && _textEditingIndex === i) return;
                 const isSelected = (isLive && i === selectedTextIndex); const isHovered = (isLive && i === hoveredTextIndex);
                 const size = t.size || 24;
+                const _tr = t.rot ? (t.rot * Math.PI / 180) : 0;
+                if (_tr) { targetCtx.save(); targetCtx.translate(t.x, t.y); targetCtx.rotate(_tr); targetCtx.translate(-t.x, -t.y); }
                 targetCtx.font = `bold ${size}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
                 // Multiline support: split on \n and render each line offset
                 // vertically. Line spacing 1.1× to match the textarea editor.
@@ -13929,6 +13945,7 @@ const I18N_STRINGS = {
                     if (isLive) { targetCtx.strokeStyle = "rgba(255,255,255,0.7)"; targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeText(line, t.x, ly); }
                     targetCtx.fillStyle = t.color || '#000000'; targetCtx.fillText(line, t.x, ly);
                 });
+                if (_tr) targetCtx.restore();
             });
         }
 
@@ -16220,11 +16237,19 @@ const I18N_STRINGS = {
                         }
                     }
                 } catch (e) { /* if unsure, treat as clean */ }
-                // pdfData is normalized to upright (Rotate=0) at import, so a
-                // plain vector embed is always correctly oriented.
+                // Apply the stored display rotation. pdf-lib's drawPage rotates
+                // CCW while pdf.js (the snapshot) rotates CW, so we use
+                // degrees(360-deg) with verified offsets. deg=0 (old/non-rotated
+                // pages) takes the plain path. emb.width/height are the source's
+                // pre-rotation dims.
                 const [emb] = await doc.embedPdf(srcDoc, [(page.pdfPageNum || 1) - 1]);
                 const f = sc * (page.pdfBaseScale || 1);
-                out.drawPage(emb, { x: ox, y: boxY, xScale: f, yScale: f });
+                const _erot = ((page.pdfRotation || 0) % 360 + 360) % 360;
+                const _erw = emb.width * f, _erh = emb.height * f;
+                if (_erot === 90)       out.drawPage(emb, { x: ox,        y: boxY + _erw, xScale: f, yScale: f, rotate: PDFLib.degrees(270) });
+                else if (_erot === 180) out.drawPage(emb, { x: ox + _erw, y: boxY + _erh, xScale: f, yScale: f, rotate: PDFLib.degrees(180) });
+                else if (_erot === 270) out.drawPage(emb, { x: ox + _erh, y: boxY,        xScale: f, yScale: f, rotate: PDFLib.degrees(90) });
+                else                    out.drawPage(emb, { x: ox,        y: boxY,        xScale: f, yScale: f });
                 underlayDone = true;
                 _annotLayerNeeded = false; // markups are baked into the import snapshot; no separate layer
             } catch (e) { console.warn('Vector underlay embed failed; using high-res raster fallback', e); }
@@ -16237,7 +16262,7 @@ const I18N_STRINGS = {
                 rk = Math.min(rk, Math.sqrt((8192 * 8192) / (bgW * bgH)), 4);
                 const rc = document.createElement('canvas'); rc.width = Math.round(bgW * rk); rc.height = Math.round(bgH * rk);
                 const rctx = rc.getContext('2d'); rctx.fillStyle = '#ffffff'; rctx.fillRect(0, 0, rc.width, rc.height);
-                await pp.render({ canvasContext: rctx, viewport: pp.getViewport({ scale: (page.pdfBaseScale || 1) * rk }), }).promise;
+                await pp.render({ canvasContext: rctx, viewport: pp.getViewport({ scale: (page.pdfBaseScale || 1) * rk, rotation: page.pdfRotation || 0 }) }).promise;
                 const png = await doc.embedPng(rc.toDataURL('image/png'));
                 out.drawImage(png, { x: ox, y: boxY, width: cw, height: ch });
                 underlayDone = true;
@@ -16970,7 +16995,7 @@ const I18N_STRINGS = {
                         try {
                             const doc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
                             const pdfPage = await doc.getPage(page.pdfPageNum || 1);
-                            const viewport = pdfPage.getViewport({ scale: (page.pdfBaseScale || 1) * pk });
+                            const viewport = pdfPage.getViewport({ scale: (page.pdfBaseScale || 1) * pk, rotation: page.pdfRotation || 0 });
                             await pdfPage.render({ canvasContext: rCtx, viewport, }).promise;
                             pdfBgDone = true;
                         } catch (err) { /* fall back to the raster below */ }
