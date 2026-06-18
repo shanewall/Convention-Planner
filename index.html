@@ -1016,6 +1016,14 @@
                 <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.label">Label Code</label>
                 <input type="text" id="profile-edit-sign-label" class="text-input-dark" style="width: 100%;" maxlength="3">
             </div>
+            <div style="flex:1;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="keyitem.label_color">Label Color</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="color" id="profile-edit-sign-label-color" style="width: 60px; height: 32px;">
+                    <input type="text" id="profile-edit-sign-label-color-hex" class="text-input-dark" style="width: 100px; font-family: monospace;" maxlength="7">
+                </div>
+                <div id="profile-edit-sign-label-color-palette" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;"></div>
+            </div>
         </div>
 
         <!-- Measure-only: thickness + default label size -->
@@ -2573,6 +2581,7 @@ const I18N_STRINGS = {
         "att.types.field.dot_color": "Dot Color",
         "att.types.field.dot_size": "Dot Size",
         "att.types.field.label_color": "Label Color",
+        "keyitem.label_color": "Label Color",
         "att.types.field.label_size": "Label Size",
         "att.shifts.header": "Shifts",
         "att.shifts.add": "+ Add Shift",
@@ -3271,6 +3280,7 @@ const I18N_STRINGS = {
         "att.types.field.dot_color": "Color del Punto",
         "att.types.field.dot_size": "Tamaño del Punto",
         "att.types.field.label_color": "Color de la Etiqueta",
+        "keyitem.label_color": "Color de la Etiqueta",
         "att.types.field.label_size": "Tamaño de la Etiqueta",
         "att.shifts.header": "Turnos",
         "att.shifts.add": "+ Añadir Turno",
@@ -4573,6 +4583,9 @@ const I18N_STRINGS = {
     let selectedMeasureIndex = -1, hoveredMeasureIndex = -1, isDraggingMeasure = false, hasDraggedMeasure = false;
     let selectedScreenIndex = -1, hoveredScreenIndex = -1, isDraggingScreen = false, hasDraggedScreen = false;
     let selectedTextIndex = -1, hoveredTextIndex = -1, isDraggingText = false, hasDraggedText = false;
+    // Rotate-grip interaction (box/ellipse/text). isRotatingGrip is active during
+    // a grip drag; _rotGripCtx remembers what's being rotated and its center.
+    let isRotatingGrip = false, hasRotatedGrip = false, _rotGripCtx = null;
     let selectedAttendantIndex = -1, hoveredAttendantIndex = -1, isDraggingAttendant = false, hasDraggedAttendant = false;
     // ── Multi-select / group-clipboard state ─────────────────────────────────
     let multiSel = [];                 // group selection: [{kind, idx}]
@@ -7579,7 +7592,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.4.1";
+    const APP_VERSION = "2.4.2";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7884,7 +7897,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.4.1-release";
+    const ANNOUNCEMENT_VERSION = "2.4.2-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7892,6 +7905,31 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.4.2",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Rotatable annotations, a rock-solid rotated-sheet pipeline, and cleaner layer toggles:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Rotate boxes, ellipses &amp; text.</strong> Box, ellipse, and text annotations can now be rotated — grab the green rotate grip above a selected item and drag (snaps to 5°; hold <em>Shift</em> for free rotation), or type an exact angle in the edit panel. Rotation carries through to selection, resizing, and the vector PDF export.</li>
+                    <li><strong>Right-click text for full options.</strong> Right-clicking a text box now offers <em>Edit Properties</em> (color, size, rotation) alongside the quick inline <em>Edit Text</em> — matching the other markups.</li>
+                    <li><strong>Rotated sheets, fixed for good.</strong> Reworked how rotated PDF backgrounds are stored so the on-screen view, deep-zoom sharpness, and export all stay perfectly aligned — no more flipping or blur while zooming on a rotated sheet.</li>
+                    <li><strong>Cleaner layer toggles.</strong> Turning off a seat type now hides that area’s label and count too, and hidden areas can no longer be accidentally clicked or window-selected — so you can box-select one group without grabbing another that’s turned off.</li>
+                    <li><strong>Seat colors fixed on dense sheets.</strong> Fixed seats exporting as solid black blocks on large, seat-heavy sheets — custom seat-type colors now render correctly in the PDF.</li>
+                    <li><strong>Cleaner key-item labels.</strong> Key-item markers and the legend now share one look — a thin black ring with an adjustable point color and an adjustable label-text color — so labels stay crisp and consistent at every sheet size instead of getting heavy outlines on large prints.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Anotaciones rotables, una tubería de hojas giradas sólida y controles de capa más limpios:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Rotar cajas, elipses y texto.</strong> Las anotaciones de caja, elipse y texto ahora se pueden rotar — tome el control verde de rotación sobre un elemento seleccionado y arrastre (ajuste de 5°; mantenga <em>Shift</em> para rotación libre), o escriba un ángulo exacto en el panel de edición. La rotación se refleja en la selección, el cambio de tamaño y la exportación a PDF vectorial.</li>
+                    <li><strong>Clic derecho en el texto para todas las opciones.</strong> Hacer clic derecho en un cuadro de texto ahora ofrece <em>Editar Propiedades</em> (color, tamaño, rotación) junto al <em>Editar Texto</em> rápido — igual que las demás marcas.</li>
+                    <li><strong>Hojas giradas, corregidas definitivamente.</strong> Se reestructuró cómo se almacenan los fondos PDF girados para que la vista en pantalla, la nitidez con zoom y la exportación se mantengan perfectamente alineadas — sin más giros ni desenfoque al hacer zoom en una hoja girada.</li>
+                    <li><strong>Controles de capa más limpios.</strong> Desactivar un tipo de asiento ahora oculta también la etiqueta y el recuento de esa área, y las áreas ocultas ya no se pueden seleccionar por clic o por ventana — así puede seleccionar un grupo sin tomar otro que esté desactivado.</li>
+                    <li><strong>Colores de asientos corregidos en hojas densas.</strong> Se corrigieron los asientos que se exportaban como bloques negros sólidos en hojas grandes con muchos asientos — los colores de tipos de asiento personalizados ahora se procesan correctamente en el PDF.</li>
+                    <li><strong>Etiquetas de artículos clave más limpias.</strong> Los marcadores de artículos clave y la leyenda ahora comparten un mismo aspecto — un anillo negro fino con color de punto ajustable y color de texto de etiqueta ajustable — para que las etiquetas se mantengan nítidas y consistentes en cualquier tamaño de hoja en lugar de obtener contornos gruesos en impresiones grandes.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.4.1",
             en: `
@@ -9586,7 +9624,7 @@ const I18N_STRINGS = {
         promptDialog(t('profile.point.add.prompt'), t('profile.point.default')).then(n => {
             if (!n) return;
             const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4];
-            project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString() });
+            project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString(), labelColor: '#000000' });
             project.activeSignType = project.signTypes.length - 1;
             updateUI(); triggerUpdate();
         });
@@ -9726,6 +9764,11 @@ const I18N_STRINGS = {
             signFields.style.display = 'flex';
             document.getElementById('profile-edit-sign-size').value = profile.size || 20;
             document.getElementById('profile-edit-sign-label').value = profile.label || '';
+            const _signLblColor = profile.labelColor || '#000000';
+            document.getElementById('profile-edit-sign-label-color').value = _signLblColor;
+            document.getElementById('profile-edit-sign-label-color-hex').value = _signLblColor;
+            _populatePaletteFor('profile-edit-sign-label-color-palette', 'profile-edit-sign-label-color', 'profile-edit-sign-label-color-hex');
+            _wireColorSync('profile-edit-sign-label-color', 'profile-edit-sign-label-color-hex');
         } else if (kind === 'measure') {
             measureFields.style.display = 'flex';
             measureShowLabelsGroup.style.display = 'block';
@@ -9786,6 +9829,7 @@ const I18N_STRINGS = {
             const sz = parseInt(document.getElementById('profile-edit-sign-size').value, 10);
             if (!isNaN(sz) && sz > 0) profile.size = sz;
             profile.label = document.getElementById('profile-edit-sign-label').value.trim();
+            profile.labelColor = document.getElementById('profile-edit-sign-label-color').value;
         } else if (kind === 'measure') {
             const profile = project.measureTypes[index];
             profile.name = name;
@@ -11856,12 +11900,59 @@ const I18N_STRINGS = {
         const b=itemBBox(kind,it,page);
         return !(b.maxX<rect.minX || b.minX>rect.maxX || b.maxY<rect.minY || b.minY>rect.maxY);
     }
+    // True when an item is currently visible given the Layers toggles. Window
+    // selection uses this so hidden items can't be marquee-selected.
+    function isItemVisibleForSelect(kind, it) {
+        switch (kind) {
+            case 'shape':
+                if (it.type==='obs' || it.type==='aisle') return uiState.showObs !== false;
+                return uiState.showSeats !== false && !uiState.hiddenSeatTypes.includes(it.seatTypeIndex ?? 0);
+            case 'sign':    return uiState.showSigns !== false && !uiState.hiddenSignTypes.includes(it.typeIndex ?? 0);
+            case 'screen':  return uiState.showScreens !== false;
+            case 'measure': return uiState.showMeasures !== false && !(uiState.hiddenMeasureTypes||[]).includes(it.typeIndex ?? 0);
+            case 'line':    return uiState.showLines !== false;
+            case 'text':    return uiState.showTexts !== false;
+            default:        return true;
+        }
+    }
+    // Returns { kind, idx, cx, cy, gx, gy, rot } for the rotatable item that is
+    // currently selected, or null. The grip (gx,gy) floats above the shape's
+    // top edge, rotated with it; (cx,cy) is the pivot center.
+    function getRotateGripTarget() {
+        const page = getActivePage();
+        const GRIP_PX = 26; // screen-space gap above the shape
+        if (selectedLineIndex !== -1 && page.lines && page.lines[selectedLineIndex]) {
+            const l = page.lines[selectedLineIndex];
+            if ((l.type === 'box' || l.type === 'ellipse') && l.points && l.points.length === 2) {
+                const p1 = l.points[0], p2 = l.points[1];
+                const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+                const halfH = Math.abs(p2.y - p1.y) / 2;
+                const rot = (l.rot || 0) * Math.PI / 180;
+                const upLen = halfH + GRIP_PX / view.zoom;
+                const gx = cx + Math.sin(rot) * upLen;
+                const gy = cy - Math.cos(rot) * upLen;
+                return { kind: 'line', idx: selectedLineIndex, cx, cy, gx, gy, rot: l.rot || 0 };
+            }
+        }
+        if (selectedTextIndex !== -1 && page.texts && page.texts[selectedTextIndex]) {
+            const t = page.texts[selectedTextIndex];
+            const size = t.size || 24;
+            const lines = (t.text || '').split('\n');
+            const halfH = (size * 1.1 * lines.length) / 2;
+            const rot = (t.rot || 0) * Math.PI / 180;
+            const upLen = halfH + GRIP_PX / view.zoom;
+            const gx = t.x + Math.sin(rot) * upLen;
+            const gy = t.y - Math.cos(rot) * upLen;
+            return { kind: 'text', idx: selectedTextIndex, cx: t.x, cy: t.y, gx, gy, rot: t.rot || 0 };
+        }
+        return null;
+    }
     function selectInRect(rect) {
         const page=getActivePage(); const refs=[];
         ['shape','screen','sign','measure','line','text'].forEach(kind=>{
             const arr=arrFor(page,kind)||[];
             arr.forEach((it,idx)=>{
-                if (kind==='shape' && (it.type==='obs'||it.type==='aisle') && !uiState.showObs) return;
+                if (!isItemVisibleForSelect(kind, it)) return;
                 if (itemInRect(kind,it,page,rect)) refs.push({kind,idx});
             });
         });
@@ -11954,6 +12045,31 @@ const I18N_STRINGS = {
             c2.setLineDash([]); c2.globalAlpha=1;
             const m=9/v.zoom; c2.beginPath(); c2.moveTo(cx-m,cy); c2.lineTo(cx+m,cy); c2.moveTo(cx,cy-m); c2.lineTo(cx,cy+m); c2.stroke();
         }
+        // Rotate grip for a selected box / ellipse / text.
+        const _gt = getRotateGripTarget();
+        if (_gt) {
+            c2.setLineDash([]);
+            // Connector from the shape edge to the grip.
+            c2.beginPath(); c2.moveTo(_gt.cx, _gt.cy); c2.lineTo(_gt.gx, _gt.gy);
+            c2.strokeStyle='#2ecc71'; c2.lineWidth=1.5/v.zoom; c2.stroke();
+            // Grip knob.
+            c2.beginPath(); c2.arc(_gt.gx, _gt.gy, 6/v.zoom, 0, Math.PI*2);
+            c2.fillStyle = isRotatingGrip ? '#2ecc71' : '#ffffff'; c2.fill();
+            c2.strokeStyle='#2ecc71'; c2.lineWidth=2/v.zoom; c2.stroke();
+            // Live angle readout while rotating.
+            if (isRotatingGrip && _rotGripCtx) {
+                const item = _rotGripCtx.kind === 'text' ? page.texts[_rotGripCtx.idx] : page.lines[_rotGripCtx.idx];
+                const deg = item ? (item.rot || 0) : 0;
+                c2.save(); c2.setTransform(1,0,0,1,0,0);
+                const sx = v.x + _gt.gx*v.zoom, sy = v.y + _gt.gy*v.zoom;
+                c2.font='bold 12px Arial'; c2.textAlign='center'; c2.textBaseline='bottom';
+                const label = Math.round(deg)+'\u00b0';
+                const tw = c2.measureText(label).width + 8;
+                c2.fillStyle='rgba(0,0,0,0.75)'; c2.fillRect(sx - tw/2, sy - 30, tw, 18);
+                c2.fillStyle='#fff'; c2.fillText(label, sx, sy - 14);
+                c2.restore();
+            }
+        }
         c2.restore();
     }
 
@@ -12005,7 +12121,20 @@ const I18N_STRINGS = {
         if (selectedLineIndex !== -1) {
             const l = getActivePage().lines[selectedLineIndex];
             const thresholdSq = sqr(12 / view.zoom);
-            for (let i = 0; i < l.points.length; i++) { if (dist2(worldPt, l.points[i]) < thresholdSq) return { type: 'line', i }; }
+            // For a rotated box/ellipse, test against the corners' rotated
+            // (visual) positions about the shape center.
+            if ((l.type === 'box' || l.type === 'ellipse') && l.rot && l.points.length === 2) {
+                const p1 = l.points[0], p2 = l.points[1];
+                const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+                const a = l.rot * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+                for (let i = 0; i < 2; i++) {
+                    const dx = l.points[i].x - cx, dy = l.points[i].y - cy;
+                    const rx = cx + dx * ca - dy * sa, ry = cy + dx * sa + dy * ca;
+                    if (dist2(worldPt, { x: rx, y: ry }) < thresholdSq) return { type: 'line', i };
+                }
+            } else {
+                for (let i = 0; i < l.points.length; i++) { if (dist2(worldPt, l.points[i]) < thresholdSq) return { type: 'line', i }; }
+            }
         }
         if (selectedMeasureIndex !== -1) {
             const m = getActivePage().measures[selectedMeasureIndex];
@@ -12018,19 +12147,35 @@ const I18N_STRINGS = {
     function getHitShape(worldPt) {
         const page = getActivePage();
         for (let i = page.shapes.length - 1; i >= 0; i--) {
-            if (isInside(page.shapes[i].points, worldPt)) return i;
+            const sh = page.shapes[i];
+            // Skip layer-hidden shapes so you can't click-select what you can't see.
+            if ((sh.type === 'obs' || sh.type === 'aisle')) { if (uiState.showObs === false) continue; }
+            else if (sh.type === 'area') { if (uiState.showSeats === false || uiState.hiddenSeatTypes.includes(sh.seatTypeIndex ?? 0)) continue; }
+            if (isInside(sh.points, worldPt)) return i;
         }
         return -1;
     }
 
-    function getHitLine(worldPt) {
+    function getHitLine(_worldPt0) {
         const page = getActivePage(); if (!page.lines) return -1;
+        // Default: non-rotated branches use the raw click point.
+        let worldPt = _worldPt0;
         for (let i = page.lines.length - 1; i >= 0; i--) {
             const l = page.lines[i];
+            worldPt = _worldPt0; // reset per-iteration (box/ellipse may rotate it)
             if (!lineVisible(l)) continue;
             const lineThick = l.thickness || 2; const thresholdSq = sqr(Math.max(8, lineThick + 2) / view.zoom);
             if ((l.type === 'box' || l.type === 'ellipse') && l.points.length === 2) {
                 const p1 = l.points[0], p2 = l.points[1];
+                // If rotated, map the click into the shape's local frame by
+                // rotating it about the center by -rot, then test axis-aligned.
+                worldPt = _worldPt0;
+                if (l.rot) {
+                    const cxr = (p1.x + p2.x) / 2, cyr = (p1.y + p2.y) / 2;
+                    const a = -l.rot * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+                    const dx = _worldPt0.x - cxr, dy = _worldPt0.y - cyr;
+                    worldPt = { x: cxr + dx * ca - dy * sa, y: cyr + dx * sa + dy * ca };
+                }
                 if (l.type === 'box') {
                     // Hit-test the 4 sides of the rectangle as line segments.
                     const corners = [
@@ -12166,7 +12311,14 @@ const I18N_STRINGS = {
             const lines = (t.text || '').split('\n');
             let maxW = 0; lines.forEach(ln => { const w = measureCtx.measureText(ln).width; if (w > maxW) maxW = w; });
             const totalH = (size * 1.1) * lines.length;
-            if (Math.abs(worldPt.x - t.x) <= (maxW / 2) + (10 / view.zoom) && Math.abs(worldPt.y - t.y) <= (totalH / 2) + (10 / view.zoom)) {
+            // Inverse-rotate the click into the text's local frame (about t.x,t.y).
+            let hp = worldPt;
+            if (t.rot) {
+                const a = -t.rot * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+                const dx = worldPt.x - t.x, dy = worldPt.y - t.y;
+                hp = { x: t.x + dx * ca - dy * sa, y: t.y + dx * sa + dy * ca };
+            }
+            if (Math.abs(hp.x - t.x) <= (maxW / 2) + (10 / view.zoom) && Math.abs(hp.y - t.y) <= (totalH / 2) + (10 / view.zoom)) {
                 return i;
             }
         }
@@ -12282,6 +12434,18 @@ const I18N_STRINGS = {
         }
         
         if (mode === 'idle') {
+            // Rotate grip: if a box/ellipse/text is selected and the click lands
+            // on its grip, start a rotation drag (takes priority over selection).
+            {
+                const gt = getRotateGripTarget();
+                if (gt) {
+                    const grabR = 10 / view.zoom;
+                    if (Math.hypot(world.x - gt.gx, world.y - gt.gy) <= grabR) {
+                        isRotatingGrip = true; hasRotatedGrip = false; _rotGripCtx = gt;
+                        return;
+                    }
+                }
+            }
             {
                 const _add = (e.ctrlKey || e.metaKey), _sub = e.shiftKey;
                 if (_add || _sub) {
@@ -12531,7 +12695,7 @@ const I18N_STRINGS = {
     let _lastHoverHit = 0;
     let _lastMoveEvent = null;
     function _runHeavyMouseMove(e) {
-        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isMarqueeSelecting || isDraggingGroup || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend')) {
+        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isMarqueeSelecting || isDraggingGroup || isRotatingGrip || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend')) {
             _releaseDrags(); return;
         }
 
@@ -12614,8 +12778,21 @@ const I18N_STRINGS = {
         if (isDraggingShapePoint) {
             let targetArr = project.draggingShapePointTarget === 'shape' ? getActivePage().shapes : (project.draggingShapePointTarget === 'line' ? getActivePage().lines : getActivePage().measures);
             let idx = project.draggingShapePointTarget === 'shape' ? selectedShapeIndex : (project.draggingShapePointTarget === 'line' ? selectedLineIndex : selectedMeasureIndex);
-            targetArr[idx].points[draggingShapePointIndex].x = world.x;
-            targetArr[idx].points[draggingShapePointIndex].y = world.y;
+            const _it = targetArr[idx];
+            if (project.draggingShapePointTarget === 'line' && (_it.type === 'box' || _it.type === 'ellipse') && _it.rot) {
+                // Rotated resize: inverse-rotate the cursor about the current
+                // center into the shape's local (axis-aligned) frame, set the
+                // dragged corner there. Resize then follows the shape's own axes.
+                const p1 = _it.points[0], p2 = _it.points[1];
+                const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+                const a = -_it.rot * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+                const dx = world.x - cx, dy = world.y - cy;
+                _it.points[draggingShapePointIndex].x = cx + dx * ca - dy * sa;
+                _it.points[draggingShapePointIndex].y = cy + dx * sa + dy * ca;
+            } else {
+                _it.points[draggingShapePointIndex].x = world.x;
+                _it.points[draggingShapePointIndex].y = world.y;
+            }
             if (project.draggingShapePointTarget === 'shape') { targetArr[idx].cacheDirty = true; markSeatCachesDirty(); }
             hasUnsavedChanges = true; render(); return;
         }
@@ -12636,6 +12813,18 @@ const I18N_STRINGS = {
             ap.x = world.x - project.dragOffsetX;
             ap.y = world.y - project.dragOffsetY;
             hasUnsavedChanges = true; render(); return;
+        }
+        if (isRotatingGrip && _rotGripCtx) {
+            if (!hasRotatedGrip) { saveState(); hasRotatedGrip = true; }
+            const page = getActivePage();
+            // Angle from center to cursor; 0° = straight up. Screen y is down,
+            // so CW-positive matches the render convention.
+            let deg = Math.atan2(world.x - _rotGripCtx.cx, -(world.y - _rotGripCtx.cy)) * 180 / Math.PI;
+            if (!e.shiftKey) deg = Math.round(deg / 5) * 5; // 5° snap; Shift = free
+            deg = ((deg % 360) + 360) % 360;
+            const item = _rotGripCtx.kind === 'text' ? page.texts[_rotGripCtx.idx] : page.lines[_rotGripCtx.idx];
+            if (item) { if (deg) item.rot = deg; else delete item.rot; hasUnsavedChanges = true; render(); }
+            return;
         }
         if (isDraggingText && selectedTextIndex !== -1) { if (!hasDraggedText) { saveState(); hasDraggedText = true; } getActivePage().texts[selectedTextIndex].x = world.x - project.dragOffsetX; getActivePage().texts[selectedTextIndex].y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
         
@@ -12743,6 +12932,7 @@ const I18N_STRINGS = {
         if (isDraggingScreen) { isDraggingScreen = false; if (hasDraggedScreen) { markSeatCachesDirty(); updateUI(); triggerUpdate(); } }
         if (isDraggingSign) { isDraggingSign = false; if (hasDraggedSign) updateUI(); }
         if (isDraggingAttendant) { isDraggingAttendant = false; if (hasDraggedAttendant) updateUI(); }
+        if (isRotatingGrip) { isRotatingGrip = false; _rotGripCtx = null; if (hasRotatedGrip) { hasRotatedGrip = false; triggerUpdate(); } }
         if (isDraggingText) { isDraggingText = false; if (hasDraggedText) updateUI(); }
         if (isDraggingLine) { isDraggingLine = false; if (hasDraggedLine) updateUI(); }
         if (isDraggingMeasure) { isDraggingMeasure = false; if (hasDraggedMeasure) updateUI(); }
@@ -13561,7 +13751,8 @@ const I18N_STRINGS = {
             else if (s.type === 'obs') { targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#e74c3c'); targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([]); targetCtx.stroke(); }
             else if (s.type === 'aisle') { targetCtx.strokeStyle = isSelected ? '#2ecc71' : (isHovered ? '#f1c40f' : '#f1c40f'); targetCtx.lineWidth = (isSelected || isHovered ? 4 : 2) / v.zoom; targetCtx.setLineDash([10 / v.zoom, 10 / v.zoom]); targetCtx.stroke(); targetCtx.fillStyle = 'rgba(241, 196, 15, 0.1)'; targetCtx.fill(); targetCtx.setLineDash([]); }
             if (isSelected) { s.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 6 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
-            if (uiState.showAreaLabels !== false) {
+            const _areaSeatsHidden = (s.type === 'area') && (uiState.showSeats === false || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0));
+            if (uiState.showAreaLabels !== false && !_areaSeatsHidden) {
                 let sX = 0, sY = 0; s.points.forEach(p => { sX += p.x; sY += p.y; }); const cen = { x: sX / s.points.length, y: sY / s.points.length };
                 // Per-instance label size (default 18). Seat-count text renders
                 // 4px smaller to match the original visual ratio. Labels are
@@ -13681,7 +13872,8 @@ const I18N_STRINGS = {
                     else                  targetCtx.ellipse(x + w/2, y + h/2, w/2, h/2, 0, 0, Math.PI * 2);
                     if (l.fill) { targetCtx.fillStyle = applyOpacity(l.fill, l.fillOpacity); targetCtx.fill(); }
                     targetCtx.stroke();
-                    if (_lr) targetCtx.restore();
+                    // Handles drawn while still inside the rotation transform so
+                    // they sit on the rotated corners and match the shape.
                     if (isSelected) {
                         l.points.forEach(p => {
                             targetCtx.beginPath();
@@ -13690,6 +13882,7 @@ const I18N_STRINGS = {
                             targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke();
                         });
                     }
+                    if (_lr) targetCtx.restore();
                     return;
                 }
 
@@ -13959,8 +14152,11 @@ const I18N_STRINGS = {
                 targetCtx.beginPath(); targetCtx.arc(s.x, s.y, radius, 0, Math.PI * 2); targetCtx.fillStyle = st.color; targetCtx.fill();
                 if (isLive && i === selectedSignIndex) { targetCtx.lineWidth = 3 / v.zoom; targetCtx.strokeStyle = 'white'; targetCtx.stroke(); targetCtx.beginPath(); targetCtx.arc(s.x, s.y, radius + (6/v.zoom), 0, Math.PI * 2); targetCtx.strokeStyle = '#2ecc71'; targetCtx.lineWidth = 3 / v.zoom; targetCtx.stroke(); } 
                 else if (isLive && i === hoveredSignIndex) { targetCtx.lineWidth = 4 / v.zoom; targetCtx.strokeStyle = '#f1c40f'; targetCtx.stroke(); } 
-                else { targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = 'white'; targetCtx.stroke(); }
-                if (st.label) { targetCtx.font = `bold ${radius}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.lineWidth = 2 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = "rgba(0,0,0,0.6)"; targetCtx.strokeText(st.label, s.x, s.y); targetCtx.fillStyle = "white"; targetCtx.fillText(st.label, s.x, s.y); }
+                else { targetCtx.lineWidth = 1 / (isLive ? v.zoom : 1); targetCtx.strokeStyle = 'black'; targetCtx.stroke(); }
+                if (st.label) {
+                    targetCtx.font = `bold ${radius}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle";
+                    targetCtx.fillStyle = st.labelColor || "#000000"; targetCtx.fillText(st.label, s.x, s.y);
+                }
             });
         }
 
@@ -14020,8 +14216,8 @@ const I18N_STRINGS = {
                 let yOffset = 65;
                 items.forEach(idx => {
                     const st = project.signTypes[idx] || project.signTypes[0]; const count = signCounts[idx];
-                    targetCtx.beginPath(); targetCtx.arc(27, yOffset, 12, 0, Math.PI * 2); targetCtx.fillStyle = st.color; targetCtx.fill(); targetCtx.lineWidth = 1; targetCtx.stroke();
-                    if (st.label) { targetCtx.fillStyle = "white"; targetCtx.font = "bold 12px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(st.label, 27, yOffset); }
+                    targetCtx.beginPath(); targetCtx.arc(27, yOffset, 12, 0, Math.PI * 2); targetCtx.fillStyle = st.color; targetCtx.fill(); targetCtx.lineWidth = 1; targetCtx.strokeStyle = "black"; targetCtx.stroke();
+                    if (st.label) { targetCtx.fillStyle = st.labelColor || "#000000"; targetCtx.font = "bold 12px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.fillText(st.label, 27, yOffset); }
                     targetCtx.fillStyle = "black"; targetCtx.font = "16px Arial"; targetCtx.textAlign = "left"; targetCtx.textBaseline = "middle"; targetCtx.fillText(st.name, 45, yOffset);
                     targetCtx.textAlign = "right"; targetCtx.fillText(fmtNum(count), legW - 15, yOffset); yOffset += 35;
                 });
@@ -15913,8 +16109,23 @@ const I18N_STRINGS = {
                     const w = Math.abs(p2.x - p1.x), h = Math.abs(p2.y - p1.y);
                     const common = { borderColor: _pdfColor(color), borderWidth: thick * s2 };
                     if (l.fill) { common.color = _pdfColor(l.fill); common.opacity = fillOp; }
-                    if (l.type === 'box') out.drawRectangle(Object.assign({ x: PX(x), y: PY(y + h), width: w * s2, height: h * s2 }, common));
-                    else out.drawEllipse(Object.assign({ x: PX(x + w / 2), y: PY(y + h / 2), xScale: (w / 2) * s2, yScale: (h / 2) * s2 }, common));
+                    // Rotation: pdf-lib pivots about the draw origin, so rotate
+                    // that origin about the shape center first. Screen rot is CW;
+                    // PDF Y is up, so the PDF angle is negated.
+                    const _rotDeg = l.rot || 0;
+                    const _pdfRot = PDFLib.degrees(-_rotDeg);
+                    if (l.type === 'box') {
+                        const ox0 = PX(x), oy0 = PY(y + h); // draw origin (bottom-left in PDF space)
+                        const ccx = PX(x + w / 2), ccy = PY(y + h / 2);
+                        const th = -_rotDeg * Math.PI / 180, ct = Math.cos(th), st = Math.sin(th);
+                        const rx = ccx + (ox0 - ccx) * ct - (oy0 - ccy) * st;
+                        const ry = ccy + (ox0 - ccx) * st + (oy0 - ccy) * ct;
+                        out.drawRectangle(Object.assign({ x: rx, y: ry, width: w * s2, height: h * s2, rotate: _pdfRot }, common));
+                    } else {
+                        // Ellipse draws about its center, so rotation about that
+                        // center is a plain rotate.
+                        out.drawEllipse(Object.assign({ x: PX(x + w / 2), y: PY(y + h / 2), xScale: (w / 2) * s2, yScale: (h / 2) * s2, rotate: _pdfRot }, common));
+                    }
                     return;
                 }
                 if (l.type === 'cloud' && l.points.length >= 3) {
@@ -16010,7 +16221,17 @@ const I18N_STRINGS = {
                 const lines = (tx2.text || '').split('\n');
                 const lineHeight = sizeWorld * 1.1;
                 const topY = tx2.y - ((lineHeight * lines.length) / 2) + (lineHeight / 2);
-                lines.forEach((ln, li) => { vText(ln, tx2.x, topY + li * lineHeight, sizeWorld, { fill: color, central: true }); });
+                // Rotate the text block about its anchor (tx2.x, tx2.y).
+                const _trd = tx2.rot || 0;
+                lines.forEach((ln, li) => {
+                    let lx = tx2.x, ly = topY + li * lineHeight;
+                    if (_trd) {
+                        const th = _trd * Math.PI / 180, ct = Math.cos(th), st = Math.sin(th);
+                        const dx = lx - tx2.x, dy = ly - tx2.y;
+                        lx = tx2.x + dx * ct - dy * st; ly = tx2.y + dx * st + dy * ct;
+                    }
+                    vText(ln, lx, ly, sizeWorld, { fill: color, central: true, rotDeg: _trd });
+                });
             });
         }
         // ── Key-item signs ──
@@ -16018,8 +16239,9 @@ const I18N_STRINGS = {
             page.signs.forEach(s => {
                 if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; const radius = s.size || st.size;
-                out.drawCircle({ x: PX(s.x), y: PY(s.y), size: radius * s2, color: _pdfColor(st.color), borderColor: PDFLib.rgb(1, 1, 1), borderWidth: 2 * s2 });
-                if (st.label) vText(st.label, s.x, s.y, radius, { fill: '#ffffff', outline: '#000000', outlineW: 3, central: true });
+                out.drawCircle({ x: PX(s.x), y: PY(s.y), size: radius * s2, color: _pdfColor(st.color), borderColor: PDFLib.rgb(0, 0, 0), borderWidth: 1 * s2 });
+                // Label uses the type's adjustable text color (default black).
+                if (st.label) vText(st.label, s.x, s.y, radius, { fill: st.labelColor || '#000000', central: true });
             });
         }
         // ── Attendant posts ──
@@ -17380,7 +17602,7 @@ const I18N_STRINGS = {
                             let legendWidth = Math.max(250, maxW + 100, titleW + 30, totalW + 100); let legendHeight = 50 + (items.length * 35) + (mItems.length > 0 ? 30 : 0) + (mItems.length * 35) + 35;
                             svg += `<g transform="translate(${legendX}, ${legendY}) scale(${s})"><rect x="0" y="0" width="${legendWidth}" height="${legendHeight}" fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="2" rx="8" ry="8" /><text x="15" y="30" font-family="Arial" font-size="18px" font-weight="bold" fill="black">${escapeHTML(t("legend.key.title"))}</text><line x1="15" y1="40" x2="${legendWidth - 15}" y2="40" stroke="black" stroke-width="1" />`;
                             let yOffset = 65;
-                            items.forEach(idx => { const st = project.signTypes[idx] || project.signTypes[0]; const count = signCounts[idx]; svg += `<circle cx="27" cy="${yOffset}" r="12" fill="${escapeHTML(st.color)}" stroke="black" stroke-width="1" />`; if (st.label) { svg += `<text x="27" y="${yOffset}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round">${escapeHTML(st.label)}</text><text x="27" y="${yOffset}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(st.label)}</text>`; } svg += `<text x="45" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(st.name)}</text><text x="${legendWidth - 15}" y="${yOffset}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(count)}</text>`; yOffset += 35; });
+                            items.forEach(idx => { const st = project.signTypes[idx] || project.signTypes[0]; const count = signCounts[idx]; svg += `<circle cx="27" cy="${yOffset}" r="12" fill="${escapeHTML(st.color)}" stroke="black" stroke-width="1" />`; if (st.label) { svg += `<text x="27" y="${yOffset}" font-family="Arial" font-size="12px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${escapeHTML(st.labelColor || '#000000')}">${escapeHTML(st.label)}</text>`; } svg += `<text x="45" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(st.name)}</text><text x="${legendWidth - 15}" y="${yOffset}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(count)}</text>`; yOffset += 35; });
                             if (mItems.length > 0) { svg += `<line x1="15" y1="${yOffset - 15}" x2="${legendWidth - 15}" y2="${yOffset - 15}" stroke="#ccc" stroke-width="1" />`; yOffset += 15; mItems.forEach(idx => { const mt = project.measureTypes[idx] || project.measureTypes[0]; const totalFt = measureTotals[idx]; svg += `<polyline points="15,${yOffset+5} 25,${yOffset-5} 35,${yOffset+5} 40,${yOffset}" fill="none" stroke="${escapeHTML(mt.color)}" stroke-width="3" /><text x="50" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(mt.name)}</text><text x="${legendWidth - 15}" y="${yOffset}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${formatLength(totalFt)}</text>`; yOffset += 35; }); }
                             svg += `<line x1="15" y1="${yOffset - 15}" x2="${legendWidth - 15}" y2="${yOffset - 15}" stroke="#ccc" stroke-width="1" /><text x="15" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" dominant-baseline="central" fill="black">${escapeHTML(t("legend.key.total"))}</text><text x="${legendWidth - 15}" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(grandTotal)}</text></g>`;
                         }
