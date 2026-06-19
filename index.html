@@ -525,6 +525,20 @@
         .list-item.nc-row { background: #4a3a12; outline: 1px solid rgba(241,196,15,0.4); outline-offset: -1px; }
     .list-item.active { border-color: var(--accent); background: #3a3a40; }
         
+        /* Prominent per-category create row at the top of each panel. */
+        /* Uniform "+ New" button (one per panel) + its dropdown menu. */
+        .btn-new-menu { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px;
+            padding: 9px 14px; font-size: 0.85em; font-weight: 600; color: #fff;
+            background: var(--accent); border: none; border-radius: 5px; cursor: pointer; transition: filter 0.12s; }
+        .btn-new-menu:hover { filter: brightness(1.12); }
+        .btn-new-menu .caret { font-size: 0.8em; opacity: 0.85; }
+        #panel-create-menu {
+            position: fixed; display: none; min-width: 190px;
+            background: #2d2d30; border: 1px solid #555; border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 10000;
+            font-size: 0.9em; padding: 4px; user-select: none;
+        }
+        #panel-create-menu.show { display: block; }
         .profile-item { background: #2d2d30; padding: 7px 8px; border-radius: 3px; font-size: 0.82em; display: flex; flex-direction: column; gap: 6px; border: 1px solid #444; margin-bottom: 6px; cursor: pointer; }
         .profile-item.active { border-color: var(--accent); background: #333337; }
         .profile-header {
@@ -538,9 +552,11 @@
            is why long names were forcing the icon group to wrap to a second line. */
         .profile-header > span:first-child {
             flex: 1; min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            /* Allow long names to wrap to a second line instead of being cut
+               off with an ellipsis (which forced opening Edit just to read it). */
+            overflow-wrap: anywhere;
+            white-space: normal;
+            line-height: 1.25;
         }
         /* The icon group (second child) is a fixed-width row of buttons. Never
            shrinks, never wraps. */
@@ -885,6 +901,7 @@
 <div id="status-toast"></div>
 
 <div id="canvas-ctx-menu"></div>
+<div id="panel-create-menu"></div>
 
 <div id="schedule-viewer-modal" class="modal-overlay" onclick="if(event.target===this) hideScheduleViewer()">
     <div class="modal-card wide" role="dialog" aria-labelledby="schedule-viewer-title">
@@ -2044,24 +2061,32 @@
 
         <div id="panel-area" class="panel-content">
             <div class="panel-tools">
+                <button class="btn-new-menu" onclick="showCreateMenu(event, [
+                    {labelKey:'seat.profiles.add', fallback:'New Seat Profile', fn:addSeatType}
+                ])"><span data-i18n="common.new">+ New</span> <span class="caret">▾</span></button>
                 <div class="collapse-header collapsed" data-collapse-target="seat-profiles-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="seat.profiles.header">Seat Profiles <span id="seat-profiles-badge" class="badge">0</span></span>
-                    <span class="chevron">▼</span>
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortSeatProfiles();">⇅</button>
+                        <span class="chevron">▼</span>
+                    </span>
                 </div>
                 <div id="seat-profiles-body" class="collapse-body collapsed">
                     <div class="profile-scroll">
                         <ul class="item-list" id="seat-type-list" style="margin-bottom: 0;"></ul>
                     </div>
-                    <button class="btn-full btn-primary" onclick="addSeatType()" data-i18n="seat.profiles.add">+ Add Profile</button>
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
                 <div id="drawn-areas-section" class="grow-section">
-                    <div class="collapse-header" data-collapse-target="drawn-areas-body" onclick="toggleCollapse(this)">
+                    <div class="collapse-header collapsed" data-collapse-target="drawn-areas-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="seat.areas.header">Drawn Areas <span id="drawn-areas-badge" class="badge">0</span></span>
-                        <span class="chevron">▼</span>
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortPlacedAreas();">⇅</button>
+                            <span class="chevron">▼</span>
+                        </span>
                     </div>
-                    <div id="drawn-areas-body" class="collapse-body">
+                    <div id="drawn-areas-body" class="collapse-body collapsed">
                         <ul class="item-list" id="area-list"></ul>
                     </div>
                 </div>
@@ -2080,11 +2105,14 @@
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
                 <div id="drawn-obs-section" class="grow-section">
-                    <div class="collapse-header" data-collapse-target="drawn-obs-body" onclick="toggleCollapse(this)">
+                    <div class="collapse-header collapsed" data-collapse-target="drawn-obs-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="obs.list.header">Drawn Cutouts & Obstacles <span id="drawn-obs-badge" class="badge">0</span></span>
-                        <span class="chevron">▼</span>
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortPlacedObs();">⇅</button>
+                            <span class="chevron">▼</span>
+                        </span>
                     </div>
-                    <div id="drawn-obs-body" class="collapse-body">
+                    <div id="drawn-obs-body" class="collapse-body collapsed">
                         <ul class="item-list" id="obs-list"></ul>
                     </div>
                 </div>
@@ -2097,11 +2125,14 @@
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
                 <div id="screens-section" class="grow-section">
-                    <div class="collapse-header" data-collapse-target="screens-body" onclick="toggleCollapse(this)">
+                    <div class="collapse-header collapsed" data-collapse-target="screens-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="screen.list.header">A/V Screens (Sightlines) <span id="screens-badge" class="badge">0</span></span>
-                        <span class="chevron">▼</span>
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortPlacedScreens();">⇅</button>
+                            <span class="chevron">▼</span>
+                        </span>
                     </div>
-                    <div id="screens-body" class="collapse-body">
+                    <div id="screens-body" class="collapse-body collapsed">
                         <div id="no-screens-msg" style="color:#888; font-size:0.8em; font-style:italic; text-align:center; padding:10px 0;" data-i18n="screen.empty">No screens added yet.</div>
                         <ul class="item-list" id="screen-list"></ul>
                     </div>
@@ -2111,35 +2142,50 @@
 
         <div id="panel-sign" class="panel-content">
             <div class="panel-tools">
+                <!-- Single "+ New" button with a dropdown menu of what can be
+                     created in this category. Uniform across all panels and
+                     future-proof: new options are just extra menu lines. -->
+                <button class="btn-new-menu" onclick="showCreateMenu(event, [
+                    {labelKey:'sign.points.add', fallback:'New Point Profile', fn:addSignType},
+                    {labelKey:'sign.measures.add', fallback:'New Measure Profile', fn:addMeasureType}
+                ])"><span data-i18n="common.new">+ New</span> <span class="caret">▾</span></button>
+
                 <div class="collapse-header collapsed" data-collapse-target="point-profiles-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="sign.points.header">Point Profiles <span id="point-profiles-badge" class="badge">0</span></span>
-                    <span class="chevron">▼</span>
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortSignProfiles();">⇅</button>
+                        <span class="chevron">▼</span>
+                    </span>
                 </div>
                 <div id="point-profiles-body" class="collapse-body collapsed">
                     <div class="profile-scroll">
                         <ul class="item-list" id="sign-type-list" style="margin-bottom: 0;"></ul>
                     </div>
-                    <button class="btn-full btn-primary" onclick="addSignType()" data-i18n="sign.points.add">+ Add Point Profile</button>
                 </div>
 
                 <div class="collapse-header collapsed" data-collapse-target="measure-profiles-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="sign.measures.header">Measure Profiles <span id="measure-profiles-badge" class="badge">0</span></span>
-                    <span class="chevron">▼</span>
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortMeasureProfiles();">⇅</button>
+                        <span class="chevron">▼</span>
+                    </span>
                 </div>
                 <div id="measure-profiles-body" class="collapse-body collapsed">
                     <div class="profile-scroll" style="max-height: 200px;">
                         <ul class="item-list" id="measure-type-list" style="margin-bottom: 0;"></ul>
                     </div>
-                    <button class="btn-full btn-primary" onclick="addMeasureType()" data-i18n="sign.measures.add">+ Add Measure Profile</button>
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
                 <div id="placed-sign-section" class="grow-section">
-                    <div class="collapse-header" data-collapse-target="placed-sign-body" onclick="toggleCollapse(this)">
+                    <div class="collapse-header collapsed" data-collapse-target="placed-sign-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="sign.placed.header">Placed Key Items <span id="placed-sign-badge" class="badge">0</span></span>
-                        <span class="chevron">▼</span>
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortPlacedSigns();">⇅</button>
+                            <span class="chevron">▼</span>
+                        </span>
                     </div>
-                    <div id="placed-sign-body" class="collapse-body">
+                    <div id="placed-sign-body" class="collapse-body collapsed">
                         <ul class="item-list" id="placed-sign-list"></ul>
                     </div>
                 </div>
@@ -2209,7 +2255,10 @@
                 <div id="text-section" class="grow-section body-collapsed" style="margin-top: 6px;">
                     <div class="collapse-header collapsed" data-collapse-target="text-body" onclick="toggleCollapse(this)">
                         <span class="title" data-i18n="ann.text.header">Text Elements <span id="text-badge" class="badge">0</span></span>
-                        <span class="chevron">▼</span>
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <button class="icon-btn" title="Sort by text (A–Z / Z–A)" onclick="event.stopPropagation(); sortPlacedTexts();">⇅</button>
+                            <span class="chevron">▼</span>
+                        </span>
                     </div>
                     <div id="text-body" class="collapse-body collapsed">
                         <ul class="item-list" id="text-list"></ul>
@@ -2435,6 +2484,7 @@ const I18N_STRINGS = {
         "tab.annotate": "📏 Annotate",
         "tab.attendants": "🧍 Attendants",
         "tab.layers": "👁️ Layers",
+        "common.new": "+ New",
         "ribbon.tools": "Tools & Filters",
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
@@ -2515,9 +2565,9 @@ const I18N_STRINGS = {
         "common.angle_deg": "Angle (°)",
         "common.beam_deg": "Beam (°)",
         "sign.points.header": "Point Profiles",
-        "sign.points.add": "+ Add Point Profile",
+        "sign.points.add": "+ New Point",
         "sign.measures.header": "Measure Profiles",
-        "sign.measures.add": "+ Add Measure Profile",
+        "sign.measures.add": "+ New Measure",
         "sign.placed.header": "Placed Key Items",
         "measure.group.hide_lines": "Hide all lines of this type",
         "measure.group.show_lines": "Show all lines of this type",
@@ -2775,7 +2825,7 @@ const I18N_STRINGS = {
         "project.export_excel.col.count": "Count",
         "project.export_excel.col.kind": "Kind",
         "project.export_excel.col.length": "Total Length ({unit})",
-        "project.export_excel.kind.sign": "Sign",
+        "project.export_excel.kind.sign": "Key Item",
         "project.export_excel.kind.measure": "Measure",
         "project.export_excel.toast.success": "Excel file downloaded",
         "project.export_excel.toast.empty": "Nothing to export — no chairs or key items in this project",
@@ -3134,6 +3184,7 @@ const I18N_STRINGS = {
         "tab.annotate": "📏 Anotar",
         "tab.attendants": "🧍 Acomodadores",
         "tab.layers": "👁️ Capas",
+        "common.new": "+ Nuevo",
         "ribbon.tools": "Herramientas y Filtros",
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
@@ -3214,9 +3265,9 @@ const I18N_STRINGS = {
         "common.angle_deg": "Ángulo (°)",
         "common.beam_deg": "Haz (°)",
         "sign.points.header": "Perfiles de Puntos",
-        "sign.points.add": "+ Añadir Perfil de Punto",
+        "sign.points.add": "+ Nuevo Punto",
         "sign.measures.header": "Perfiles de Medición",
-        "sign.measures.add": "+ Añadir Perfil de Medición",
+        "sign.measures.add": "+ Nueva Medición",
         "sign.placed.header": "Artículos Clave Colocados",
         "measure.group.hide_lines": "Ocultar todas las líneas de este tipo",
         "measure.group.show_lines": "Mostrar todas las líneas de este tipo",
@@ -3472,7 +3523,7 @@ const I18N_STRINGS = {
         "project.export_excel.col.count": "Cantidad",
         "project.export_excel.col.kind": "Clase",
         "project.export_excel.col.length": "Longitud Total ({unit})",
-        "project.export_excel.kind.sign": "Letrero",
+        "project.export_excel.kind.sign": "Artículo Clave",
         "project.export_excel.kind.measure": "Medida",
         "project.export_excel.toast.success": "Archivo Excel descargado",
         "project.export_excel.toast.empty": "Nada que exportar — no hay sillas ni artículos claves en este proyecto",
@@ -4109,6 +4160,33 @@ const I18N_STRINGS = {
 
     // ─── Canvas context menu ─────────────────────────────────────────────────────
     const ctxMenu = document.getElementById('canvas-ctx-menu');
+
+    // Generic '+ New' dropdown used by every category panel. Pass the click
+    // event and a list of { labelKey, fallback, fn }; each entry runs its fn.
+    let _createMenuOpts = [];
+    function showCreateMenu(ev, options) {
+        ev.stopPropagation();
+        _createMenuOpts = options || [];
+        const menu = document.getElementById('panel-create-menu');
+        if (!menu) return;
+        menu.innerHTML = _createMenuOpts.map((o, i) =>
+            `<div class="ctx-menu-item" onclick="_runCreateMenu(${i})">${(o.labelKey ? escapeHTML(t(o.labelKey)) : '') || escapeHTML(o.fallback || '')}</div>`
+        ).join('');
+        const r = ev.currentTarget.getBoundingClientRect();
+        menu.style.left = r.left + 'px';
+        menu.style.top = (r.bottom + 4) + 'px';
+        menu.classList.add('show');
+        setTimeout(() => {
+            const close = (e) => { if (!menu.contains(e.target)) { menu.classList.remove('show'); document.removeEventListener('mousedown', close); } };
+            document.addEventListener('mousedown', close);
+        }, 0);
+    }
+    function _runCreateMenu(i) {
+        const menu = document.getElementById('panel-create-menu');
+        if (menu) menu.classList.remove('show');
+        const opt = _createMenuOpts[i];
+        if (opt && typeof opt.fn === 'function') opt.fn();
+    }
 
     function hideCtxMenu() {
         ctxMenu.classList.remove('show');
@@ -9612,31 +9690,31 @@ const I18N_STRINGS = {
     function toggleAttLegend(show) { saveState(); let p = getActivePage(); if (!p.attLegend) p.attLegend = { show: true, x: 40, y: 280, scale: 1 }; p.attLegend.show = show; triggerUpdate(); }
     
     function addSeatType() {
-        promptDialog(t('profile.seat.add.prompt'), t('profile.seat.default')).then(n => {
-            if (!n) return;
-            const c = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f'][project.seatTypes.length % 4];
-            project.seatTypes.push({ name: n, w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' });
-            project.activeSeatType = project.seatTypes.length - 1;
-            updateUI(); triggerUpdate();
-        });
+        const c = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f'][project.seatTypes.length % 4];
+        const idx = project.seatTypes.length;
+        project.seatTypes.push({ name: t('profile.seat.default'), w: 2.0, d: 3.0, stroke: c, color: c+'66', los: c+'e6' });
+        project.activeSeatType = idx;
+        updateUI(); triggerUpdate();
+        editProfile('seat', idx);
     }
     function addSignType() {
-        promptDialog(t('profile.point.add.prompt'), t('profile.point.default')).then(n => {
-            if (!n) return;
-            const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4];
-            project.signTypes.push({ name: n, color: c, size: 20, label: (project.signTypes.length + 1).toString(), labelColor: '#000000' });
-            project.activeSignType = project.signTypes.length - 1;
-            updateUI(); triggerUpdate();
-        });
+        const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4];
+        const idx = project.signTypes.length;
+        project.signTypes.push({ name: t('profile.point.default'), color: c, size: 20, label: (idx + 1).toString(), labelColor: '#000000' });
+        project.activeSignType = idx;
+        updateUI(); triggerUpdate();
+        // Open the full editor immediately so name + all options are set in one flow.
+        editProfile('sign', idx);
     }
     function addMeasureType() {
-        promptDialog(t('profile.measure.add.prompt'), t('profile.measure.default')).then(n => {
-            if (!n) return;
+        {
             const c = ['#9b59b6', '#3498db', '#e67e22', '#1abc9c'][project.measureTypes.length % 4];
-            project.measureTypes.push({ name: n, color: c, thickness: 4, labelSize: 13, showLabels: true });
-            project.activeMeasureType = project.measureTypes.length - 1;
+            const _midx = project.measureTypes.length;
+            project.measureTypes.push({ name: t('profile.measure.default'), color: c, thickness: 4, labelSize: 13, showLabels: true });
+            project.activeMeasureType = _midx;
             updateUI(); triggerUpdate();
-        });
+            editProfile('measure', _midx);
+        }
     }
     
     // ─── Profile Edit Modal ────────────────────────────────────────────────────
@@ -13032,6 +13110,69 @@ const I18N_STRINGS = {
         markSeatCachesDirty();
         updateUI(); triggerUpdate();
     }
+    // ── Placed-item sorting ─────────────────────────────────────────────
+    // Sorts a placed-item array by a name accessor, toggling A-Z / Z-A. The
+    // current selection is cleared first (row edit handlers bind array
+    // indices, which the re-render rebuilds correctly afterward).
+    const _placedSortDir = {};
+    function _sortPlacedArray(arr, key, nameFn, predicate) {
+        if (!arr || arr.length < 2) return;
+        saveState();
+        _placedSortDir[key] = -(_placedSortDir[key] || 1);
+        const dir = _placedSortDir[key];
+        // Sort only the matching items in place (e.g. only 'area' shapes),
+        // preserving the positions of non-matching items.
+        if (predicate) {
+            const matching = []; const positions = [];
+            arr.forEach((it, i) => { if (predicate(it)) { matching.push(it); positions.push(i); } });
+            matching.sort((a, b) => { const an=(nameFn(a)||'').toLowerCase(), bn=(nameFn(b)||'').toLowerCase(); return an<bn?-dir:an>bn?dir:0; });
+            positions.forEach((pos, k) => { arr[pos] = matching[k]; });
+        } else {
+            arr.sort((a, b) => { const an=(nameFn(a)||'').toLowerCase(), bn=(nameFn(b)||'').toLowerCase(); return an<bn?-dir:an>bn?dir:0; });
+        }
+        clearSelections();
+        updateUI(); triggerUpdate();
+    }
+    function sortPlacedAreas() {
+        const page = getActivePage();
+        _sortPlacedArray(page.shapes, 'areas', s => s.name, s => s.type === 'area');
+    }
+    function sortPlacedObs() {
+        const page = getActivePage();
+        _sortPlacedArray(page.shapes, 'obs', s => s.name, s => s.type === 'obs' || s.type === 'aisle');
+    }
+    function sortPlacedScreens() {
+        const page = getActivePage();
+        _sortPlacedArray(page.screens, 'screens', s => s.name);
+    }
+    function sortPlacedTexts() {
+        const page = getActivePage();
+        _sortPlacedArray(page.texts, 'texts', s => s.text);
+    }
+    function sortPlacedSigns() {
+        const page = getActivePage();
+        // Sort placed key items by their profile name.
+        _sortPlacedArray(page.signs, 'signs', s => { const st = project.signTypes[s.typeIndex ?? 0]; return st ? st.name : ''; });
+    }
+    let _seatSortDir = 1;
+    function sortSeatProfiles() {
+        if (project.seatTypes.length < 2) return;
+        saveState();
+        _seatSortDir = -_seatSortDir;
+        const dir = _seatSortDir;
+        const order = project.seatTypes.map((st, i) => i).sort((a, b) => {
+            const an = (project.seatTypes[a].name || '').toLowerCase();
+            const bn = (project.seatTypes[b].name || '').toLowerCase();
+            return an < bn ? -dir : an > bn ? dir : 0;
+        });
+        const remap = {}; order.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
+        project.seatTypes = order.map(oldIdx => project.seatTypes[oldIdx]);
+        project.pages.forEach(pg => { if (pg.shapes) pg.shapes.forEach(s => { if (s.type === 'area') s.seatTypeIndex = remap[s.seatTypeIndex ?? 0]; }); });
+        if (project.activeSeatType != null) project.activeSeatType = remap[project.activeSeatType] ?? 0;
+        if (uiState.hiddenSeatTypes) uiState.hiddenSeatTypes = uiState.hiddenSeatTypes.map(i => remap[i]).filter(i => i != null);
+        markSeatCachesDirty();
+        updateUI(); triggerUpdate();
+    }
 
     function moveSignProfile(i, dir) {
         const j = i + dir;
@@ -13052,6 +13193,53 @@ const I18N_STRINGS = {
             if (_collapsedSignGroups.has(a) && !_collapsedSignGroups.has(b)) { _collapsedSignGroups.delete(a); _collapsedSignGroups.add(b); }
             else if (_collapsedSignGroups.has(b) && !_collapsedSignGroups.has(a)) { _collapsedSignGroups.delete(b); _collapsedSignGroups.add(a); }
         });
+        updateUI(); triggerUpdate();
+    }
+    // Sort point profiles by name (A–Z / Z–A) and remap every index reference
+    // so placed items, active selection, hidden set, and collapsed set follow.
+    let _measureSortDir = 1;
+    function sortMeasureProfiles() {
+        if (project.measureTypes.length < 2) return;
+        saveState();
+        _measureSortDir = -_measureSortDir;
+        const dir = _measureSortDir;
+        const order = project.measureTypes.map((st, i) => i).sort((a, b) => {
+            const an = (project.measureTypes[a].name || '').toLowerCase();
+            const bn = (project.measureTypes[b].name || '').toLowerCase();
+            return an < bn ? -dir : an > bn ? dir : 0;
+        });
+        const remap = {}; order.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
+        project.measureTypes = order.map(oldIdx => project.measureTypes[oldIdx]);
+        project.pages.forEach(pg => { if (pg.measures) pg.measures.forEach(m => { m.typeIndex = remap[m.typeIndex ?? 0]; }); });
+        if (project.activeMeasureType != null) project.activeMeasureType = remap[project.activeMeasureType] ?? 0;
+        if (uiState.hiddenMeasureTypes) uiState.hiddenMeasureTypes = uiState.hiddenMeasureTypes.map(i => remap[i]).filter(i => i != null);
+        if (_collapsedMeasureGroups && _collapsedMeasureGroups.size) {
+            const ns = []; _collapsedMeasureGroups.forEach(i => { if (remap[i] != null) ns.push(remap[i]); });
+            _collapsedMeasureGroups.clear(); ns.forEach(i => _collapsedMeasureGroups.add(i));
+        }
+        updateUI(); triggerUpdate();
+    }
+    let _signSortDir = 1;
+    function sortSignProfiles() {
+        if (project.signTypes.length < 2) return;
+        saveState();
+        _signSortDir = -_signSortDir;
+        const dir = _signSortDir;
+        const order = project.signTypes.map((st, i) => i).sort((a, b) => {
+            const an = (project.signTypes[a].name || '').toLowerCase();
+            const bn = (project.signTypes[b].name || '').toLowerCase();
+            return an < bn ? -dir : an > bn ? dir : 0;
+        });
+        // old index -> new index
+        const remap = {}; order.forEach((oldIdx, newIdx) => { remap[oldIdx] = newIdx; });
+        project.signTypes = order.map(oldIdx => project.signTypes[oldIdx]);
+        project.pages.forEach(pg => { if (pg.signs) pg.signs.forEach(s => { s.typeIndex = remap[s.typeIndex ?? 0]; }); });
+        if (project.activeSignType != null) project.activeSignType = remap[project.activeSignType] ?? 0;
+        if (uiState.hiddenSignTypes) uiState.hiddenSignTypes = uiState.hiddenSignTypes.map(i => remap[i]).filter(i => i != null);
+        if (_collapsedSignGroups && _collapsedSignGroups.size) {
+            const ns = []; _collapsedSignGroups.forEach(i => { if (remap[i] != null) ns.push(remap[i]); });
+            _collapsedSignGroups.clear(); ns.forEach(i => _collapsedSignGroups.add(i));
+        }
         updateUI(); triggerUpdate();
     }
 
