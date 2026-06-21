@@ -512,9 +512,11 @@
         }
         .list-item > span:first-child {
             flex: 1; min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            /* Wrap long placed-item names to additional lines instead of
+               cutting them off, so they’re readable without opening Edit. */
+            overflow-wrap: anywhere;
+            white-space: normal;
+            line-height: 1.25;
         }
         .list-item > div:last-child {
             flex-shrink: 0;
@@ -5725,7 +5727,7 @@ const I18N_STRINGS = {
 
             return `<li class="list-item" data-item-kind="attendant" data-item-index="${realIdx}" onclick="_sidebarRowClick(event, 'attendant', ${realIdx})" style="flex-direction: column; align-items: stretch; border-left: 4px solid ${escapeHTML(at.dotColor)}${extraStyle ? '; ' + extraStyle : ''};">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                    <span style="font-size: 0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${scopeLabel} <strong>${escapeHTML(p.number || '?')}</strong> — ${escapeHTML(p.description || t('att.post.no_description'))}${isOverridden ? ' <span style="color:#f1c40f; font-size:0.8em;" title="This post has style overrides">⚙</span>' : ''}</span>
+                    <span style="font-size: 0.85em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">${scopeLabel} <strong>${escapeHTML(p.number || '?')}</strong> — ${escapeHTML(p.description || t('att.post.no_description'))}${isOverridden ? ' <span style="color:#f1c40f; font-size:0.8em;" title="This post has style overrides">⚙</span>' : ''}</span>
                     <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                         ${reorderArrowsHTMLEx('movePost', realIdx, hasPrev, hasNext)}
                         <button class="icon-btn" onclick="event.stopPropagation(); editAttendantPostMeta(${realIdx})" title="${escapeHTML(t('modal.post.edit.title'))}">✎</button>
@@ -5771,7 +5773,7 @@ const I18N_STRINGS = {
 
                 postsEl.innerHTML += `<li class="list-item measure-group-header" data-attendant-group="${typeIdx}" onclick="toggleAttendantGroupCollapsed(${typeIdx})" style="flex-direction:column; align-items:stretch; background:#2c2c30; border-left:6px solid ${escapeHTML(at.dotColor)}; cursor:pointer; ${isHidden ? 'opacity:0.55;' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                        <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <span style="font-size:0.9em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">
                             ${chevron} <strong>● ${escapeHTML(at.name)}</strong>
                             <span style="color:#999; font-weight:normal;"> · ${group.length}</span>
                         </span>
@@ -7670,7 +7672,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.4.2";
+    const APP_VERSION = "2.5.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7975,7 +7977,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.4.2-release";
+    const ANNOUNCEMENT_VERSION = "2.5.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7983,6 +7985,29 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.5.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>A cleaner sidebar, sorting everywhere, and callout improvements:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Streamlined sidebar.</strong> Each category now has a single <em>+ New</em> button with a dropdown, and creating a profile opens its full options in one step — no more name-only-then-edit. Placed-item lists start collapsed so the panel stays tidy, and long names now wrap fully instead of getting cut off.</li>
+                    <li><strong>Sort your lists.</strong> Profile lists and placed-item lists have a sort toggle (⇅) — click to order A–Z, click again for Z–A. Available across Key Items, Seating, Cutouts, Screens, and Annotations.</li>
+                    <li><strong>Jump to the selected item.</strong> Selecting something on the drawing now reliably switches to the right category, expands its group, and scrolls the sidebar to highlight it — including annotations, which previously got hidden behind other lists.</li>
+                    <li><strong>Callout fixes.</strong> The callout box now prints at the same size it shows on screen (text is measured properly instead of estimated). And you can now click the box corners of a selected callout to choose which corner the leader line attaches to.</li>
+                    <li><strong>Export label fix.</strong> The "Kind" column in the Key Items export now reads <em>Key Item</em> instead of the old internal "Sign".</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Una barra lateral más limpia, ordenamiento en todas partes y mejoras en las llamadas:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Barra lateral simplificada.</strong> Cada categoría ahora tiene un solo botón <em>+ Nuevo</em> con menú desplegable, y crear un perfil abre todas sus opciones en un solo paso. Las listas de elementos colocados empiezan contraídas para mantener el panel ordenado, y los nombres largos ahora se ajustan completos en vez de cortarse.</li>
+                    <li><strong>Ordene sus listas.</strong> Las listas de perfiles y de elementos colocados tienen un botón de orden (⇅) — clic para ordenar A–Z, otro clic para Z–A. Disponible en Artículos Clave, Asientos, Recortes, Pantallas y Anotaciones.</li>
+                    <li><strong>Salte al elemento seleccionado.</strong> Seleccionar algo en el dibujo ahora cambia a la categoría correcta, expande su grupo y desplaza la barra lateral para resaltarlo — incluidas las anotaciones, que antes quedaban ocultas detrás de otras listas.</li>
+                    <li><strong>Correcciones de llamadas.</strong> El cuadro de la llamada ahora se imprime del mismo tamaño que se ve en pantalla (el texto se mide correctamente). Y ahora puede hacer clic en las esquinas del cuadro de una llamada seleccionada para elegir a qué esquina se conecta la línea guía.</li>
+                    <li><strong>Corrección de etiqueta de exportación.</strong> La columna "Tipo" en la exportación de Artículos Clave ahora muestra <em>Artículo Clave</em> en vez del antiguo "Letrero" interno.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.4.2",
             en: `
@@ -8929,6 +8954,25 @@ const I18N_STRINGS = {
         document.querySelectorAll('.list-item.selected').forEach(el => el.classList.remove('selected'));
         const sel = getSelectedItem();
         if (!sel) return;
+        // Placed-item lists are only built for the ACTIVE tab. If the selected
+        // item belongs to a different category tab, switch to it first so its
+        // row gets rendered, then re-run sync (setTab re-renders the panel).
+        {
+            const kindTab = {
+                screen: 'screen', sign: 'sign', measure: 'sign',
+                line: 'annotate', text: 'annotate', attendant: 'attendants'
+            };
+            let wantTab = kindTab[sel.kind];
+            if (sel.kind === 'shape') {
+                const sh = getActivePage().shapes[sel.index];
+                wantTab = (sh && (sh.type === 'obs' || sh.type === 'aisle')) ? 'obs' : 'area';
+            }
+            if (wantTab && typeof activeTab !== 'undefined' && activeTab !== wantTab) {
+                setTab(wantTab);
+                Promise.resolve().then(() => { syncSidebarSelection(); });
+                return;
+            }
+        }
         // For attendant posts, the sidebar list filters by active page AND
         // active shift (for shift-scope posts). If the selected post is on
         // another page or in a different shift, the sidebar wouldn't render it.
@@ -8960,6 +9004,26 @@ const I18N_STRINGS = {
                 }
             }
         }
+        // Placed sign/measure/seat rows live inside collapsible TYPE groups.
+        // A collapsed group doesn't render its child rows into the DOM, so the
+        // row wouldn't be found. Expand the selected item's group first, then
+        // re-render and re-run sync so the row exists before we scroll to it.
+        {
+            const page = getActivePage();
+            let grpSet = null, grpKey = null;
+            if (sel.kind === 'sign' && page.signs && page.signs[sel.index]) {
+                grpSet = _collapsedSignGroups; grpKey = page.signs[sel.index].typeIndex ?? 0;
+            } else if (sel.kind === 'measure' && page.measures && page.measures[sel.index]) {
+                grpSet = _collapsedMeasureGroups; grpKey = page.measures[sel.index].typeIndex ?? 0;
+            } else if (sel.kind === 'shape' && page.shapes && page.shapes[sel.index] && page.shapes[sel.index].type === 'area') {
+                grpSet = _collapsedSeatGroups; grpKey = page.shapes[sel.index].seatTypeIndex ?? 0;
+            }
+            if (grpSet && grpKey != null && grpSet.has(grpKey)) {
+                grpSet.delete(grpKey);
+                Promise.resolve().then(() => { updateUI(); });
+                return;
+            }
+        }
         // Find the matching row by data attributes set in each list builder.
         const row = document.querySelector(`.list-item[data-item-kind="${sel.kind}"][data-item-index="${sel.index}"]`);
         if (!row) return;
@@ -8967,17 +9031,39 @@ const I18N_STRINGS = {
         // Auto-expand any collapsed parent .collapse-body so the row's section
         // shows. Walk up the tree; expand every collapsed wrapper.
         let parent = row.parentElement;
+        let revealedGrowSection = null;
         while (parent && parent !== document.body) {
             if (parent.classList && parent.classList.contains('collapse-body') && parent.classList.contains('collapsed')) {
                 parent.classList.remove('collapsed');
-                // Also un-collapse its matching header so the chevron rotates.
                 const headerId = parent.id;
                 if (headerId) {
                     const header = document.querySelector(`.collapse-header[data-collapse-target="${headerId}"]`);
                     if (header) header.classList.remove('collapsed');
                 }
             }
+            // Sync the grow-section wrapper's flex state so it claims space
+            // (matches what toggleCollapse does on a manual click).
+            if (parent.classList && parent.classList.contains('grow-section')) {
+                parent.classList.remove('body-collapsed');
+                revealedGrowSection = parent;
+            }
             parent = parent.parentElement;
+        }
+        // Collapse SIBLING grow-sections in the same container so the revealed
+        // section isn't squeezed/overlapped by a long sibling list. Each sibling
+        // keeps its header but yields the vertical space.
+        if (revealedGrowSection && revealedGrowSection.parentElement) {
+            Array.from(revealedGrowSection.parentElement.children).forEach(sib => {
+                if (sib !== revealedGrowSection && sib.classList && sib.classList.contains('grow-section') && !sib.classList.contains('body-collapsed')) {
+                    const sibBody = sib.querySelector(':scope > .collapse-body');
+                    const sibHeader = sib.querySelector(':scope > .collapse-header');
+                    if (sibBody && !sibBody.classList.contains('collapsed')) {
+                        sibBody.classList.add('collapsed');
+                        if (sibHeader) sibHeader.classList.add('collapsed');
+                        sib.classList.add('body-collapsed');
+                    }
+                }
+            });
         }
         // Scroll into view only if the row isn't already on screen. Using
         // getBoundingClientRect against the nearest scrollable ancestor (the
@@ -9397,7 +9483,7 @@ const I18N_STRINGS = {
 
                 el.innerHTML += `<li class="list-item measure-group-header" data-seat-group="${stIdx}" onclick="toggleSeatGroupCollapsed(${stIdx})" style="flex-direction:column; align-items:stretch; background:#2c2c30; border-left:6px solid ${escapeHTML(st.stroke)}; cursor:pointer; ${isHidden ? 'opacity:0.55;' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                        <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <span style="font-size:0.9em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">
                             ${chevron} <strong>🪑 ${escapeHTML(st.name)}</strong>
                             <span style="color:#999; font-weight:normal;"> · ${instances.length}</span>
                         </span>
@@ -9480,7 +9566,7 @@ const I18N_STRINGS = {
 
                     el.innerHTML += `<li class="list-item measure-group-header" data-sign-group="${typeIdx}" onclick="toggleSignGroupCollapsed(${typeIdx})" style="flex-direction:column; align-items:stretch; background:#2c2c30; border-left:6px solid ${escapeHTML(st.color)}; cursor:pointer; ${isHidden ? 'opacity:0.55;' : ''}">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                            <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <span style="font-size:0.9em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">
                                 ${chevron} <strong>📍 ${escapeHTML(st.name)}</strong>
                                 <span style="color:#999; font-weight:normal;"> · ${instances.length}</span>
                             </span>
@@ -9493,7 +9579,7 @@ const I18N_STRINGS = {
                     if (isCollapsed) continue;
                     instances.forEach(({ s, i }) => {
                         el.innerHTML += `<li class="list-item ${getActivePage().signs[i] && !itemIsCounted(getActivePage().signs[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="sign" data-item-index="${i}" onclick="_sidebarRowClick(event, 'sign', ${i})" style="padding-left:18px; border-left:4px solid ${escapeHTML(st.color)}66;">
-                            <span style="font-size: 0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ddd;">📍 #${i + 1}</span>
+                            <span style="font-size: 0.85em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25; color:#ddd;">📍 #${i + 1}</span>
                             <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                                 <button class="icon-btn" onclick="event.stopPropagation(); editItem('sign', ${i}, this)" title="${escapeHTML(t('common.edit'))}">✎</button>
                                 <button class="icon-btn" onclick="event.stopPropagation(); deleteSign(${i})">✕</button>
@@ -9548,7 +9634,7 @@ const I18N_STRINGS = {
                 // group order is fixed to measureType order.
                 el.innerHTML += `<li class="list-item measure-group-header" data-measure-group="${typeIdx}" onclick="toggleMeasureGroupCollapsed(${typeIdx})" style="flex-direction:column; align-items:stretch; background:#2c2c30; border-left:6px solid ${escapeHTML(mt.color)}; cursor:pointer; ${isHidden ? 'opacity:0.55;' : ''}">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                        <span style="font-size:0.9em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <span style="font-size:0.9em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">
                             ${chevron} <strong>${escapeHTML(mt.name)}</strong>
                             <span style="color:#999; font-weight:normal;"> · ${g.count} · ${escapeHTML(totalStr)}</span>
                         </span>
@@ -9596,7 +9682,7 @@ const I18N_STRINGS = {
 
                     el.innerHTML += `<li class="list-item measure-instance ${getActivePage().measures[i] && !itemIsCounted(getActivePage().measures[i], getActivePage()) ? 'nc-row' : ''}" data-item-kind="measure" data-item-index="${i}" onclick="_sidebarRowClick(event, 'measure', ${i})" style="flex-direction:column; align-items:stretch; padding-left:18px; border-left:4px solid ${escapeHTML(mt.color)}66;">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                            <span style="font-size:0.85em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ddd;">${overrideMark}〰️ ${escapeHTML(lenStr)}</span>
+                            <span style="font-size:0.85em; flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25; color:#ddd;">${overrideMark}〰️ ${escapeHTML(lenStr)}</span>
                             <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
                                 <button class="icon-btn" title="${escapeHTML(instEyeTitle)}" onclick="event.stopPropagation(); toggleMeasureLabel(${i})">${instEyeIcon}</button>
                                 ${resetBtn}
@@ -12537,6 +12623,27 @@ const I18N_STRINGS = {
                     multiSel = [];
                 }
             }
+            // Callout corner-attach: clicking a corner handle of the selected
+            // callout moves the leader's attach point there (box stays put).
+            if (selectedLineIndex !== -1) {
+                const _cl = page.lines[selectedLineIndex];
+                if (_cl && _cl.type === 'callout' && _cl.points.length === 2) {
+                    const _lp = _cl.points[1];
+                    const _fs = _cl.labelSize || 16, _pad = _fs * 0.4;
+                    measureCtx.font = `${_fs}px Arial`;
+                    const _lns = (_cl.text || '').split('\n');
+                    let _mw = 0; _lns.forEach(ln => { const m = measureCtx.measureText(ln).width; if (m > _mw) _mw = m; });
+                    const _bw = _mw + _pad * 2, _bh = _lns.length * _fs * 1.2 + _pad * 2;
+                    const _cns = [ {x:_lp.x,y:_lp.y}, {x:_lp.x+_bw,y:_lp.y}, {x:_lp.x+_bw,y:_lp.y+_bh}, {x:_lp.x,y:_lp.y+_bh} ];
+                    const _gr = 8 / view.zoom;
+                    for (let ci = 0; ci < 4; ci++) {
+                        if (Math.hypot(world.x - _cns[ci].x, world.y - _cns[ci].y) <= _gr) {
+                            if ((_cl.attachCorner || 0) !== ci) { saveState(); _cl.attachCorner = ci; triggerUpdate(); }
+                            return;
+                        }
+                    }
+                }
+            }
             const hitPt = getHitShapePoint(world);
             if (hitPt !== -1) { isDraggingShapePoint = true; project.draggingShapePointTarget = hitPt.type; draggingShapePointIndex = hitPt.i; saveState(); return; }
 
@@ -14161,13 +14268,25 @@ const I18N_STRINGS = {
                 // label text in a bordered card sitting at the label position.
                 if (l.type === 'callout' && l.points.length === 2) {
                     const anchor = l.points[0], labelPt = l.points[1];
-                    // Skip drawing the canvas text if this callout is being
-                    // inline-edited — the overlay textarea provides the visible text.
                     const isEditingThis = (isLive && _calloutEditingIndex === i);
-                    // Leader line
+                    // Box size (needed up front so the leader can attach to a corner).
+                    const _cFs = l.labelSize || 16, _cPad = _cFs * 0.4;
+                    targetCtx.font = `${_cFs}px Arial`;
+                    const _cLines = (l.text || '').split('\n');
+                    let _cMaxW = 0; _cLines.forEach(ln => { const m = targetCtx.measureText(ln).width; if (m > _cMaxW) _cMaxW = m; });
+                    const _cBoxW = _cMaxW + _cPad * 2, _cBoxH = _cLines.length * _cFs * 1.2 + _cPad * 2;
+                    // The 4 box corners (0=TL,1=TR,2=BR,3=BL); leader attaches to attachCorner.
+                    const _corners = [
+                        { x: labelPt.x, y: labelPt.y },
+                        { x: labelPt.x + _cBoxW, y: labelPt.y },
+                        { x: labelPt.x + _cBoxW, y: labelPt.y + _cBoxH },
+                        { x: labelPt.x, y: labelPt.y + _cBoxH }
+                    ];
+                    const _attach = _corners[l.attachCorner || 0];
+                    // Leader line to the chosen corner.
                     targetCtx.beginPath();
                     targetCtx.moveTo(anchor.x, anchor.y);
-                    targetCtx.lineTo(labelPt.x, labelPt.y);
+                    targetCtx.lineTo(_attach.x, _attach.y);
                     targetCtx.stroke();
                     // Small dot at anchor — the "pointed-at" marker
                     targetCtx.beginPath();
@@ -14175,27 +14294,26 @@ const I18N_STRINGS = {
                     targetCtx.fillStyle = activeColor;
                     targetCtx.fill();
                     if (!isEditingThis) {
-                        // Label box. Measure text to size it.
-                        const fontSize = l.labelSize || 16;
-                        const padding = fontSize * 0.4;
-                        targetCtx.font = `${fontSize}px Arial`;
-                        const lines = (l.text || '').split('\n');
-                        let maxW = 0;
-                        lines.forEach(ln => { const m = targetCtx.measureText(ln).width; if (m > maxW) maxW = m; });
-                        const boxW = maxW + padding * 2;
-                        const boxH = lines.length * fontSize * 1.2 + padding * 2;
-                        // Anchor box at labelPt's top-left
                         targetCtx.fillStyle = 'rgba(255,255,255,0.95)';
-                        targetCtx.fillRect(labelPt.x, labelPt.y, boxW, boxH);
-                        targetCtx.strokeRect(labelPt.x, labelPt.y, boxW, boxH);
-                        // Text
+                        targetCtx.fillRect(labelPt.x, labelPt.y, _cBoxW, _cBoxH);
+                        targetCtx.strokeRect(labelPt.x, labelPt.y, _cBoxW, _cBoxH);
                         targetCtx.fillStyle = activeColor;
                         targetCtx.textAlign = 'left'; targetCtx.textBaseline = 'top';
-                        lines.forEach((ln, i2) => {
-                            targetCtx.fillText(ln, labelPt.x + padding, labelPt.y + padding + i2 * fontSize * 1.2);
+                        _cLines.forEach((ln, i2) => {
+                            targetCtx.fillText(ln, labelPt.x + _cPad, labelPt.y + _cPad + i2 * _cFs * 1.2);
                         });
                     }
-                    if (isSelected) { l.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 5 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); }); }
+                    if (isSelected) {
+                        // Anchor + labelPt drag handles.
+                        l.points.forEach(p => { targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 5 / v.zoom, 0, Math.PI * 2); targetCtx.fillStyle = "white"; targetCtx.fill(); targetCtx.lineWidth = 2 / v.zoom; targetCtx.strokeStyle = "#2ecc71"; targetCtx.stroke(); });
+                        // Corner attach handles: click one to move the leader there.
+                        _corners.forEach((cn, ci) => {
+                            const on = (ci === (l.attachCorner || 0));
+                            targetCtx.beginPath(); targetCtx.arc(cn.x, cn.y, 4 / v.zoom, 0, Math.PI * 2);
+                            targetCtx.fillStyle = on ? '#2ecc71' : 'white';
+                            targetCtx.fill(); targetCtx.lineWidth = 1.5 / v.zoom; targetCtx.strokeStyle = '#2ecc71'; targetCtx.stroke();
+                        });
+                    }
                     return;
                 }
 
@@ -16348,12 +16466,18 @@ const I18N_STRINGS = {
                 }
                 if (l.type === 'callout' && l.points.length === 2) {
                     const a = l.points[0], lp = l.points[1];
-                    vPath(`M ${a.x} ${a.y} L ${lp.x} ${lp.y}`, { borderColor: _pdfColor(color), borderWidth: thick });
-                    out.drawCircle({ x: PX(a.x), y: PY(a.y), size: 3 * s2, color: _pdfColor(color) });
                     const fs = l.labelSize || 16, padding = fs * 0.4;
                     const lines = (l.text || '').split('\n');
-                    let maxLen = 0; lines.forEach(ln => { if (ln.length > maxLen) maxLen = ln.length; });
-                    const boxW = maxLen * fs * 0.55 + padding * 2, boxH = lines.length * fs * 1.2 + padding * 2;
+                    // Measure actual text width (same method as the on-screen
+                    // render) so the export box matches the screen box exactly.
+                    measureCtx.font = `${fs}px Arial`;
+                    let maxW = 0; lines.forEach(ln => { const m = measureCtx.measureText(ln).width; if (m > maxW) maxW = m; });
+                    const boxW = maxW + padding * 2, boxH = lines.length * fs * 1.2 + padding * 2;
+                    // Leader attaches to the chosen corner (0=TL,1=TR,2=BR,3=BL).
+                    const _ecns = [ {x:lp.x,y:lp.y}, {x:lp.x+boxW,y:lp.y}, {x:lp.x+boxW,y:lp.y+boxH}, {x:lp.x,y:lp.y+boxH} ];
+                    const _eat = _ecns[l.attachCorner || 0];
+                    vPath(`M ${a.x} ${a.y} L ${_eat.x} ${_eat.y}`, { borderColor: _pdfColor(color), borderWidth: thick });
+                    out.drawCircle({ x: PX(a.x), y: PY(a.y), size: 3 * s2, color: _pdfColor(color) });
                     out.drawRectangle({ x: PX(lp.x), y: PY(lp.y + boxH), width: boxW * s2, height: boxH * s2, color: PDFLib.rgb(1, 1, 1), opacity: 0.95, borderColor: _pdfColor(color), borderWidth: thick * s2 });
                     lines.forEach((ln, i2) => { vText(ln, lp.x + padding, lp.y + padding + (i2 + 0.85) * fs * 1.2, fs, { fill: color, anchor: 'start', bold: false }); });
                     return;
