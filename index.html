@@ -533,6 +533,16 @@
             padding: 9px 14px; font-size: 0.85em; font-weight: 600; color: #fff;
             background: var(--accent); border: none; border-radius: 5px; cursor: pointer; transition: filter 0.12s; }
         .btn-new-menu:hover { filter: brightness(1.12); }
+        /* Layer category buttons (list style) + hidden-items indicator. */
+        .layer-cat-btn { display: flex; align-items: center; gap: 8px; width: 100%;
+            padding: 9px 10px; background: #2d2d30; border: 1px solid #444; border-radius: 5px;
+            color: #eee; font-size: 0.85em; cursor: pointer; text-align: left; transition: background 0.12s, border-color 0.12s; }
+        .layer-cat-btn:hover { background: #3a3a3e; border-color: #666; }
+        .layer-cat-emoji { flex-shrink: 0; font-size: 1.1em; }
+        .layer-cat-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .layer-cat-arrow { flex-shrink: 0; opacity: 0.5; font-size: 1.2em; }
+        .layer-cat-indicator { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--warning); box-shadow: 0 0 4px var(--warning); }
         .btn-new-menu .caret { font-size: 0.8em; opacity: 0.85; }
         #panel-create-menu {
             position: fixed; display: none; min-width: 190px;
@@ -905,6 +915,15 @@
 <div id="canvas-ctx-menu"></div>
 <div id="panel-create-menu"></div>
 
+<div id="layer-category-modal" class="modal-overlay as-popup" onclick="if(event.target===this) hideLayerCategoryModal()">
+    <div class="modal-card" style="max-width: 360px;">
+        <h2 id="layer-category-modal-title" style="margin-top:0;">Category</h2>
+        <div id="layer-category-modal-body" style="display:flex; flex-direction:column; gap:2px; max-height:60vh; overflow-y:auto;"></div>
+        <div class="modal-actions">
+            <button onclick="hideLayerCategoryModal()" data-i18n="common.close">Close</button>
+        </div>
+    </div>
+</div>
 <div id="schedule-viewer-modal" class="modal-overlay" onclick="if(event.target===this) hideScheduleViewer()">
     <div class="modal-card wide" role="dialog" aria-labelledby="schedule-viewer-title">
         <div class="schedule-viewer-header">
@@ -1321,6 +1340,10 @@
             </div>
         </div>
 
+        <div id="item-edit-layer-group" style="margin-bottom:10px;">
+            <label style="font-size: 0.85em; color: #ccc; display:block; margin-bottom:4px;" data-i18n="modal.item_edit.layer">Project Layer</label>
+            <select id="item-edit-layer" class="text-input-dark" style="width:100%;"></select>
+        </div>
         <label id="item-edit-nocount-group" class="layer-toggle" style="display:none; margin-bottom:10px; align-items:center; gap:8px;"><input type="checkbox" id="item-edit-nocount" style="width:auto; margin:0;"> <span data-i18n="modal.item_edit.nocount">Not counted — exclude from totals</span></label>
         <div id="item-edit-nocount-hint" style="display:none; font-size:0.75em; color:#f1c40f; margin:-4px 0 12px;" data-i18n="modal.item_edit.nocount_page_hint">This page is a reference sheet, so every item on it is already excluded.</div>
         <div class="modal-actions">
@@ -2340,51 +2363,20 @@
 
         <div id="panel-layers" class="panel-content">
             <div class="panel-tools" style="padding-bottom: 8px;">
-                <div class="collapse-header" data-collapse-target="display-modes-body" onclick="toggleCollapse(this)">
-                    <span class="title" style="color: var(--warning);" data-i18n="layers.global_header">Global Display Modes</span>
-                    <span class="chevron">▼</span>
+                <div class="collapse-header collapsed" data-collapse-target="project-layers-body" onclick="toggleCollapse(this)">
+                    <span class="title" style="color: var(--accent);" data-i18n="layers.project_header">📚 Project Layers</span>
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <button class="icon-btn" title="Sort by name (A–Z / Z–A)" onclick="event.stopPropagation(); sortProjectLayers();">⇅</button>
+                        <span class="chevron">▼</span>
+                    </span>
                 </div>
-                <div id="display-modes-body" class="collapse-body">
-                    <div style="padding-top: 6px;">
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-sightlines" onchange="uiState.draftMode=!this.checked; markSeatCachesDirty(); triggerUpdate();">
-                            <span style="color: var(--warning);" data-i18n="layers.sightlines">👁️ Show A/V Sightline Colors</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-area-labels" onchange="uiState.showAreaLabels=this.checked; render();">
-                            <span data-i18n="layers.area_labels">🏷️ Show Area Labels & Counts</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-dim-nocount" onchange="uiState.dimNotCounted=this.checked; needsCacheUpdate=true; render();">
-                            <span data-i18n="layers.dim_nocount">Dim not-counted items</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-seat-legend" onchange="toggleSeatLegend(this.checked)">
-                            <span data-i18n="layers.seat_legend">📋 Show Seat Legend</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-marker-legend" onchange="toggleLegend(this.checked)">
-                            <span data-i18n="layers.marker_legend">📋 Show Key Item Legend</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-att-legend" onchange="toggleAttLegend(this.checked)">
-                            <span data-i18n="layers.att_legend">📋 Show Attendant Legend</span>
-                        </label>
-                        <label class="layer-toggle">
-                            <input type="checkbox" id="layer-shift-in-print" onchange="uiState.showShiftInPrint=this.checked;">
-                            <span data-i18n="layers.shift_in_print">🕒 Show Active Shift in Print Header</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="collapse-header" data-collapse-target="visibility-filters-body" onclick="toggleCollapse(this)" style="margin-top: 6px;">
-                    <span class="title" data-i18n="layers.filters_header">Visibility Filters</span>
-                    <span class="chevron">▼</span>
+                <div id="project-layers-body" class="collapse-body collapsed">
+                    <button class="btn-new-menu" style="width:100%; justify-content:center; margin-bottom:8px;" onclick="addProjectLayer()"><span data-i18n="layers.project.add">+ New Layer</span></button>
+                    <div id="project-layers-list"></div>
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;" id="layers-list-container-wrapper">
-                <div id="visibility-filters-body" class="collapse-body" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
-                    <div id="layers-list-container"></div>
-                </div>
+                <div id="layers-list-container" style="display:flex; flex-direction:column; gap:4px;"></div>
             </div>
         </div>
 
@@ -2674,6 +2666,27 @@ const I18N_STRINGS = {
         "layers.att_legend": "📋 Show Attendant Legend",
         "layers.shift_in_print": "🕒 Show Active Shift in Print Header",
         "layers.filters_header": "Visibility Filters",
+        "layers.cat.seating": "Seating",
+        "layers.cat.keyitems": "Key Items",
+        "layers.cat.screens": "Screens & Sightlines",
+        "layers.cat.measures": "Measures",
+        "layers.cat.cutouts": "Cutouts",
+        "layers.cat.annotations": "Annotations",
+        "layers.cat.attendants": "Attendants",
+        "layers.cat.display": "Display & Print",
+        "layers.has_hidden": "This category has hidden items",
+        "common.close": "Close",
+        "ctx.assign_layer": "Assign to Project Layer",
+        "layers.current_prefix": "Current:",
+        "layers.multiple": "Multiple",
+        "modal.item_edit.layer": "Project Layer",
+        "layers.project_header": "📚 Project Layers",
+        "layers.project.add": "+ New Layer",
+        "layers.project.new_name": "Layer",
+        "layers.project.rename_prompt": "Rename layer:",
+        "layers.project.delete_confirm": "Delete this layer? Its items will move to Unassigned.",
+        "layers.project.toggle_visible": "Show / hide layer",
+        "layers.project.toggle_locked": "Lock / unlock layer",
         "layers.all_seats": "🟩 All Seats",
         "layers.all_keyitems": "📍 All Key Items",
         "layers.all_screens": "🟨 A/V Screens",
@@ -3374,6 +3387,27 @@ const I18N_STRINGS = {
         "layers.att_legend": "📋 Mostrar Leyenda de Acomodadores",
         "layers.shift_in_print": "🕒 Mostrar Turno Activo en Encabezado de Impresión",
         "layers.filters_header": "Filtros de Visibilidad",
+        "layers.cat.seating": "Asientos",
+        "layers.cat.keyitems": "Artículos Clave",
+        "layers.cat.screens": "Pantallas y Líneas de Visión",
+        "layers.cat.measures": "Medidas",
+        "layers.cat.cutouts": "Recortes",
+        "layers.cat.annotations": "Anotaciones",
+        "layers.cat.attendants": "Asistentes",
+        "layers.cat.display": "Visualización e Impresión",
+        "layers.has_hidden": "Esta categoría tiene elementos ocultos",
+        "common.close": "Cerrar",
+        "ctx.assign_layer": "Asignar a Capa del Proyecto",
+        "layers.current_prefix": "Actual:",
+        "layers.multiple": "Múltiples",
+        "modal.item_edit.layer": "Capa del Proyecto",
+        "layers.project_header": "📚 Capas del Proyecto",
+        "layers.project.add": "+ Nueva Capa",
+        "layers.project.new_name": "Capa",
+        "layers.project.rename_prompt": "Renombrar capa:",
+        "layers.project.delete_confirm": "¿Eliminar esta capa? Sus elementos pasarán a Sin asignar.",
+        "layers.project.toggle_visible": "Mostrar / ocultar capa",
+        "layers.project.toggle_locked": "Bloquear / desbloquear capa",
         "layers.all_seats": "🔲 Todos los Asientos",
         "layers.all_keyitems": "📍 Todos los Artículos Claves",
         "layers.all_screens": "🔳 Pantallas A/V",
@@ -4171,9 +4205,12 @@ const I18N_STRINGS = {
         _createMenuOpts = options || [];
         const menu = document.getElementById('panel-create-menu');
         if (!menu) return;
-        menu.innerHTML = _createMenuOpts.map((o, i) =>
-            `<div class="ctx-menu-item" onclick="_runCreateMenu(${i})">${(o.labelKey ? escapeHTML(t(o.labelKey)) : '') || escapeHTML(o.fallback || '')}</div>`
-        ).join('');
+        menu.innerHTML = _createMenuOpts.map((o, i) => {
+            if (o.header) return `<div class="ctx-menu-header">${escapeHTML(o.header)}</div>`;
+            const label = (o.labelKey ? escapeHTML(t(o.labelKey)) : '') || escapeHTML(o.fallback || '');
+            const mark = o.marker ? `<span style="display:inline-block; width:1.1em;">${o.marker}</span>` : '<span style="display:inline-block; width:1.1em;"></span>';
+            return `<div class="ctx-menu-item" onclick="_runCreateMenu(${i})">${mark}${label}</div>`;
+        }).join('');
         const r = ev.currentTarget.getBoundingClientRect();
         menu.style.left = r.left + 'px';
         menu.style.top = (r.bottom + 4) + 'px';
@@ -4184,10 +4221,11 @@ const I18N_STRINGS = {
         }, 0);
     }
     function _runCreateMenu(i) {
+        const opt = _createMenuOpts[i];
+        if (!opt || opt.header) return; // header rows aren't actionable
         const menu = document.getElementById('panel-create-menu');
         if (menu) menu.classList.remove('show');
-        const opt = _createMenuOpts[i];
-        if (opt && typeof opt.fn === 'function') opt.fn();
+        if (typeof opt.fn === 'function') opt.fn();
     }
 
     function hideCtxMenu() {
@@ -4380,6 +4418,7 @@ const I18N_STRINGS = {
         if (!(item && item.kind === 'attendant') && !(page && page.excludeFromTotals)) {
             html += `<div class="ctx-menu-item" data-ctx-action="toggle-nocount">${escapeHTML(allNC ? t('ctx.include_counts') : t('ctx.exclude_counts'))}</div>`;
         }
+        html += `<div class="ctx-menu-item" data-ctx-action="assign-layer">${escapeHTML(t('ctx.assign_layer'))} \u203A</div>`;
         html += `<div class="ctx-menu-sep"></div>`;
         html += `<div class="ctx-menu-item danger" data-ctx-action="delete">${escapeHTML(t('ctx.delete'))}</div>`;
         ctxMenu.innerHTML = html;
@@ -4404,6 +4443,23 @@ const I18N_STRINGS = {
                 else if (action === 'edit-attendant') { editAttendantPostMeta(item.index); }
                 else if (action === 'duplicate') { duplicateSelectedItem(); }
                 else if (action === 'toggle-nocount') { setNotCountedOnSelection(!allNC); }
+                else if (action === 'assign-layer') {
+                    // Determine which layer(s) the current selection is on.
+                    const refs = getSelectionRefs();
+                    const page = getActivePage();
+                    const present = new Set();
+                    refs.forEach(r => { const arr = arrFor(page, r.kind); if (arr && arr[r.idx]) present.add(arr[r.idx].layerId || 0); });
+                    const multiple = present.size > 1;
+                    const single = present.size === 1 ? [...present][0] : null;
+                    const curName = multiple ? t('layers.multiple') : (single != null ? (getLayerById(single).name) : '');
+                    const opts = [{ header: t('layers.current_prefix') + ' ' + curName }];
+                    getProjectLayers().forEach(L => {
+                        const marker = present.has(L.id) ? (multiple ? '\u2022' : '\u2713') : '';
+                        opts.push({ fallback: L.name, marker, fn: () => setLayerOnSelection(L.id) });
+                    });
+                    const ev2 = { stopPropagation: () => {}, currentTarget: { getBoundingClientRect: () => ({ left: clientX, bottom: clientY, right: clientX, top: clientY }) } };
+                    showCreateMenu(ev2, opts);
+                }
                 else if (action === 'delete') { if (isGroup) deleteSelection(); else deleteSelectedItem(); }
                 else if (action === 'add-vertex' && _vtxAction) {
                     saveState();
@@ -4508,6 +4564,10 @@ const I18N_STRINGS = {
     let project = {
         title: "New Project", 
         logoData: null,
+        // Project Layers: per-project, shared across all pages. Every item has
+        // a layerId; id 0 ("Unassigned") always exists and can't be deleted.
+        projectLayers: [{ id: 0, name: "Unassigned", visible: true, locked: false }],
+        nextLayerId: 1,
         seatTypes: [{ name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }],
         signTypes: [{ name: "Default Point", color: '#e74c3c', size: 20, label: "1" }],
         measureTypes: [{ name: "Tall pipe and drape", color: '#9b59b6', thickness: 4, labelSize: 13, showLabels: true }],
@@ -7672,7 +7732,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.5.0";
+    const APP_VERSION = "2.6.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7977,7 +8037,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.5.0-release";
+    const ANNOUNCEMENT_VERSION = "2.6.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -7985,6 +8045,27 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.6.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Introducing Project Layers — plus a reorganized Layers panel and export fixes:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Project Layers.</strong> Create named layers and assign any item to one. Open the Layers tab to add layers, then assign items either from an item’s Edit Properties or by selecting several, right-clicking, and choosing <em>Assign to Project Layer</em> (the menu shows the current assignment, or “Multiple” for a mixed selection). Toggle a layer’s visibility to hide its items everywhere — on screen, in exports, and in the count totals/legends. Lock a layer to keep its items visible but protected from selection or accidental edits.</li>
+                    <li><strong>Reorganized Layers panel.</strong> The old Global / Visibility split is gone. Visibility is now grouped by category — Seating, Key Items, Screens &amp; Sightlines, Measures, Cutouts, Annotations, Attendants, and Display &amp; Print. Click a category to open its toggles in a quick modal; a small dot marks any category that currently has hidden items.</li>
+                    <li><strong>Shift while editing.</strong> Holding <em>Shift</em> now keeps shapes constrained when you adjust them after placement, not just while drawing — squares stay square, circles stay round, and lines stay straight (including on rotated boxes and ellipses).</li>
+                    <li><strong>Tighter fit-to-page.</strong> Fit-to-page exports now use a smaller margin so the drawing fills more of the sheet, with no distortion. Scaled exports are unchanged in size and now sit flush to the page origin so a same-size, same-scale export overlays the source sheet exactly.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Presentamos las Capas del Proyecto — con un panel de Capas reorganizado y correcciones de exportación:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Capas del Proyecto.</strong> Cree capas con nombre y asigne cualquier elemento a una. Abra la pestaña Capas para agregar capas, luego asigne elementos desde Editar Propiedades de un elemento o seleccionando varios, haciendo clic derecho y eligiendo <em>Asignar a Capa del Proyecto</em> (el menú muestra la asignación actual, o “Múltiples” para una selección mixta). Alterne la visibilidad de una capa para ocultar sus elementos en todas partes — en pantalla, en exportaciones y en los totales/leyendas de conteo. Bloquee una capa para mantener sus elementos visibles pero protegidos de selección o ediciones accidentales.</li>
+                    <li><strong>Panel de Capas reorganizado.</strong> La antigua división Global / Visibilidad ya no existe. La visibilidad ahora se agrupa por categoría — Asientos, Artículos Clave, Pantallas y Líneas de Visión, Medidas, Recortes, Anotaciones, Asistentes, y Visualización e Impresión. Haga clic en una categoría para abrir sus controles en una ventana rápida; un punto pequeño marca cualquier categoría que tenga elementos ocultos.</li>
+                    <li><strong>Shift al editar.</strong> Mantener <em>Shift</em> ahora mantiene las formas restringidas cuando las ajusta después de colocarlas, no solo al dibujar — los cuadrados siguen siendo cuadrados, los círculos redondos y las líneas rectas (incluso en cajas y elipses rotadas).</li>
+                    <li><strong>Ajuste a página más ceñido.</strong> Las exportaciones de ajuste a página ahora usan un margen más pequeño para que el dibujo llene más la hoja, sin distorsión. Las exportaciones a escala mantienen su tamaño y ahora se alinean al origen de la página para que una exportación del mismo tamaño y escala se superponga exactamente a la hoja original.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.5.0",
             en: `
@@ -9188,47 +9269,123 @@ const I18N_STRINGS = {
         view.y = (h / 2) - anchor.y * view.zoom;
     }
     
-    function buildLayersPanel() {
-        const pActive = getActivePage();
-        document.getElementById('layer-sightlines').checked = !uiState.draftMode;
-        document.getElementById('layer-area-labels').checked = uiState.showAreaLabels !== false;
-        { const _dnc = document.getElementById('layer-dim-nocount'); if (_dnc) _dnc.checked = !!uiState.dimNotCounted; }
-        document.getElementById('layer-seat-legend').checked = pActive.seatLegend && pActive.seatLegend.show !== false;
-        document.getElementById('layer-marker-legend').checked = pActive.legend && pActive.legend.show !== false;
-        const layerAttLegend = document.getElementById('layer-att-legend');
-        if (layerAttLegend) layerAttLegend.checked = pActive.attLegend && pActive.attLegend.show !== false;
-        const layerShiftInPrint = document.getElementById('layer-shift-in-print');
-        if (layerShiftInPrint) layerShiftInPrint.checked = uiState.showShiftInPrint !== false;
-
+    function renderProjectLayers() {
+        const cont = document.getElementById('project-layers-list');
+        if (!cont) return;
+        const layers = getProjectLayers();
+        const counts = {};
+        const tally = (it) => { const id = it.layerId || 0; counts[id] = (counts[id] || 0) + 1; };
+        project.pages.forEach(pg => {
+            ['shapes','signs','measures','lines','texts','screens'].forEach(k => { if (Array.isArray(pg[k])) pg[k].forEach(tally); });
+            if (pg.attendants && Array.isArray(pg.attendants.posts)) pg.attendants.posts.forEach(tally);
+        });
         let html = '';
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showSeats ? 'checked' : ''} onchange="uiState.showSeats=this.checked; needsCacheUpdate=true; render();"> <span>${escapeHTML(t('layers.all_seats'))}</span></label>`;
-        html += `<div class="layer-sub-list">`;
-        project.seatTypes.forEach((st, i) => {
-            let checked = !uiState.hiddenSeatTypes.includes(i) ? 'checked' : '';
-            html += `<label class="layer-toggle" style="background:transparent; border:none; padding:4px 0;"><input type="checkbox" ${checked} onchange="toggleVis('seat', ${i}, this.checked)"> <span style="color:${escapeHTML(st.stroke)};">■ ${escapeHTML(st.name)}</span></label>`;
+        layers.forEach(layer => {
+            const n = counts[layer.id] || 0;
+            const isUnassigned = layer.id === 0;
+            const eye = layer.visible ? '\u{1F441}\uFE0F' : '\u{1F6AB}';
+            const lock = layer.locked ? '\u{1F512}' : '\u{1F513}';
+            html += `<div class="list-item" style="align-items:center;">`;
+            html += `<span style="flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; line-height:1.25;">${escapeHTML(layer.name)} <span class="badge">${n}</span></span>`;
+            html += `<div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">`;
+            html += `<button class="icon-btn" title="${escapeHTML(t('layers.project.toggle_visible'))}" onclick="event.stopPropagation(); toggleLayerVisible(${layer.id})">${eye}</button>`;
+            html += `<button class="icon-btn" title="${escapeHTML(t('layers.project.toggle_locked'))}" onclick="event.stopPropagation(); toggleLayerLocked(${layer.id})">${lock}</button>`;
+            if (!isUnassigned) {
+                html += `<button class="icon-btn" title="${escapeHTML(t('ctx.rename'))}" onclick="event.stopPropagation(); renameProjectLayer(${layer.id})">\u270E</button>`;
+                html += `<button class="icon-btn" title="Delete" onclick="event.stopPropagation(); deleteProjectLayer(${layer.id})">\u2715</button>`;
+            }
+            html += `</div></div>`;
         });
-        html += `</div>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showSigns ? 'checked' : ''} onchange="uiState.showSigns=this.checked; render();"> <span>${escapeHTML(t('layers.all_keyitems'))}</span></label>`;
-        html += `<div class="layer-sub-list">`;
-        project.signTypes.forEach((st, i) => {
-            let checked = !uiState.hiddenSignTypes.includes(i) ? 'checked' : '';
-            html += `<label class="layer-toggle" style="background:transparent; border:none; padding:4px 0;"><input type="checkbox" ${checked} onchange="toggleVis('sign', ${i}, this.checked)"> <span style="color:${escapeHTML(st.color)};">● ${escapeHTML(st.name)}</span></label>`;
+        cont.innerHTML = html;
+    }
+    // ─── Layer category modals ───────────────────────────────────────────
+    // Each category defines: a label, an emoji, a function returning its toggle
+    // rows, and a function reporting whether it currently has hidden items
+    // (drives the panel indicator). Toggles apply live.
+    function _layerToggleRow(label, checked, handler, colorDot) {
+        const dot = colorDot ? `<span style="color:${escapeHTML(colorDot)};">\u25CF </span>` : '';
+        return `<label class="layer-toggle"><input type="checkbox" ${checked ? 'checked' : ''} onchange="${handler}"> <span>${dot}${escapeHTML(label)}</span></label>`;
+    }
+    const LAYER_CATEGORIES = {
+        seating: { emoji: '\u{1FA91}', key: 'layers.cat.seating', fallback: 'Seating',
+            hidden: () => uiState.showSeats === false || (uiState.hiddenSeatTypes && uiState.hiddenSeatTypes.length > 0),
+            rows: () => { let h = _layerToggleRow(t('layers.all_seats'), uiState.showSeats, 'uiState.showSeats=this.checked; needsCacheUpdate=true; render(); openLayerCategory(_lastLayerCat);');
+                h += `<div class="layer-sub-list">`;
+                project.seatTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSeatTypes.includes(i), `toggleVis('seat', ${i}, this.checked); openLayerCategory(_lastLayerCat);`, st.stroke); });
+                h += `</div>`;
+                h += _layerToggleRow(t('layers.area_labels'), uiState.showAreaLabels !== false, 'uiState.showAreaLabels=this.checked; render();');
+                h += _layerToggleRow(t('layers.seat_legend'), getActivePage().seatLegend && getActivePage().seatLegend.show !== false, 'toggleSeatLegend(this.checked)');
+                return h; } },
+        keyitems: { emoji: '\u{1F4CD}', key: 'layers.cat.keyitems', fallback: 'Key Items',
+            hidden: () => uiState.showSigns === false || (uiState.hiddenSignTypes && uiState.hiddenSignTypes.length > 0),
+            rows: () => { let h = _layerToggleRow(t('layers.all_keyitems'), uiState.showSigns, 'uiState.showSigns=this.checked; render(); openLayerCategory(_lastLayerCat);');
+                h += `<div class="layer-sub-list">`;
+                project.signTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSignTypes.includes(i), `toggleVis('sign', ${i}, this.checked); openLayerCategory(_lastLayerCat);`, st.color); });
+                h += `</div>`;
+                h += _layerToggleRow(t('layers.marker_legend'), getActivePage().legend && getActivePage().legend.show !== false, 'toggleLegend(this.checked)');
+                return h; } },
+        screens: { emoji: '\u{1F5A5}', key: 'layers.cat.screens', fallback: 'Screens & Sightlines',
+            hidden: () => uiState.showScreens === false,
+            rows: () => _layerToggleRow(t('layers.all_screens'), uiState.showScreens, 'uiState.showScreens=this.checked; render(); openLayerCategory(_lastLayerCat);')
+                + _layerToggleRow(t('layers.sightlines'), !uiState.draftMode, 'uiState.draftMode=!this.checked; markSeatCachesDirty(); triggerUpdate();') },
+        measures: { emoji: '\u{1F4D0}', key: 'layers.cat.measures', fallback: 'Measures',
+            hidden: () => uiState.showMeasures === false || uiState.showDims === false || uiState.showAreaMeas === false,
+            rows: () => _layerToggleRow(t('layers.all_measures'), uiState.showMeasures !== false, 'uiState.showMeasures=this.checked; render();')
+                + _layerToggleRow(t('layers.all_dims'), uiState.showDims, 'uiState.showDims=this.checked; render();')
+                + _layerToggleRow(t('layers.all_area_meas'), uiState.showAreaMeas !== false, 'uiState.showAreaMeas=this.checked; render();') },
+        cutouts: { emoji: '\u2B1B', key: 'layers.cat.cutouts', fallback: 'Cutouts',
+            hidden: () => uiState.showObs === false,
+            rows: () => _layerToggleRow(t('layers.all_obs'), uiState.showObs, 'uiState.showObs=this.checked; render();') },
+        annotations: { emoji: '\u270F\uFE0F', key: 'layers.cat.annotations', fallback: 'Annotations',
+            hidden: () => uiState.showLines === false || uiState.showBoxes === false || uiState.showClouds === false || uiState.showCallouts === false || uiState.showFreehand === false || uiState.showCounters === false || uiState.showTexts === false,
+            rows: () => _layerToggleRow(t('layers.all_lines'), uiState.showLines, 'uiState.showLines=this.checked; render();')
+                + _layerToggleRow(t('layers.all_boxes'), uiState.showBoxes !== false, 'uiState.showBoxes=this.checked; render();')
+                + _layerToggleRow(t('layers.all_clouds'), uiState.showClouds !== false, 'uiState.showClouds=this.checked; render();')
+                + _layerToggleRow(t('layers.all_callouts'), uiState.showCallouts !== false, 'uiState.showCallouts=this.checked; render();')
+                + _layerToggleRow(t('layers.all_freehand'), uiState.showFreehand !== false, 'uiState.showFreehand=this.checked; render();')
+                + _layerToggleRow(t('layers.all_counters'), uiState.showCounters !== false, 'uiState.showCounters=this.checked; render();')
+                + _layerToggleRow(t('layers.all_texts'), uiState.showTexts !== false, 'uiState.showTexts=this.checked; render();') },
+        attendants: { emoji: '\u{1F9CD}', key: 'layers.cat.attendants', fallback: 'Attendants',
+            hidden: () => uiState.showAttendants === false,
+            rows: () => _layerToggleRow(t('layers.all_attendants'), uiState.showAttendants, 'uiState.showAttendants=this.checked; render(); openLayerCategory(_lastLayerCat);')
+                + _layerToggleRow(t('layers.att_legend'), getActivePage().attLegend && getActivePage().attLegend.show !== false, 'toggleAttLegend(this.checked)')
+                + _layerToggleRow(t('layers.shift_in_print'), uiState.showShiftInPrint !== false, 'uiState.showShiftInPrint=this.checked;') },
+        display: { emoji: '\u{1F5A8}', key: 'layers.cat.display', fallback: 'Display & Print',
+            hidden: () => false,
+            rows: () => _layerToggleRow(t('layers.dim_nocount'), !!uiState.dimNotCounted, 'uiState.dimNotCounted=this.checked; needsCacheUpdate=true; render();') }
+    };
+    let _lastLayerCat = null;
+    function openLayerCategory(catKey) {
+        const cat = LAYER_CATEGORIES[catKey]; if (!cat) return;
+        _lastLayerCat = catKey;
+        document.getElementById('layer-category-modal-title').textContent = (cat.key ? t(cat.key) : '') || cat.fallback;
+        document.getElementById('layer-category-modal-body').innerHTML = cat.rows();
+        document.getElementById('layer-category-modal').classList.add('show');
+    }
+    function hideLayerCategoryModal() {
+        document.getElementById('layer-category-modal').classList.remove('show');
+        _lastLayerCat = null;
+        if (activeTab === 'layers') buildLayersPanel();
+    }
+    function buildLayersPanel() {
+        // Category-button list. Each opens a modal of that category's toggles.
+        // An indicator dot shows when a category currently has hidden items.
+        const order = ['seating','keyitems','screens','measures','cutouts','annotations','attendants','display'];
+        let html = '';
+        order.forEach(catKey => {
+            const cat = LAYER_CATEGORIES[catKey]; if (!cat) return;
+            const label = (cat.key ? t(cat.key) : '') || cat.fallback;
+            const hasHidden = cat.hidden && cat.hidden();
+            const dot = hasHidden ? `<span class="layer-cat-indicator" title="${escapeHTML(t('layers.has_hidden'))}"></span>` : '';
+            html += `<button class="layer-cat-btn" onclick="openLayerCategory('${catKey}')">`
+                + `<span class="layer-cat-emoji">${cat.emoji}</span>`
+                + `<span class="layer-cat-label">${escapeHTML(label)}</span>`
+                + dot
+                + `<span class="layer-cat-arrow">\u203A</span>`
+            + `</button>`;
         });
-        html += `</div>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showAttendants ? 'checked' : ''} onchange="uiState.showAttendants=this.checked; render();"> <span>${escapeHTML(t('layers.all_attendants'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showScreens ? 'checked' : ''} onchange="uiState.showScreens=this.checked; render();"> <span>${escapeHTML(t('layers.all_screens'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showObs ? 'checked' : ''} onchange="uiState.showObs=this.checked; render();"> <span>${escapeHTML(t('layers.all_obs'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showLines ? 'checked' : ''} onchange="uiState.showLines=this.checked; render();"> <span>${escapeHTML(t('layers.all_lines'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showDims ? 'checked' : ''} onchange="uiState.showDims=this.checked; render();"> <span>${escapeHTML(t('layers.all_dims'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showBoxes !== false ? 'checked' : ''} onchange="uiState.showBoxes=this.checked; render();"> <span>${escapeHTML(t('layers.all_boxes'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showClouds !== false ? 'checked' : ''} onchange="uiState.showClouds=this.checked; render();"> <span>${escapeHTML(t('layers.all_clouds'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showCallouts !== false ? 'checked' : ''} onchange="uiState.showCallouts=this.checked; render();"> <span>${escapeHTML(t('layers.all_callouts'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showFreehand !== false ? 'checked' : ''} onchange="uiState.showFreehand=this.checked; render();"> <span>${escapeHTML(t('layers.all_freehand'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showAreaMeas !== false ? 'checked' : ''} onchange="uiState.showAreaMeas=this.checked; render();"> <span>${escapeHTML(t('layers.all_area_meas'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showCounters !== false ? 'checked' : ''} onchange="uiState.showCounters=this.checked; render();"> <span>${escapeHTML(t('layers.all_counters'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showTexts !== false ? 'checked' : ''} onchange="uiState.showTexts=this.checked; render();"> <span>${escapeHTML(t('layers.all_texts'))}</span></label>`;
-        html += `<label class="layer-toggle"><input type="checkbox" ${uiState.showMeasures !== false ? 'checked' : ''} onchange="uiState.showMeasures=this.checked; render();"> <span>${escapeHTML(t('layers.all_measures'))}</span></label>`;
         document.getElementById('layers-list-container').innerHTML = html;
+        renderProjectLayers();
     }
     
     function toggleVis(type, index, isVisible) {
@@ -9772,6 +9929,75 @@ const I18N_STRINGS = {
 
     // ─── PROPERTY UPDATES ────────────────────────────────────────────────────────
     function toggleLegend(show) { saveState(); let p = getActivePage(); if (!p.legend) p.legend = { show: true, x: 40, y: 40, scale: 1 }; p.legend.show = show; triggerUpdate(); }
+
+    // ─── Project Layers ──────────────────────────────────────────────────
+    // Per-project named layers (shared across pages). Every item has a layerId;
+    // id 0 = 'Unassigned' and is protected (can't rename/delete).
+    function getProjectLayers() { return project.projectLayers || (project.projectLayers = [{ id: 0, name: 'Unassigned', visible: true, locked: false }]); }
+    function getLayerById(id) { return getProjectLayers().find(l => l.id === (id || 0)) || getProjectLayers()[0]; }
+    // Stage 3 enforcement helpers. A hidden layer's items are treated as not
+    // there at all: not rendered, not counted. A locked layer's items render
+    // and count normally but can't be selected or edited.
+    function isLayerVisible(id) { const L = getLayerById(id); return !L || L.visible !== false; }
+    function isLayerLocked(id) { const L = getLayerById(id); return !!(L && L.locked); }
+    function isItemVisibleByLayer(item) { return !item || isLayerVisible(item.layerId || 0); }
+    function isItemLockedByLayer(item) { return !!item && isLayerLocked(item.layerId || 0); }
+    function addProjectLayer() {
+        const layers = getProjectLayers();
+        const id = project.nextLayerId || (Math.max(0, ...layers.map(l => l.id)) + 1);
+        project.nextLayerId = id + 1;
+        saveState();
+        layers.push({ id, name: t('layers.project.new_name') + ' ' + id, visible: true, locked: false });
+        updateUI(); triggerUpdate();
+    }
+    function renameProjectLayer(id) {
+        if (id === 0) return; // Unassigned protected
+        const layer = getLayerById(id); if (!layer) return;
+        promptDialog(t('layers.project.rename_prompt'), layer.name).then(n => {
+            if (n == null || !n.trim()) return;
+            saveState(); layer.name = n.trim(); updateUI(); triggerUpdate();
+        });
+    }
+    function deleteProjectLayer(id) {
+        if (id === 0) return; // Unassigned protected
+        const layers = getProjectLayers();
+        const idx = layers.findIndex(l => l.id === id); if (idx < 0) return;
+        if (!confirm(t('layers.project.delete_confirm'))) return;
+        saveState();
+        // Reassign any items on this layer back to Unassigned (id 0).
+        project.pages.forEach(pg => {
+            ['shapes','signs','measures','lines','texts','screens'].forEach(k => {
+                if (Array.isArray(pg[k])) pg[k].forEach(it => { if (it.layerId === id) it.layerId = 0; });
+            });
+            if (pg.attendants && Array.isArray(pg.attendants.posts)) pg.attendants.posts.forEach(p => { if (p.layerId === id) p.layerId = 0; });
+        });
+        if (project.attendants && Array.isArray(project.attendants.posts)) project.attendants.posts.forEach(p => { if (p.layerId === id) p.layerId = 0; });
+        layers.splice(idx, 1);
+        updateUI(); triggerUpdate();
+    }
+    function toggleLayerVisible(id) {
+        const layer = getLayerById(id); if (!layer) return;
+        saveState(); layer.visible = !layer.visible; updateUI(); triggerUpdate();
+    }
+    function toggleLayerLocked(id) {
+        const layer = getLayerById(id); if (!layer) return;
+        saveState(); layer.locked = !layer.locked; updateUI(); triggerUpdate();
+    }
+    let _layerSortDir = 1;
+    function sortProjectLayers() {
+        const layers = getProjectLayers();
+        if (layers.length < 3) return; // Unassigned + at least 2 others to matter
+        saveState();
+        _layerSortDir = -_layerSortDir;
+        const dir = _layerSortDir;
+        const unassigned = layers.filter(l => l.id === 0);
+        const rest = layers.filter(l => l.id !== 0).sort((a, b) => {
+            const an = (a.name || '').toLowerCase(), bn = (b.name || '').toLowerCase();
+            return an < bn ? -dir : an > bn ? dir : 0;
+        });
+        project.projectLayers = [...unassigned, ...rest];
+        updateUI(); triggerUpdate();
+    }
     function toggleSeatLegend(show) { saveState(); let p = getActivePage(); if (!p.seatLegend) p.seatLegend = { show: true, x: 40, y: 150, scale: 1 }; p.seatLegend.show = show; triggerUpdate(); }
     function toggleAttLegend(show) { saveState(); let p = getActivePage(); if (!p.attLegend) p.attLegend = { show: true, x: 40, y: 280, scale: 1 }; p.attLegend.show = show; triggerUpdate(); }
     
@@ -10064,6 +10290,10 @@ const I18N_STRINGS = {
         else if (kind === 'line')    titleKey = 'modal.item_edit.title.line';
         else if (kind === 'text')    titleKey = 'modal.item_edit.title.text';
         document.getElementById('item-edit-title').textContent = t(titleKey);
+        // Populate the Project Layer dropdown with the current assignment.
+        { const sel = document.getElementById('item-edit-layer');
+          if (sel) { sel.innerHTML = getProjectLayers().map(L => `<option value="${L.id}">${escapeHTML(L.name)}</option>`).join('');
+                     sel.value = String(item.layerId || 0); } }
 
         // Hide all field groups, show the matching one.
         ['shape', 'obs', 'screen', 'sign', 'measure', 'line', 'text'].forEach(k => {
@@ -10360,6 +10590,10 @@ const I18N_STRINGS = {
         if (!_itemEditState) return;
         const { kind, index } = _itemEditState;
         const page = getActivePage();
+        { const sel = document.getElementById('item-edit-layer');
+          const _layerArr = arrFor(page, (kind === 'obs') ? 'shape' : kind);
+          const _layerItem = _layerArr ? _layerArr[index] : null;
+          if (sel && _layerItem) _layerItem.layerId = parseInt(sel.value, 10) || 0; }
         if (!page) return;
         saveState();
 
@@ -12017,11 +12251,18 @@ const I18N_STRINGS = {
 
     // ─── MULTI-SELECT / GROUP CLIPBOARD HELPERS ─────────────────────────────────
     function clearSingleSelection() { selectedShapeIndex=-1; selectedSignIndex=-1; selectedLineIndex=-1; selectedScreenIndex=-1; selectedTextIndex=-1; selectedMeasureIndex=-1; selectedAttendantIndex=-1; }
-    function itemIsCounted(item, page) { return !(item && item.noCount) && !(page && page.excludeFromTotals); }
+    function itemIsCounted(item, page) { return !(item && item.noCount) && !(page && page.excludeFromTotals) && isItemVisibleByLayer(item); }
     function setNotCountedOnSelection(val) {
         const refs = getSelectionRefs(); if (!refs.length) return;
         saveState(); const page = getActivePage();
         refs.forEach(r => { const arr = arrFor(page, r.kind); if (arr && arr[r.idx]) arr[r.idx].noCount = !!val; });
+        markSeatCachesDirty(); triggerUpdate(); updateUI(); render();
+    }
+    // Assign a project layer to every item in the current selection.
+    function setLayerOnSelection(layerId) {
+        const refs = getSelectionRefs(); if (!refs.length) return;
+        saveState(); const page = getActivePage();
+        refs.forEach(r => { const arr = arrFor(page, r.kind); if (arr && arr[r.idx]) arr[r.idx].layerId = layerId; });
         markSeatCachesDirty(); triggerUpdate(); updateUI(); render();
     }
     function arrFor(page, kind) { return kind==='shape'?page.shapes:kind==='screen'?page.screens:kind==='sign'?page.signs:kind==='measure'?page.measures:kind==='line'?page.lines:kind==='text'?page.texts:null; }
@@ -12067,6 +12308,7 @@ const I18N_STRINGS = {
     // True when an item is currently visible given the Layers toggles. Window
     // selection uses this so hidden items can't be marquee-selected.
     function isItemVisibleForSelect(kind, it) {
+        if (!isItemVisibleByLayer(it) || isItemLockedByLayer(it)) return false;
         switch (kind) {
             case 'shape':
                 if (it.type==='obs' || it.type==='aisle') return uiState.showObs !== false;
@@ -12312,6 +12554,7 @@ const I18N_STRINGS = {
         const page = getActivePage();
         for (let i = page.shapes.length - 1; i >= 0; i--) {
             const sh = page.shapes[i];
+            if (!isItemVisibleByLayer(sh) || isItemLockedByLayer(sh)) continue; // project layer hidden/locked
             // Skip layer-hidden shapes so you can't click-select what you can't see.
             if ((sh.type === 'obs' || sh.type === 'aisle')) { if (uiState.showObs === false) continue; }
             else if (sh.type === 'area') { if (uiState.showSeats === false || uiState.hiddenSeatTypes.includes(sh.seatTypeIndex ?? 0)) continue; }
@@ -12327,6 +12570,7 @@ const I18N_STRINGS = {
         for (let i = page.lines.length - 1; i >= 0; i--) {
             const l = page.lines[i];
             worldPt = _worldPt0; // reset per-iteration (box/ellipse may rotate it)
+            if (!isItemVisibleByLayer(l) || isItemLockedByLayer(l)) continue;
             if (!lineVisible(l)) continue;
             const lineThick = l.thickness || 2; const thresholdSq = sqr(Math.max(8, lineThick + 2) / view.zoom);
             if ((l.type === 'box' || l.type === 'ellipse') && l.points.length === 2) {
@@ -12432,6 +12676,7 @@ const I18N_STRINGS = {
         if (uiState.showMeasures === false) return -1;
         for (let i = page.measures.length - 1; i >= 0; i--) {
             const m = page.measures[i];
+            if (!isItemVisibleByLayer(m) || isItemLockedByLayer(m)) continue;
             // Per-type visibility — skip whole types that are toggled off.
             if (uiState.hiddenMeasureTypes.includes(m.typeIndex ?? 0)) continue;
             const mt = project.measureTypes[m.typeIndex ?? 0] || project.measureTypes[0];
@@ -12446,6 +12691,7 @@ const I18N_STRINGS = {
         if (!uiState.showSigns) return -1;
         for (let i = page.signs.length - 1; i >= 0; i--) {
             const s = page.signs[i]; 
+            if (!isItemVisibleByLayer(s) || isItemLockedByLayer(s)) continue;
             if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) continue;
             const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
             const radius = s.size || st.size;
@@ -12458,6 +12704,7 @@ const I18N_STRINGS = {
         if (!uiState.showScreens) return -1;
         const page = getActivePage(); if (!page.screens) return -1;
         for (let i = page.screens.length - 1; i >= 0; i--) {
+            if (!isItemVisibleByLayer(page.screens[i]) || isItemLockedByLayer(page.screens[i])) continue;
             if (Math.hypot(worldPt.x - page.screens[i].x, worldPt.y - page.screens[i].y) <= 15 / view.zoom) return i;
         }
         return -1;
@@ -12469,6 +12716,7 @@ const I18N_STRINGS = {
         if (uiState.showTexts === false) return -1; 
         for (let i = page.texts.length - 1; i >= 0; i--) {
             const t = page.texts[i];
+            if (!isItemVisibleByLayer(t) || isItemLockedByLayer(t)) continue;
             const size = t.size || 24;
             measureCtx.font = `bold ${size}px Arial`;
             // Multiline: hit-test against the box of the widest line × number of lines.
@@ -12972,11 +13220,37 @@ const I18N_STRINGS = {
                 const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
                 const a = -_it.rot * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
                 const dx = world.x - cx, dy = world.y - cy;
-                _it.points[draggingShapePointIndex].x = cx + dx * ca - dy * sa;
-                _it.points[draggingShapePointIndex].y = cy + dx * sa + dy * ca;
+                let lx = cx + dx * ca - dy * sa;
+                let ly = cy + dx * sa + dy * ca;
+                if (isShiftDown && (_it.type === 'box' || _it.type === 'ellipse')) {
+                    // Square/circle in the shape's own (un-rotated) frame, vs opposite corner.
+                    const opp = _it.points[draggingShapePointIndex === 0 ? 1 : 0];
+                    const ddx = lx - opp.x, ddy = ly - opp.y;
+                    const len = Math.max(Math.abs(ddx), Math.abs(ddy));
+                    lx = opp.x + (ddx < 0 ? -len : len);
+                    ly = opp.y + (ddy < 0 ? -len : len);
+                }
+                _it.points[draggingShapePointIndex].x = lx;
+                _it.points[draggingShapePointIndex].y = ly;
             } else {
-                _it.points[draggingShapePointIndex].x = world.x;
-                _it.points[draggingShapePointIndex].y = world.y;
+                let wx = world.x, wy = world.y;
+                // Shift constraint while editing (post-placement):
+                if (isShiftDown) {
+                    if ((_it.type === 'box' || _it.type === 'ellipse') && _it.points.length === 2) {
+                        // Square/circle: force equal-magnitude delta from the OPPOSITE corner.
+                        const opp = _it.points[draggingShapePointIndex === 0 ? 1 : 0];
+                        const dx = wx - opp.x, dy = wy - opp.y;
+                        const len = Math.max(Math.abs(dx), Math.abs(dy));
+                        wx = opp.x + (dx < 0 ? -len : len);
+                        wy = opp.y + (dy < 0 ? -len : len);
+                    } else if (_it.points.length >= 2) {
+                        // Straight: snap to horizontal/vertical from the adjacent point.
+                        const adj = _it.points[draggingShapePointIndex === 0 ? 1 : draggingShapePointIndex - 1];
+                        if (adj) { if (Math.abs(wx - adj.x) > Math.abs(wy - adj.y)) wy = adj.y; else wx = adj.x; }
+                    }
+                }
+                _it.points[draggingShapePointIndex].x = wx;
+                _it.points[draggingShapePointIndex].y = wy;
             }
             if (project.draggingShapePointTarget === 'shape') { targetArr[idx].cacheDirty = true; markSeatCachesDirty(); }
             hasUnsavedChanges = true; render(); return;
@@ -13718,7 +13992,7 @@ const I18N_STRINGS = {
         const offsetX = ((maxX - minX) - (cols * cw)) / 2; const offsetY = ((maxY - minY) - (rows * rd)) / 2;
         const startX = minX + offsetX + (cw / 2); const startY = minY + offsetY + (rd / 2); const eps = 0.1;
 
-        const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+        const activeScreens = page.screens ? page.screens.filter(s => s.active && isItemVisibleByLayer(s)) : []; const hasScreens = activeScreens.length > 0;
         const voids = page.shapes.filter(s => s.type === 'obs' || s.type === 'aisle');
         const losBlockers = page.shapes.filter(s => s.type === 'obs');
 
@@ -13813,6 +14087,7 @@ const I18N_STRINGS = {
         globalPageTotal = 0; globalTypeTotals = new Array(project.seatTypes.length).fill(0);
 
         page.shapes.forEach(s => {
+            if (!isItemVisibleByLayer(s)) return; // hidden project layer
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
             if (s.type === 'area' && page.pixelsPerFoot) {
                 if (s.cacheDirty === undefined || s.cacheDirty) rebuildSeatCache(s, page);
@@ -13939,7 +14214,7 @@ const I18N_STRINGS = {
             }
         }
 
-        const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+        const activeScreens = page.screens ? page.screens.filter(s => s.active && isItemVisibleByLayer(s)) : []; const hasScreens = activeScreens.length > 0;
         
         if (uiState.showScreens && hasScreens) {
             activeScreens.forEach((sc) => {
@@ -13970,6 +14245,7 @@ const I18N_STRINGS = {
             targetCtx.drawImage(layerCache, 0, 0);
         } else {
             page.shapes.forEach(s => {
+                if (!isItemVisibleByLayer(s)) return; // hidden project layer
                 if (s.type !== 'area' || !page.pixelsPerFoot || !s.cachedSeats) return;
                 if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                 const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
@@ -14037,6 +14313,7 @@ const I18N_STRINGS = {
             _dimCtx = null;
         };
         page.shapes.forEach((s, i) => {
+            if (!isItemVisibleByLayer(s)) return; // hidden project layer
             setDimFilter(_dimActive && !itemIsCounted(s, page));
             if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
             const st = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
@@ -14080,6 +14357,7 @@ const I18N_STRINGS = {
                 const typeIdx = m.typeIndex ?? 0;
                 // Per-type visibility gate — whole type can be toggled off.
                 if (uiState.hiddenMeasureTypes.includes(typeIdx)) return;
+                if (!isItemVisibleByLayer(m)) return;
                 setDimFilter(_dimActive && !itemIsCounted(m, page));
                 const isSelected = (isLive && i === selectedMeasureIndex); const isHovered = (isLive && i === hoveredMeasureIndex);
                 const mt = project.measureTypes[typeIdx] || project.measureTypes[0];
@@ -14145,6 +14423,7 @@ const I18N_STRINGS = {
 
         if (page.lines) {
             page.lines.forEach((l, i) => {
+                if (!isItemVisibleByLayer(l)) return;
                 setDimFilter(_dimActive && !itemIsCounted(l, page));
                 if (!lineVisible(l)) return;
                 const isSelected = (isLive && i === selectedLineIndex); const isHovered = (isLive && i === hoveredLineIndex);
@@ -14411,6 +14690,7 @@ const I18N_STRINGS = {
         setDimFilter(false);
         if (page.texts && uiState.showTexts !== false) {
             page.texts.forEach((t, i) => {
+                if (!isItemVisibleByLayer(t)) return;
                 setDimFilter(_dimActive && !itemIsCounted(t, page));
                 // Hide the text we're currently editing — the textarea overlay
                 // shows it instead. Otherwise we'd see canvas text ghosting
@@ -14451,6 +14731,7 @@ const I18N_STRINGS = {
         setDimFilter(false);
         if (page.signs && uiState.showSigns) {
             page.signs.forEach((s, i) => {
+                if (!isItemVisibleByLayer(s)) return;
                 setDimFilter(_dimActive && !itemIsCounted(s, page));
                 if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0];
@@ -15058,6 +15339,16 @@ const I18N_STRINGS = {
     function validateAndMigrateProject(raw) {
         if (typeof raw !== 'object' || raw === null) throw new Error("Invalid project file.");
         if (!Array.isArray(raw.pages) || raw.pages.length === 0) throw new Error("Project has no pages.");
+        // Project Layers migration: ensure the Unassigned layer + id counter.
+        if (!Array.isArray(raw.projectLayers) || raw.projectLayers.length === 0) {
+            raw.projectLayers = [{ id: 0, name: "Unassigned", visible: true, locked: false }];
+        }
+        if (!raw.projectLayers.some(l => l.id === 0)) {
+            raw.projectLayers.unshift({ id: 0, name: "Unassigned", visible: true, locked: false });
+        }
+        if (typeof raw.nextLayerId !== "number") {
+            raw.nextLayerId = Math.max(0, ...raw.projectLayers.map(l => l.id)) + 1;
+        }
 
         // Logo: must be a data URL string or null
         if (typeof raw.logoData !== 'string' || !raw.logoData.startsWith('data:')) raw.logoData = null;
@@ -16350,6 +16641,7 @@ const I18N_STRINGS = {
         // ── Obstacle outlines + screen icons (z-order mirrors the print) ──
         if (uiState.showAreaLabels !== false) {
             page.shapes.forEach(s => {
+                if (!isItemVisibleByLayer(s)) return;
                 if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
                 if (s.type === 'aisle' || s.type === 'area') return;
                 vPath(polyD(s.points, true), { borderColor: _pdfColor('#e74c3c'), borderWidth: 2 });
@@ -16372,6 +16664,7 @@ const I18N_STRINGS = {
         // ── Measures ──
         if (page.measures && uiState.showMeasures !== false) {
             page.measures.forEach(m => {
+                if (!isItemVisibleByLayer(m)) return;
                 const typeIdx = m.typeIndex ?? 0;
                 if (uiState.hiddenMeasureTypes.includes(typeIdx)) return;
                 const mt = project.measureTypes[typeIdx] || project.measureTypes[0];
@@ -16405,6 +16698,7 @@ const I18N_STRINGS = {
         // ── Annotation lines (all types) ──
         if (page.lines) {
             page.lines.forEach(l => {
+                if (!isItemVisibleByLayer(l)) return;
                 if (!lineVisible(l)) return;
                 const color = l.color || (l.type === 'dimension' ? '#f39c12' : '#3498db');
                 const thick = l.thickness || 2;
@@ -16529,6 +16823,7 @@ const I18N_STRINGS = {
         // ── Text annotations (multiline, centered) ──
         if (page.texts && uiState.showTexts !== false) {
             page.texts.forEach(tx2 => {
+                if (!isItemVisibleByLayer(tx2)) return;
                 const color = tx2.color || '#000000'; const sizeWorld = tx2.size || 24;
                 const lines = (tx2.text || '').split('\n');
                 const lineHeight = sizeWorld * 1.1;
@@ -16549,6 +16844,7 @@ const I18N_STRINGS = {
         // ── Key-item signs ──
         if (page.signs && page.signs.length > 0 && uiState.showSigns) {
             page.signs.forEach(s => {
+                if (!isItemVisibleByLayer(s)) return;
                 if (uiState.hiddenSignTypes.includes(s.typeIndex ?? 0)) return;
                 const st = project.signTypes[s.typeIndex ?? 0] || project.signTypes[0]; const radius = s.size || st.size;
                 out.drawCircle({ x: PX(s.x), y: PY(s.y), size: radius * s2, color: _pdfColor(st.color), borderColor: PDFLib.rgb(0, 0, 0), borderWidth: 1 * s2 });
@@ -16664,6 +16960,7 @@ const I18N_STRINGS = {
         if (uiState.showSeats && page.pixelsPerFoot) {
             const seatBlack = PDFLib.rgb(0, 0, 0);
             page.shapes.forEach(s => {
+                if (!isItemVisibleByLayer(s)) return;
                 if (s.type !== 'area' || !s.cachedSeats) return;
                 if (uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                 const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
@@ -16700,6 +16997,7 @@ const I18N_STRINGS = {
             };
             const lblWhite = PDFLib.rgb(1, 1, 1), lblGray = PDFLib.rgb(0.8, 0.8, 0.8);
             page.shapes.forEach(s => {
+                if (!isItemVisibleByLayer(s)) return;
                 if ((s.type === 'obs' || s.type === 'aisle') && !uiState.showObs) return;
                 if (s.type === 'aisle') return;
                 let sX = 0, sY = 0; s.points.forEach(pp => { sX += pp.x; sY += pp.y; });
@@ -16722,7 +17020,13 @@ const I18N_STRINGS = {
     // whoever supplied the drawing.
     async function exportLayoutVectorPDF(svgMarkup, p) {
         const { page, printOpts, bgW, bgH, activeScreens } = p;
-        const PW = printOpts.paperWidthIn * 72, PH = printOpts.paperHeightIn * 72, M = 18;
+        const PW = printOpts.paperWidthIn * 72, PH = printOpts.paperHeightIn * 72;
+        // Scaled exports keep the original 0.25" margin (unchanged). Fit-to-page
+        // uses a smaller 0.125" margin so the drawing fills more of the sheet.
+        const _isScaled = (printOpts.printScale !== null && page.pixelsPerFoot > 0);
+        // Fit-to-page uses a small margin; scaled exports sit flush at the page
+        // origin so a same-size, same-scale export overlays the source exactly.
+        const M = _isScaled ? 0 : 9;
         const doc = await PDFLib.PDFDocument.create();
         const out = doc.addPage([PW, PH]);
         let tbInfo = null, tbH = 0;
@@ -17459,8 +17763,8 @@ const I18N_STRINGS = {
                 document.getElementById('rpt-table-header').innerHTML = `<th>${escapeHTML(t('print.signs.col.type'))}</th><th>${escapeHTML(t('print.signs.col.count'))}</th>`;
                 let signGrandTotals = new Array(project.signTypes.length).fill(0); let measureGrandTotals = new Array(project.measureTypes.length).fill(0);
                 project.pages.forEach(p => {
-                    if (p.signs) p.signs.forEach(s => { signGrandTotals[s.typeIndex ?? 0]++; });
-                    if (p.measures) p.measures.forEach(m => { let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); measureGrandTotals[m.typeIndex ?? 0] += p.pixelsPerFoot ? pxLen / p.pixelsPerFoot : 0; });
+                    if (p.signs) p.signs.forEach(s => { if (!itemIsCounted(s, p)) return; signGrandTotals[s.typeIndex ?? 0]++; });
+                    if (p.measures) p.measures.forEach(m => { if (!itemIsCounted(m, p)) return; let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y); measureGrandTotals[m.typeIndex ?? 0] += p.pixelsPerFoot ? pxLen / p.pixelsPerFoot : 0; });
                 });
                 let bodyHTML = ''; let absoluteTotal = 0; let totalMeasureTypes = 0;
                 project.signTypes.forEach((st, i) => { if (signGrandTotals[i] > 0) { bodyHTML += `<tr><td style="padding-left: 20px;"><span style="display:inline-block; width:24px; height:24px; background-color:${escapeHTML(st.color)}; color:white; text-align:center; border-radius:50%; font-size:12px; line-height:24px; font-weight:bold; margin-right:10px; border:1px solid #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;">${escapeHTML(st.label || '')}</span>${escapeHTML(st.name)}</td><td>${fmtNum(signGrandTotals[i])}</td></tr>`; absoluteTotal += signGrandTotals[i]; } });
@@ -17538,7 +17842,7 @@ const I18N_STRINGS = {
                     // Cones below draw in world coordinates; scale them to the
                     // high-res raster.
                     rCtx.setTransform(pk, 0, 0, pk, 0, 0);
-                    const activeScreens = page.screens ? page.screens.filter(s => s.active) : []; const hasScreens = activeScreens.length > 0;
+                    const activeScreens = page.screens ? page.screens.filter(s => s.active && isItemVisibleByLayer(s)) : []; const hasScreens = activeScreens.length > 0;
                     if (uiState.showScreens && hasScreens) {
                         activeScreens.forEach((sc) => {
                             const radiusPixels = page.pixelsPerFoot > 0 ? (sc.radius ?? 60) * page.pixelsPerFoot : (sc.radius * 10 || 200);
