@@ -915,6 +915,17 @@
 <div id="canvas-ctx-menu"></div>
 <div id="panel-create-menu"></div>
 
+<div id="scale-list-modal" class="modal-overlay as-popup" onclick="if(event.target===this) this.classList.remove('show')">
+    <div class="modal-card" style="max-width: 340px;">
+        <h2 style="margin-top:0;" data-i18n="setscale.list.title">Set scale from list</h2>
+        <p style="font-size:0.85em; color:#bbb; margin:0 0 10px;" data-i18n="setscale.list.hint">Choose the scale this sheet was drawn at.</p>
+        <select id="scale-list-select" class="text-input-dark" style="width:100%; margin-bottom:14px;"></select>
+        <div class="modal-actions">
+            <button onclick="document.getElementById('scale-list-modal').classList.remove('show')" data-i18n="common.cancel">Cancel</button>
+            <button class="btn-primary" onclick="applyScaleListPick()" data-i18n="common.apply">Apply</button>
+        </div>
+    </div>
+</div>
 <div id="layer-category-modal" class="modal-overlay as-popup" onclick="if(event.target===this) hideLayerCategoryModal()">
     <div class="modal-card" style="max-width: 360px;">
         <h2 id="layer-category-modal-title" style="margin-top:0;">Category</h2>
@@ -2019,7 +2030,7 @@
                         <input type="file" id="upload" accept="image/*, .pdf" onchange="handleImageUpload(this)" style="background: #222;">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button id="btn-start-calibrate" class="btn-full" style="background: #555;" onclick="setMode('calibrate')" data-i18n="project.setscale">Set Scale</button>
+                        <button id="btn-start-calibrate" class="btn-full" style="background: #555;" onclick="showSetScaleMenu(event)" data-i18n="project.setscale">Set Scale</button>
                         <button class="btn-full btn-danger" onclick="deleteCurrentPage()" data-i18n="project.delpage">Del Page</button>
                     </div>
                 </div>
@@ -2811,6 +2822,15 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientation",
         "modal.print.scale": "Print scale",
         "modal.print.scale.fit": "Fit to page (no specific scale)",
+        "scale.custom": "Custom\u2026",
+        "setscale.from_list": "\ud83d\udccf From scale list\u2026",
+        "setscale.from_points": "\ud83d\udccd From two points\u2026",
+        "setscale.list.title": "Set scale from list",
+        "setscale.list.hint": "Choose the scale this sheet was drawn at.",
+        "common.apply": "Apply",
+        "common.cancel": "Cancel",
+        "scale.custom_prompt": "Enter a custom scale:",
+        "scale.custom_help": "Imperial: 1\" = 15\u2032  or  1/8\" = 1\u2032   \u2022   Metric / ratio: 1:100  (1 unit on paper = 100 in reality, any unit)",
         "modal.print.scale_bar": "Show scale in the corner (scaled prints only)",
         "modal.print.title_block": "Show title bar (logo, project, page, scale, date)",
         "modal.print.cancel": "Cancel",
@@ -3530,6 +3550,15 @@ const I18N_STRINGS = {
         "modal.print.orientation": "Orientación",
         "modal.print.scale": "Escala de impresión",
         "modal.print.scale.fit": "Ajustar a la página (sin escala específica)",
+        "scale.custom": "Personalizado\u2026",
+        "setscale.from_list": "\ud83d\udccf Desde lista de escalas\u2026",
+        "setscale.from_points": "\ud83d\udccd Desde dos puntos\u2026",
+        "setscale.list.title": "Establecer escala desde lista",
+        "setscale.list.hint": "Elija la escala con la que se dibujó esta hoja.",
+        "common.apply": "Aplicar",
+        "common.cancel": "Cancelar",
+        "scale.custom_prompt": "Ingrese una escala personalizada:",
+        "scale.custom_help": "Imperial: 1\" = 15\u2032  o  1/8\" = 1\u2032   \u2022   M\u00e9trico / raz\u00f3n: 1:100  (1 unidad en papel = 100 en realidad, cualquier unidad)",
         "modal.print.scale_bar": "Mostrar la escala en la esquina (solo impresiones a escala)",
         "modal.print.title_block": "Mostrar barra de título (logotipo, proyecto, página, escala, fecha)",
         "modal.print.cancel": "Cancelar",
@@ -4660,12 +4689,20 @@ const I18N_STRINGS = {
     let _crispDoc = { key: null, promise: null };
     const CRISP_MAX_PIXELS = 4096 * 4096;
     function invalidateCrispBg() { _crispBg = null; _crispToken++; }
+    let _crispRenderTask = null; // in-flight pdf.js RenderTask, so we can cancel it
+    let _crispSequenceActive = false; // true while a quick+full pass sequence is running
     function scheduleCrispBg() {
+        if (_crispSequenceActive) return; // don't interrupt an in-progress sequence
         if (_crispTimer) clearTimeout(_crispTimer);
-        _crispTimer = setTimeout(_updateCrispBg, 200);
+        // Slightly longer settle so we only render once you've actually stopped.
+        _crispTimer = setTimeout(_updateCrispBg, 180);
     }
     function _b64ToU8(b64) { const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
     async function _updateCrispBg() {
+        // Don't rasterize mid-motion — wait until movement has settled.
+        if (_interacting) { scheduleCrispBg(); return; }
+        // Cancel any still-running render so renders never stack up.
+        if (_crispRenderTask) { try { _crispRenderTask.cancel(); } catch (e) {} _crispRenderTask = null; }
         const pageIdx = project.activePageIndex;
         const page = getActivePage();
         if (!page || !page.pdfData || !bgImage.src || !bgImage.width) { _crispBg = null; return; }
@@ -4679,13 +4716,13 @@ const I18N_STRINGS = {
         x1 = Math.min(bgImage.width, Math.ceil(x1)); y1 = Math.min(bgImage.height, Math.ceil(y1));
         const w = x1 - x0, h = y1 - y0;
         if (w <= 0 || h <= 0) { _crispBg = null; return; }
-        let k = view.zoom;
         const kCap = Math.sqrt(CRISP_MAX_PIXELS / (w * h));
-        if (k > kCap) k = kCap;
-        if (k <= 1.02) { _crispBg = null; return; }
+        const fullK = Math.min(view.zoom, kCap);
+        if (fullK <= 1.02) { _crispBg = null; return; }
         const sig = pageIdx + '|' + Math.round(view.zoom * 100) + '|' + x0 + '|' + y0 + '|' + x1 + '|' + y1;
-        if (_crispBg && _crispBg.sig === sig) return;
+        if (_crispBg && _crispBg.sig === sig && _crispBg.full) return;
         const token = ++_crispToken;
+        _crispSequenceActive = true;
         try {
             const docKey = pageIdx + ':' + page.pdfData.length;
             if (_crispDoc.key !== docKey) {
@@ -4696,19 +4733,34 @@ const I18N_STRINGS = {
             const pdfPage = await doc.getPage(page.pdfPageNum || 1);
             if (token !== _crispToken) return;
             const baseScale = page.pdfBaseScale || 1;
-            // Apply the stored display rotation (0 for old/non-rotated pages),
-            // matching how the snapshot was rendered.
-            const viewport = pdfPage.getViewport({ scale: baseScale * k, rotation: page.pdfRotation || 0 });
-            const cw = Math.ceil(w * k), ch = Math.ceil(h * k);
-            const oc = document.createElement('canvas'); oc.width = cw; oc.height = ch;
-            const octx = oc.getContext('2d');
-            octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, cw, ch);
-            await pdfPage.render({ canvasContext: octx, viewport, transform: [1, 0, 0, 1, -x0 * k, -y0 * k] }).promise;
-            if (token !== _crispToken) return;
-            _crispBg = { pageIdx, sig, rect: { x: x0, y: y0, w, h }, canvas: oc };
-            render();
+            // One render pass at scale factor kk; returns true if it completed.
+            const renderPass = async (kk, isFull) => {
+                if (token !== _crispToken || _interacting) return false;
+                const viewport = pdfPage.getViewport({ scale: baseScale * kk, rotation: page.pdfRotation || 0 });
+                const cw = Math.ceil(w * kk), ch = Math.ceil(h * kk);
+                const oc = document.createElement('canvas'); oc.width = cw; oc.height = ch;
+                const octx = oc.getContext('2d');
+                octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, cw, ch);
+                _crispRenderTask = pdfPage.render({ canvasContext: octx, viewport, transform: [1, 0, 0, 1, -x0 * kk, -y0 * kk] });
+                await _crispRenderTask.promise;
+                _crispRenderTask = null;
+                if (token !== _crispToken) return false;
+                _crispBg = { pageIdx, sig, full: isFull, rect: { x: x0, y: y0, w, h }, canvas: oc };
+                render();
+                return true;
+            };
+            // Pass 1: quick, low-res — sharpens almost immediately (small hitch).
+            const quickK = Math.max(1.5, Math.min(fullK * 0.5, kCap));
+            if (quickK < fullK - 0.01) { if (!await renderPass(quickK, false)) return; }
+            // Yield so the quick pass paints before the heavy full pass starts.
+            await new Promise(r => setTimeout(r, 0));
+            if (token !== _crispToken || _interacting) return;
+            // Pass 2: full crispness — swapped in when ready, no perceived hitch.
+            await renderPass(fullK, true);
         } catch (err) {
             // RenderingCancelled and transient failures: just skip this pass.
+        } finally {
+            _crispSequenceActive = false;
         }
     }
     
@@ -7732,7 +7784,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.6.0";
+    const APP_VERSION = "2.6.2";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7963,27 +8015,35 @@ const I18N_STRINGS = {
     // notation (1/4"=1' or 1:50). Metric conversion: 1:N means 1 mm paper = N mm
     // real, which is 12/N paper-inches per real-foot.
     const DRAWING_SCALES = [
-        { id: 'imp_1_32', label: "1/32\" = 1'", paperInPerFoot: 1/32, group: 'imperial' },
-        { id: 'imp_1_16', label: "1/16\" = 1'", paperInPerFoot: 1/16, group: 'imperial' },
-        { id: 'imp_3_32', label: "3/32\" = 1'", paperInPerFoot: 3/32, group: 'imperial' },
-        { id: 'imp_1_8', label: "1/8\" = 1'", paperInPerFoot: 1/8, group: 'imperial' },
-        { id: 'imp_3_16', label: "3/16\" = 1'", paperInPerFoot: 3/16, group: 'imperial' },
-        { id: 'imp_1_4', label: "1/4\" = 1'", paperInPerFoot: 0.25, group: 'imperial' },
-        { id: 'imp_3_8', label: "3/8\" = 1'", paperInPerFoot: 3/8, group: 'imperial' },
-        { id: 'imp_1_2', label: "1/2\" = 1'", paperInPerFoot: 0.5, group: 'imperial' },
-        { id: 'imp_3_4', label: "3/4\" = 1'", paperInPerFoot: 0.75, group: 'imperial' },
-        { id: 'imp_1', label: "1\" = 1'", paperInPerFoot: 1.0, group: 'imperial' },
-        { id: 'imp_1_5', label: "1 1/2\" = 1'", paperInPerFoot: 1.5, group: 'imperial' },
-        { id: 'imp_3', label: "3\" = 1'", paperInPerFoot: 3.0, group: 'imperial' },
+        // Architectural, largest drawing -> smallest (Bluebeam/AutoCAD order).
+        { id: 'imp_12', label: "12\" = 1'", paperInPerFoot: 12.0, group: 'imperial' },
         { id: 'imp_6', label: "6\" = 1'", paperInPerFoot: 6.0, group: 'imperial' },
-        { id: 'imp_12', label: "12\" = 1' (full size)", paperInPerFoot: 12.0, group: 'imperial' },
+        { id: 'imp_3', label: "3\" = 1'", paperInPerFoot: 3.0, group: 'imperial' },
+        { id: 'imp_1_5', label: "1 1/2\" = 1'", paperInPerFoot: 1.5, group: 'imperial' },
+        { id: 'imp_1', label: "1\" = 1'", paperInPerFoot: 1.0, group: 'imperial' },
+        { id: 'imp_3_4', label: "3/4\" = 1'", paperInPerFoot: 0.75, group: 'imperial' },
+        { id: 'imp_1_2', label: "1/2\" = 1'", paperInPerFoot: 0.5, group: 'imperial' },
+        { id: 'imp_3_8', label: "3/8\" = 1'", paperInPerFoot: 3/8, group: 'imperial' },
+        { id: 'imp_1_4', label: "1/4\" = 1'", paperInPerFoot: 0.25, group: 'imperial' },
+        { id: 'imp_3_16', label: "3/16\" = 1'", paperInPerFoot: 3/16, group: 'imperial' },
+        { id: 'imp_1_8', label: "1/8\" = 1'", paperInPerFoot: 1/8, group: 'imperial' },
+        { id: 'imp_3_32', label: "3/32\" = 1'", paperInPerFoot: 3/32, group: 'imperial' },
+        { id: 'imp_1_16', label: "1/16\" = 1'", paperInPerFoot: 1/16, group: 'imperial' },
+        { id: 'imp_3_64', label: "3/64\" = 1'", paperInPerFoot: 3/64, group: 'imperial' },
+        { id: 'imp_1_32', label: "1/32\" = 1'", paperInPerFoot: 1/32, group: 'imperial' },
+        { id: 'imp_1_64', label: "1/64\" = 1'", paperInPerFoot: 1/64, group: 'imperial' },
         { id: 'eng_10', label: "1\" = 10'", paperInPerFoot: 1/10, group: 'eng' },
         { id: 'eng_20', label: "1\" = 20'", paperInPerFoot: 1/20, group: 'eng' },
         { id: 'eng_30', label: "1\" = 30'", paperInPerFoot: 1/30, group: 'eng' },
         { id: 'eng_40', label: "1\" = 40'", paperInPerFoot: 1/40, group: 'eng' },
         { id: 'eng_50', label: "1\" = 50'", paperInPerFoot: 1/50, group: 'eng' },
         { id: 'eng_60', label: "1\" = 60'", paperInPerFoot: 1/60, group: 'eng' },
+        { id: 'eng_80', label: "1\" = 80'", paperInPerFoot: 1/80, group: 'eng' },
         { id: 'eng_100', label: "1\" = 100'", paperInPerFoot: 1/100, group: 'eng' },
+        { id: 'eng_160', label: "1\" = 160'", paperInPerFoot: 1/160, group: 'eng' },
+        { id: 'eng_200', label: "1\" = 200'", paperInPerFoot: 1/200, group: 'eng' },
+        { id: 'eng_300', label: "1\" = 300'", paperInPerFoot: 1/300, group: 'eng' },
+        { id: 'eng_400', label: "1\" = 400'", paperInPerFoot: 1/400, group: 'eng' },
         { id: 'met_1', label: "1:1", paperInPerFoot: 12/1, group: 'metric' },
         { id: 'met_2', label: "1:2", paperInPerFoot: 12/2, group: 'metric' },
         { id: 'met_5', label: "1:5", paperInPerFoot: 12/5, group: 'metric' },
@@ -8000,6 +8060,104 @@ const I18N_STRINGS = {
         { id: 'met_2000', label: "1:2000", paperInPerFoot: 12/2000, group: 'metric' },
         { id: 'met_5000', label: "1:5000", paperInPerFoot: 12/5000, group: 'metric' }
     ];
+    // Build the <option> markup for a scale <select> from DRAWING_SCALES,
+    // grouped Architectural / Engineering / Metric. Optionally prepend
+    // Fit-to-page and/or a Custom… entry.
+    function _scaleOptionsHTML(opts) {
+        opts = opts || {};
+        const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        const grp = (id, items) => items.length ? `<optgroup label="${esc(id)}">` + items.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('') + `</optgroup>` : '';
+        let h = '';
+        if (opts.fit) h += `<option value="fit">${esc(opts.fitLabel || 'Fit to page (no specific scale)')}</option>`;
+        if (opts.custom) h += `<option value="custom">${esc(opts.customLabel || 'Custom…')}</option>`;
+        h += grp(opts.archLabel || 'Imperial (Architectural)', DRAWING_SCALES.filter(s => s.group === 'imperial'));
+        h += grp(opts.engLabel  || 'Imperial (Engineering)',  DRAWING_SCALES.filter(s => s.group === 'eng'));
+        h += grp(opts.metLabel  || 'Metric',                  DRAWING_SCALES.filter(s => s.group === 'metric'));
+        return h;
+    }
+    let _customPrintScale = null; // paper inches per real foot, when Custom chosen
+    // Parse a custom scale string into paper-inches-per-foot. Accepts:
+    //   '1"=20\'' or '1 = 20' (1 inch = 20 feet)  -> 1/20
+    //   '1/8"=1\'' or '1/8 = 1'                    -> 0.125
+    //   '1:96' (metric-style ratio)                -> 12/96
+    function parseCustomScale(str) {
+        if (!str) return null;
+        str = str.trim();
+        const frac = f => { f = f.trim(); if (f.includes('/')) { const [a,b] = f.split('/').map(Number); return (b ? a/b : NaN); } return Number(f); };
+        let m = str.match(/^1\s*:\s*([0-9]*\.?[0-9]+)$/);
+        if (m) { const n = Number(m[1]); return n > 0 ? 12 / n : null; }
+        m = str.match(/^([0-9./\s]+?)\s*"?\s*=\s*([0-9./\s]+?)\s*'?$/);
+        if (m) { const paperIn = frac(m[1]); const realFt = frac(m[2]); return (paperIn > 0 && realFt > 0) ? paperIn / realFt : null; }
+        const n = Number(str); return (n > 0) ? n : null;
+    }
+    function _onPrintScaleChange() {
+        const sel = document.getElementById('print-scale-select');
+        if (!sel || sel.value !== 'custom') return;
+        promptDialog(t('scale.custom_prompt'), '1" = 20\'', t('scale.custom_help')).then(v => {
+            const parsed = parseCustomScale(v);
+            if (parsed && parsed > 0) {
+                _customPrintScale = parsed;
+                // Relabel the custom option to show the chosen scale.
+                const opt = sel.querySelector('option[value="custom"]');
+                if (opt) opt.textContent = t('scale.custom') + ' (' + (v ? v.trim() : '') + ')';
+            } else {
+                // Invalid/cancelled — revert to Fit to page.
+                sel.value = 'fit';
+            }
+        });
+    }
+    // Set Scale entry point: choose between picking a standard scale from the
+    // list or calibrating from two known points (the original behavior).
+    function showSetScaleMenu(ev) {
+        showCreateMenu(ev, [
+            { fallback: t('setscale.from_list'), fn: openScaleListPicker },
+            { fallback: t('setscale.from_points'), fn: () => setMode('calibrate') }
+        ]);
+    }
+    // Apply a standard list scale to the current page. For imported PDF pages
+    // the paper->pixel mapping comes from the import (pdfBaseScale); for created
+    // sheet pages it uses the fixed screen DPI.
+    function applyListScaleToPage(paperInPerFoot) {
+        const page = getActivePage(); if (!page) return;
+        saveState();
+        if (page.pdfData && page.pdfBaseScale) {
+            // world px per foot = (px per pt) * (pt per paper inch) * (paper in per foot)
+            page.pixelsPerFoot = page.pdfBaseScale * 72 * paperInPerFoot;
+            page.pdfScaleInPerFt = paperInPerFoot;
+        } else if (page.sheet) {
+            page.sheet.drawingScale = paperInPerFoot;
+            page.pixelsPerFoot = paperInPerFoot * PIXELS_PER_PAPER_INCH;
+        } else {
+            // Fallback (image with no stored paper size): assume 96 DPI paper.
+            page.pixelsPerFoot = paperInPerFoot * PIXELS_PER_PAPER_INCH;
+        }
+        markSeatCachesDirty(); updateUI(); triggerUpdate(); render();
+    }
+    function openScaleListPicker() {
+        const modal = document.getElementById('scale-list-modal');
+        const sel = document.getElementById('scale-list-select');
+        if (sel) sel.innerHTML = _scaleOptionsHTML({
+            archLabel: t('modal.newpage.scale.group.imperial'), engLabel: t('modal.newpage.scale.group.eng'), metLabel: t('modal.newpage.scale.group.metric')
+        });
+        if (modal) modal.classList.add('show');
+    }
+    function applyScaleListPick() {
+        const sel = document.getElementById('scale-list-select');
+        if (sel) { const obj = DRAWING_SCALES.find(s => s.id === sel.value); if (obj) applyListScaleToPage(obj.paperInPerFoot); }
+        const modal = document.getElementById('scale-list-modal'); if (modal) modal.classList.remove('show');
+    }
+    function populateScaleSelects() {
+        const printSel = document.getElementById('print-scale-select');
+        if (printSel && !printSel.dataset.customWired) { printSel.dataset.customWired = '1'; printSel.addEventListener('change', _onPrintScaleChange); }
+        if (printSel) printSel.innerHTML = _scaleOptionsHTML({
+            fit: true, fitLabel: t('modal.print.scale.fit'), custom: true, customLabel: t('scale.custom'),
+            archLabel: t('modal.newpage.scale.group.imperial'), engLabel: t('modal.newpage.scale.group.eng'), metLabel: t('modal.newpage.scale.group.metric')
+        });
+        const npSel = document.getElementById('newpage-sheet-scale');
+        if (npSel) { const _cur = npSel.value; npSel.innerHTML = _scaleOptionsHTML({
+            archLabel: t('modal.newpage.scale.group.imperial'), engLabel: t('modal.newpage.scale.group.eng'), metLabel: t('modal.newpage.scale.group.metric')
+        }); if (_cur) npSel.value = _cur; }
+    }
 
     // Map a drawing scale value (paper_inches_per_foot) to its closest preset
     // label, or "Custom" if it doesn't match any standard scale within tolerance.
@@ -8037,7 +8195,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.6.0-release";
+    const ANNOUNCEMENT_VERSION = "2.6.1-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -8045,6 +8203,46 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.6.2",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Performance &amp; polish (bug-fix release):</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Smoother large PDF sheets.</strong> Panning and zooming on big, detail-heavy imported sheets is much smoother. The sharp PDF re-render now waits until you stop moving, cancels cleanly when you move again (no more pile-up/\u201ccatch-up\u201d lag), and sharpens in two quick passes.</li>
+                    <li><strong>Tighter crosshair tracking.</strong> The crosshair now follows the cursor accurately, fixing drift and lag on large pages.</li>
+                    <li><strong>Imported-sheet scale display.</strong> The bottom-left readout now shows the named scale on imported PDF sheets (e.g. 3/64\" = 1\u2032), not just pixels-per-foot.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Rendimiento y mejoras (versi\u00f3n de correcciones):</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Hojas PDF grandes m\u00e1s fluidas.</strong> Desplazarse y hacer zoom en hojas importadas grandes y detalladas es mucho m\u00e1s fluido. El re-renderizado n\u00edtido del PDF ahora espera a que deje de moverse, se cancela limpiamente al moverse de nuevo (sin retrasos acumulados) y se aclara en dos pasadas r\u00e1pidas.</li>
+                    <li><strong>Seguimiento m\u00e1s preciso de la cruz.</strong> La cruz ahora sigue el cursor con precisi\u00f3n, corrigiendo la desviaci\u00f3n y el retraso en p\u00e1ginas grandes.</li>
+                    <li><strong>Escala en hojas importadas.</strong> La lectura inferior izquierda ahora muestra la escala con nombre en hojas PDF importadas (ej. 3/64\" = 1\u2032), no solo p\u00edxeles por pie.</li>
+                </ul>
+            `,
+        },
+        {
+            version: "2.6.1",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Scale &amp; paper improvements — more sizes, per-sheet control, and a clearer scale readout:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Full scale list + custom scales.</strong> The scale dropdown now has the complete imperial set (12\" = 1\u2032 down to 1/64\" = 1\u2032, plus engineering 1\" = 10\u2032 through 1\" = 400\u2032) alongside the metric scales. A new <em>Custom\u2026</em> option lets you enter any scale — the prompt explains both imperial (1\" = 15\u2032 or 1/8\" = 1\u2032) and metric/ratio (1:100) formats.</li>
+                    <li><strong>Scale shown on screen.</strong> The bottom-left readout now shows the named scale (e.g. <em>1/8\" = 1\u2032</em>) with pixels-per-foot in parentheses, instead of just px/ft. Sheets that don\u2019t match a standard still show px/ft.</li>
+                    <li><strong>Change a sheet\u2019s scale anytime.</strong> The <em>Set Scale</em> button now opens a menu: pick a standard scale from the list, or calibrate from two known points. Each sheet keeps its own scale — imperial or metric — whether set on import or changed later.</li>
+                    <li><strong>More paper sizes.</strong> The paper list is now complete and organized into Standard, Architectural, ANSI, and ISO groups — including the previously missing ANSI A/B and ISO B5.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Mejoras de escala y papel — m\u00e1s tama\u00f1os, control por hoja y una lectura de escala m\u00e1s clara:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Lista completa de escalas + escalas personalizadas.</strong> El men\u00fa de escala ahora tiene el conjunto imperial completo (de 12\" = 1\u2032 hasta 1/64\" = 1\u2032, m\u00e1s ingenier\u00eda de 1\" = 10\u2032 a 1\" = 400\u2032) junto a las escalas m\u00e9tricas. Una nueva opci\u00f3n <em>Personalizado\u2026</em> permite ingresar cualquier escala — el aviso explica los formatos imperial (1\" = 15\u2032 o 1/8\" = 1\u2032) y m\u00e9trico/raz\u00f3n (1:100).</li>
+                    <li><strong>Escala visible en pantalla.</strong> La lectura en la esquina inferior izquierda ahora muestra la escala con nombre (ej. <em>1/8\" = 1\u2032</em>) con p\u00edxeles por pie entre par\u00e9ntesis, en vez de solo px/ft. Las hojas que no coinciden con un est\u00e1ndar siguen mostrando px/ft.</li>
+                    <li><strong>Cambie la escala de una hoja en cualquier momento.</strong> El bot\u00f3n <em>Establecer Escala</em> ahora abre un men\u00fa: elija una escala est\u00e1ndar de la lista, o calibre desde dos puntos conocidos. Cada hoja mantiene su propia escala — imperial o m\u00e9trica — ya sea al importar o cambiada despu\u00e9s.</li>
+                    <li><strong>M\u00e1s tama\u00f1os de papel.</strong> La lista de papel ahora est\u00e1 completa y organizada en grupos Est\u00e1ndar, Arquitect\u00f3nico, ANSI e ISO — incluyendo los antes ausentes ANSI A/B e ISO B5.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.6.0",
             en: `
@@ -9012,7 +9210,16 @@ const I18N_STRINGS = {
                 displayScale = scale;
                 precision = 2;
             }
-            scaleEl.innerText = t('stats.scale.set', { n: displayScale.toFixed(precision), unit: getUnitLabel() });
+            const pxPart = t('stats.scale.set', { n: displayScale.toFixed(precision), unit: getUnitLabel() });
+            // Derive a named scale: sheet pages carry it directly; others are
+            // matched from pixelsPerFoot against the standard scale list.
+            let named = null, pin = null;
+            if (pActive.sheet && pActive.sheet.drawingScale) pin = pActive.sheet.drawingScale;
+            else if (typeof pActive.pdfScaleInPerFt === 'number' && pActive.pdfScaleInPerFt > 0) pin = pActive.pdfScaleInPerFt;
+            else if (pActive.pdfData && pActive.pdfBaseScale) pin = scale / (pActive.pdfBaseScale * 72);
+            else if (PIXELS_PER_PAPER_INCH) pin = scale / PIXELS_PER_PAPER_INCH;
+            if (pin != null) { const hit = DRAWING_SCALES.find(s => Math.abs(s.paperInPerFoot - pin) < pin * 0.01 + 0.00001); named = hit ? hit.label : formatDrawingScale(pin); }
+            scaleEl.innerText = named ? `${named} (${pxPart})` : pxPart;
         } else {
             scaleEl.innerText = t('stats.scale.notset');
         }
@@ -11097,31 +11304,58 @@ const I18N_STRINGS = {
     // Paper presets — all stored as [widthInches, heightInches] for the US/Arch
     // entries and [widthMM, heightMM] for the A-series. Converted to user unit
     // when applied.
+    // Paper sizes, grouped Standard / Architectural / ANSI / ISO. Each carries a
+    // label + group so the dropdowns can be generated (and stay in sync).
     const SHEET_PRESETS = {
-        letter:  { w: 8.5,  h: 11.0,   unit: 'in' },
-        legal:   { w: 8.5,  h: 14.0,   unit: 'in' },
-        tabloid: { w: 11.0, h: 17.0,   unit: 'in' },
-        ansiC:   { w: 17,   h: 22,     unit: 'in' },
-        ansiD:   { w: 22,   h: 34,     unit: 'in' },
-        ansiE:   { w: 34,   h: 44,     unit: 'in' },
-        a5:      { w: 148,  h: 210,    unit: 'mm' },
-        a4:      { w: 210,  h: 297,    unit: 'mm' },
-        a3:      { w: 297,  h: 420,    unit: 'mm' },
-        a2:      { w: 420,  h: 594,    unit: 'mm' },
-        a1:      { w: 594,  h: 841,    unit: 'mm' },
-        a0:      { w: 841,  h: 1189,   unit: 'mm' },
-        isoB4:   { w: 250,  h: 353,    unit: 'mm' },
-        isoB3:   { w: 353,  h: 500,    unit: 'mm' },
-        isoB2:   { w: 500,  h: 707,    unit: 'mm' },
-        isoB1:   { w: 707,  h: 1000,   unit: 'mm' },
-        isoB0:   { w: 1000, h: 1414,   unit: 'mm' },
-        archA:   { w: 9,    h: 12,     unit: 'in' },
-        archB:   { w: 12,   h: 18,     unit: 'in' },
-        archC:   { w: 18,   h: 24,     unit: 'in' },
-        archD:   { w: 24,   h: 36,     unit: 'in' },
-        archE:   { w: 36,   h: 48,     unit: 'in' },
-        archE1:  { w: 30,   h: 42,     unit: 'in' }
+        // Standard US
+        letter:  { w: 8.5,  h: 11.0,  unit: 'in', group: 'std',  label: 'Letter (8.5 \u00d7 11 in)' },
+        legal:   { w: 8.5,  h: 14.0,  unit: 'in', group: 'std',  label: 'Legal (8.5 \u00d7 14 in)' },
+        tabloid: { w: 11.0, h: 17.0,  unit: 'in', group: 'std',  label: 'Tabloid / Ledger (11 \u00d7 17 in)' },
+        // Architectural
+        archA:   { w: 9,    h: 12,    unit: 'in', group: 'arch', label: 'Arch A (9 \u00d7 12 in)' },
+        archB:   { w: 12,   h: 18,    unit: 'in', group: 'arch', label: 'Arch B (12 \u00d7 18 in)' },
+        archC:   { w: 18,   h: 24,    unit: 'in', group: 'arch', label: 'Arch C (18 \u00d7 24 in)' },
+        archD:   { w: 24,   h: 36,    unit: 'in', group: 'arch', label: 'Arch D (24 \u00d7 36 in)' },
+        archE:   { w: 36,   h: 48,    unit: 'in', group: 'arch', label: 'Arch E (36 \u00d7 48 in)' },
+        archE1:  { w: 30,   h: 42,    unit: 'in', group: 'arch', label: 'Arch E1 (30 \u00d7 42 in)' },
+        // ANSI
+        ansiA:   { w: 8.5,  h: 11.0,  unit: 'in', group: 'ansi', label: 'ANSI A (8.5 \u00d7 11 in)' },
+        ansiB:   { w: 11.0, h: 17.0,  unit: 'in', group: 'ansi', label: 'ANSI B (11 \u00d7 17 in)' },
+        ansiC:   { w: 17,   h: 22,    unit: 'in', group: 'ansi', label: 'ANSI C (17 \u00d7 22 in)' },
+        ansiD:   { w: 22,   h: 34,    unit: 'in', group: 'ansi', label: 'ANSI D (22 \u00d7 34 in)' },
+        ansiE:   { w: 34,   h: 44,    unit: 'in', group: 'ansi', label: 'ANSI E (34 \u00d7 44 in)' },
+        // ISO A
+        a5:      { w: 148,  h: 210,   unit: 'mm', group: 'iso',  label: 'A5 (148 \u00d7 210 mm)' },
+        a4:      { w: 210,  h: 297,   unit: 'mm', group: 'iso',  label: 'A4 (210 \u00d7 297 mm)' },
+        a3:      { w: 297,  h: 420,   unit: 'mm', group: 'iso',  label: 'A3 (297 \u00d7 420 mm)' },
+        a2:      { w: 420,  h: 594,   unit: 'mm', group: 'iso',  label: 'A2 (420 \u00d7 594 mm)' },
+        a1:      { w: 594,  h: 841,   unit: 'mm', group: 'iso',  label: 'A1 (594 \u00d7 841 mm)' },
+        a0:      { w: 841,  h: 1189,  unit: 'mm', group: 'iso',  label: 'A0 (841 \u00d7 1189 mm)' },
+        // ISO B
+        isoB5:   { w: 176,  h: 250,   unit: 'mm', group: 'iso',  label: 'ISO B5 (176 \u00d7 250 mm)' },
+        isoB4:   { w: 250,  h: 353,   unit: 'mm', group: 'iso',  label: 'ISO B4 (250 \u00d7 353 mm)' },
+        isoB3:   { w: 353,  h: 500,   unit: 'mm', group: 'iso',  label: 'ISO B3 (353 \u00d7 500 mm)' },
+        isoB2:   { w: 500,  h: 707,   unit: 'mm', group: 'iso',  label: 'ISO B2 (500 \u00d7 707 mm)' },
+        isoB1:   { w: 707,  h: 1000,  unit: 'mm', group: 'iso',  label: 'ISO B1 (707 \u00d7 1000 mm)' },
+        isoB0:   { w: 1000, h: 1414,  unit: 'mm', group: 'iso',  label: 'ISO B0 (1000 \u00d7 1414 mm)' }
     };
+    const SHEET_PRESET_GROUPS = [['std','Standard'],['arch','Architectural'],['ansi','ANSI'],['iso','ISO']];
+    function _paperOptionsHTML(includeCustom, customLabel) {
+        const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        let h = includeCustom ? `<option value="custom">${esc(customLabel || 'Custom\u2026')}</option>` : '';
+        SHEET_PRESET_GROUPS.forEach(([gid, glabel]) => {
+            const items = Object.keys(SHEET_PRESETS).filter(k => SHEET_PRESETS[k].group === gid);
+            if (!items.length) return;
+            h += `<optgroup label="${esc(glabel)}">` + items.map(k => `<option value="${esc(k)}">${esc(SHEET_PRESETS[k].label)}</option>`).join('') + `</optgroup>`;
+        });
+        return h;
+    }
+    function populatePaperSelects() {
+        const printSel = document.getElementById('print-paper-size');
+        if (printSel) { const cur = printSel.value; printSel.innerHTML = _paperOptionsHTML(false); if (cur && SHEET_PRESETS[cur]) printSel.value = cur; }
+        const npSel = document.getElementById('newpage-sheet-preset');
+        if (npSel) { const cur = npSel.value; npSel.innerHTML = _paperOptionsHTML(true, t('modal.newpage.preset.custom')); if (cur) npSel.value = cur; }
+    }
 
     let _newPageOrientation = 'portrait';
 
@@ -11871,6 +12105,8 @@ const I18N_STRINGS = {
         document.documentElement.lang = currentLang;
         document.title = t('brand.title') + ' | Professional UI';
         applyStaticTranslations();
+        populateScaleSelects();
+        populatePaperSelects();
         // Sync the language toggle button to the currently-active language.
         // (Normally setLanguage handles this, but at init time we haven't called
         // it — we're already in currentLang from the cookie/default.)
@@ -11893,7 +12129,11 @@ const I18N_STRINGS = {
         // Apply auto-scale once the layout is settled.
         fitAppToViewport();
     }
-    function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; render(); }
+    let _canvasRect = null;
+    function refreshCanvasRect() { _canvasRect = canvas.getBoundingClientRect(); }
+    function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; refreshCanvasRect(); render(); }
+    window.addEventListener('scroll', refreshCanvasRect, true);
+    window.addEventListener('resize', refreshCanvasRect);
 
     // Convert a #RRGGBB hex color + optional opacity (0..1) to an rgba() string.
     // Returns the input untouched if it's already non-hex or opacity is 1/undefined.
@@ -12754,13 +12994,19 @@ const I18N_STRINGS = {
     // handler runs. Without this, the crosshair appears glued to the result of
     // the previous frame's hit tests on dense scenes.
     document.getElementById('viewport').addEventListener('mousemove', (e) => {
-        // Scale-aware: convert visible viewport pixels to canvas-internal pixels.
-        const rect = canvas.getBoundingClientRect();
+        // Use a cached rect to avoid a layout flush on every move. The crosshair
+        // overlay lives in CSS pixels, so position it with raw CSS coordinates
+        // (cssX/cssY) — that tracks the actual cursor exactly. The canvas-internal
+        // coordinates (x/y) are still derived for panning/hit math below.
+        if (!_canvasRect) refreshCanvasRect();
+        const rect = _canvasRect;
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-        updateCrosshair(x, y);
+        const cssX = e.clientX - rect.left;
+        const cssY = e.clientY - rect.top;
+        const x = cssX * scaleX;
+        const y = cssY * scaleY;
+        updateCrosshair(cssX, cssY);
 
         // ─── Fast path: handle panning in this lightweight listener so it
         //     responds instantly without waiting for the rAF-throttled heavy
@@ -12962,6 +13208,9 @@ const I18N_STRINGS = {
                             if (activePage.sheet && activePage.sheet.widthIn) {
                                 activePage.sheet.drawingScale = newPixelsPerFoot / PIXELS_PER_PAPER_INCH;
                             }
+                            // Two-point calibration overrides any previously-set
+                            // named scale; clear it so the readout matches reality.
+                            if (typeof activePage.pdfScaleInPerFt === 'number') delete activePage.pdfScaleInPerFt;
                             triggerUpdate();
                         }
                     }
@@ -14112,7 +14361,15 @@ const I18N_STRINGS = {
     }
 
     let _interacting = false, _interactTimer = null;
-    function beginInteract() { _interacting = true; if (_interactTimer) clearTimeout(_interactTimer); _interactTimer = setTimeout(() => { _interacting = false; render(); }, 130); }
+    function beginInteract() {
+        _interacting = true;
+        if (_crispTimer) { clearTimeout(_crispTimer); _crispTimer = null; }
+        _crispToken++;
+        if (_crispRenderTask) { try { _crispRenderTask.cancel(); } catch (e) {} _crispRenderTask = null; }
+        _crispSequenceActive = false;
+        if (_interactTimer) clearTimeout(_interactTimer);
+        _interactTimer = setTimeout(() => { _interacting = false; scheduleCrispBg(); render(); }, 150);
+    }
     let renderPending = false;
     function render(targetCtx = ctx, v = view, isLive = true) {
         if (!isLive) return; 
@@ -16397,7 +16654,9 @@ const I18N_STRINGS = {
 
         const scaleId = document.getElementById('print-scale-select').value;
         let scaleVal = null;
-        if (scaleId !== 'fit') {
+        if (scaleId === 'custom') {
+            scaleVal = (typeof _customPrintScale === 'number' && _customPrintScale > 0) ? _customPrintScale : null;
+        } else if (scaleId !== 'fit') {
             const scaleObj = DRAWING_SCALES.find(s => s.id === scaleId);
             if (scaleObj) scaleVal = scaleObj.paperInPerFoot;
         }
