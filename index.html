@@ -7,7 +7,18 @@
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007acc%22/><text x=%2250%22 y=%2268%22 font-size=%2255%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22white%22 text-anchor=%22middle%22>CP</text></svg>">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- pdf.js 6.x loaded as an ES module, then exposed as window.pdfjsLib so the
+         (non-module) app code can keep using pdfjsLib.* unchanged. The app awaits
+         window.pdfjsReady before any PDF operation. -->
+    <script type="module">
+      const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.0.227/build';
+      window.pdfjsReady = (async () => {
+        const lib = await import(`${PDFJS_BASE}/pdf.min.mjs`);
+        lib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.mjs`;
+        window.pdfjsLib = lib;
+        return lib;
+      })();
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <!-- SheetJS for Excel (.xlsx) export of chair/key item data. Loaded from CDN;
          falls back gracefully if offline — exportToExcel() checks for window.XLSX
@@ -102,10 +113,10 @@
            Sized for density. Goal: pro-tool feel where every row, button, and
            heading earns its pixels. ~280px wide gives the canvas more room
            while still fitting standard 280px sidebar widgets. */
-        #properties-sidebar { width: 280px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; transition: width 0.15s ease, min-width 0.15s ease; }
+        #properties-sidebar { width: 280px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; }
         #properties-sidebar.collapsed { width: 0; min-width: 0; border-right: none; overflow: hidden; }
         /* Right sidebar mirrors the left; holds placed-item lists. Closed by default. */
-        #right-sidebar { width: 280px; background: var(--panel-bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; transition: width 0.15s ease, min-width 0.15s ease; }
+        #right-sidebar { width: 280px; background: var(--panel-bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; }
         #right-sidebar.collapsed { width: 0; min-width: 0; border-left: none; overflow: hidden; }
         #right-sidebar .sidebar-header { background: #2d2d30; }
         #right-panel-body { flex: 1; overflow-y: auto; padding: 10px; }
@@ -4239,7 +4250,8 @@ const I18N_STRINGS = {
     }
 
     // ─── CORE SETUP ─────────────────────────────────────────────────────────────
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    // pdf.js (v6) is loaded as a module in <head> and exposed as window.pdfjsLib;
+    // workerSrc is set there. Any PDF operation awaits window.pdfjsReady first.
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -4779,6 +4791,8 @@ const I18N_STRINGS = {
         const token = ++_crispToken;
         _crispSequenceActive = true;
         try {
+            await window.pdfjsReady;
+            if (token !== _crispToken) return;
             const docKey = pageIdx + ':' + page.pdfData.length;
             if (_crispDoc.key !== docKey) {
                 _crispDoc = { key: docKey, promise: pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise };
@@ -7839,7 +7853,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.8.0";
+    const APP_VERSION = "2.8.1";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -8258,6 +8272,25 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.8.1",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Maintenance release — rendering engine upgrade and interface fixes:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Upgraded PDF engine.</strong> The PDF rendering library was updated to a current version — faster, with identical output quality. Import, crisp zoom, scale detection, and vector export all unchanged.</li>
+                    <li><strong>Accurate crosshair.</strong> Fixed the crosshair drifting away from the cursor on narrower windows (and with developer tools open). It now tracks the cursor correctly at any window size.</li>
+                    <li><strong>Smoother side panels.</strong> Collapsing or expanding the left/right panels no longer flickers the canvas, and the drawing stays put instead of sliding when the left panel toggles.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Versión de mantenimiento — actualización del motor de renderizado y correcciones de interfaz:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Motor PDF actualizado.</strong> La biblioteca de renderizado de PDF se actualizó a una versión actual — más rápida, con calidad de salida idéntica. Importación, zoom nítido, detección de escala y exportación vectorial sin cambios.</li>
+                    <li><strong>Cruz precisa.</strong> Se corrigió la cruz que se desviaba del cursor en ventanas más estrechas (y con las herramientas de desarrollo abiertas). Ahora sigue el cursor correctamente en cualquier tamaño de ventana.</li>
+                    <li><strong>Paneles laterales más fluidos.</strong> Plegar o desplegar los paneles izquierdo/derecho ya no parpadea el lienzo, y el dibujo permanece fijo en vez de deslizarse al alternar el panel izquierdo.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.8.0",
             en: `
@@ -9116,6 +9149,7 @@ const I18N_STRINGS = {
             if (file.type === 'application/pdf') {
                 // Render PDF page 1 to a small raster for the logo
                 const arrayBuffer = await file.arrayBuffer();
+                await window.pdfjsReady;
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const page = await pdf.getPage(1);
                 const baseViewport = page.getViewport({ scale: 1 });
@@ -9254,18 +9288,22 @@ const I18N_STRINGS = {
     function toggleSidebar(side) {
         const el = document.getElementById(side === 'left' ? 'properties-sidebar' : 'right-sidebar');
         if (!el) return;
+        const vp = document.getElementById('viewport');
+        const wBefore = vp.clientWidth;
         const nowCollapsed = el.classList.toggle('collapsed');
-        _canvasRect = null; // force a fresh rect; collapse moved the canvas
+        const wAfter = vp.clientWidth; // instant collapse: this is the FINAL width
+        // The LEFT sidebar moves the canvas's left edge, sliding content. Shift
+        // the view by the width delta so the drawing stays visually anchored.
+        // (The RIGHT sidebar leaves the left edge fixed — no compensation.)
+        if (side === 'left') { view.x += (wAfter - wBefore); }
         const handle = document.getElementById(side === 'left' ? 'toggle-left' : 'toggle-right');
         if (handle) {
             if (side === 'left') handle.textContent = nowCollapsed ? '\u203a' : '\u2039';
             else handle.textContent = nowCollapsed ? '\u2039' : '\u203a';
         }
-        // Resize the canvas once the collapse transition completes.
-        const done = () => { if (typeof resize === 'function') resize(); el.removeEventListener('transitionend', done); };
-        el.addEventListener('transitionend', done);
-        // Fallback in case transitionend doesn't fire.
-        setTimeout(() => { if (typeof resize === 'function') resize(); }, 200);
+        _canvasRect = null;
+        resize();   // single, clean resize (no-op-safe if size unchanged)
+        render();
     }
     // Placed-item sections that live in the RIGHT panel, per tab. Their tool/
     // profile controls stay in the left panel; only these placed-item lists move.
@@ -12181,6 +12219,7 @@ const I18N_STRINGS = {
                 // pdf.js transfers (detaches) the ArrayBuffer it receives, which
                 // would break the normalization + base64 steps below. Give it a
                 // private copy and keep `arrayBuffer` intact for later use.
+                await window.pdfjsReady;
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise; const page = await pdf.getPage(1);
                 const baseViewport = page.getViewport({ scale: 1 }); const maxDimension = Math.max(baseViewport.width, baseViewport.height);
                 const sheetWIn = baseViewport.width / 72, sheetHIn = baseViewport.height / 72;
@@ -12350,11 +12389,44 @@ const I18N_STRINGS = {
         // Apply auto-scale once the layout is settled.
         fitAppToViewport();
     }
-    let _canvasRect = null;
-    function refreshCanvasRect() { _canvasRect = canvas.getBoundingClientRect(); }
-    function resize() { const v = document.getElementById('viewport'); canvas.width = v.clientWidth; canvas.height = v.clientHeight; refreshCanvasRect(); render(); }
+    let _canvasRect = null, _rectStamp = 0;
+    function refreshCanvasRect() { _canvasRect = canvas.getBoundingClientRect(); _rectStamp = performance.now(); }
+    function resize() {
+        const v = document.getElementById('viewport');
+        const w = v.clientWidth, h = v.clientHeight;
+        // Only touch the backing store if the size actually changed. Writing
+        // canvas.width/height clears the canvas, so doing it every observer
+        // tick during a transition causes flicker.
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w; canvas.height = h;
+            refreshCanvasRect();
+            render();
+        } else {
+            // Size unchanged but position may have (e.g. DevTools) — refresh rect only.
+            refreshCanvasRect();
+        }
+    }
     window.addEventListener('scroll', refreshCanvasRect, true);
     window.addEventListener('resize', refreshCanvasRect);
+    // DevTools open/close (and any layout shift) can change the canvas box
+    // without firing window 'resize'. A ResizeObserver catches the box change
+    // directly and keeps the cached rect — and the canvas size — in sync.
+    try {
+        const _vpEl = document.getElementById('viewport');
+        if (_vpEl && typeof ResizeObserver !== 'undefined') {
+            let _roTimer = null;
+            const _ro = new ResizeObserver(() => {
+                // Debounce: only resize once the box has stopped changing, so a
+                // drag-resize or DevTools docking doesn't fire a storm of redraws.
+                if (_roTimer) clearTimeout(_roTimer);
+                _roTimer = setTimeout(() => { _roTimer = null; if (typeof resize === 'function') resize(); else refreshCanvasRect(); }, 120);
+            });
+            _ro.observe(_vpEl);
+        }
+    } catch (e) {}
+    // Also refresh whenever the pointer re-enters the canvas, so a stale rect
+    // can never persist into a fresh interaction.
+    canvas.addEventListener('pointerenter', refreshCanvasRect);
 
     // Convert a #RRGGBB hex color + optional opacity (0..1) to an rgba() string.
     // Returns the input untouched if it's already non-hex or opacity is 1/undefined.
@@ -13257,7 +13329,10 @@ const I18N_STRINGS = {
         // overlay lives in CSS pixels, so position it with raw CSS coordinates
         // (cssX/cssY) — that tracks the actual cursor exactly. The canvas-internal
         // coordinates (x/y) are still derived for panning/hit math below.
-        if (!_canvasRect) refreshCanvasRect();
+        // Self-healing cached rect: refresh if missing or stale (>400ms). This
+        // corrects offsets from canvas POSITION changes (e.g. DevTools docking
+        // to the side) that size-based observers don't catch — at negligible cost.
+        if (!_canvasRect || (performance.now() - _rectStamp) > 400) refreshCanvasRect();
         const rect = _canvasRect;
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
@@ -13265,7 +13340,12 @@ const I18N_STRINGS = {
         const cssY = e.clientY - rect.top;
         const x = cssX * scaleX;
         const y = cssY * scaleY;
-        updateCrosshair(cssX, cssY);
+        // The crosshair overlay sits inside the auto-scaled #app-root, so its
+        // translate is multiplied by the app scale. Divide by it here so the
+        // crosshair lands on the cursor even when the app is scaled (narrow
+        // window / DevTools docked to the side). No-op when scale is 1.
+        const _as = (typeof _currentAppScale === 'number' && _currentAppScale > 0) ? _currentAppScale : 1;
+        updateCrosshair(cssX / _as, cssY / _as);
 
         // ─── Fast path: handle panning in this lightweight listener so it
         //     responds instantly without waiting for the rAF-throttled heavy
@@ -17612,6 +17692,7 @@ const I18N_STRINGS = {
             if (!underlayDone) {
                 // Plan B: render the page with pdf.js (which handles these
                 // files fine) at high resolution and embed as an image.
+                await window.pdfjsReady;
                 const pdoc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
                 const pp = await pdoc.getPage(page.pdfPageNum || 1);
                 let rk = Math.max(1.5, (450 * (PW / 72)) / bgW);
@@ -17632,6 +17713,7 @@ const I18N_STRINGS = {
         if (underlayDone && _annotLayerNeeded) {
             try {
                 const AMv = (pdfjsLib.AnnotationMode ? pdfjsLib.AnnotationMode : { ENABLE: 1, DISABLE: 0 });
+                await window.pdfjsReady;
                 const pdoc2 = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
                 const pp2 = await pdoc2.getPage(page.pdfPageNum || 1);
                 let rk2 = Math.max(1.5, (450 * (PW / 72)) / bgW);
@@ -18349,6 +18431,7 @@ const I18N_STRINGS = {
                     let pdfBgDone = false;
                     if (page.pdfData && bgImage.src && pk > 1.001) {
                         try {
+                            await window.pdfjsReady;
                             const doc = await pdfjsLib.getDocument({ data: _b64ToU8(page.pdfData) }).promise;
                             const pdfPage = await doc.getPage(page.pdfPageNum || 1);
                             const viewport = pdfPage.getViewport({ scale: (page.pdfBaseScale || 1) * pk, rotation: page.pdfRotation || 0 });
