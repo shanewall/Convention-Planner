@@ -1732,19 +1732,7 @@
     </div>
 </div>
 
-<div id="migration-modal" class="modal-overlay" onclick="if(event.target===this) dismissMigrationModal()">
-    <div class="modal-card" role="dialog" aria-labelledby="migration-title" style="max-width:440px; text-align:center;">
-        <div style="font-size:2.4em; margin-bottom:6px;">📍</div>
-        <h2 id="migration-title" data-i18n="migration.title" style="margin-top:0;">Convention Planner is moving</h2>
-        <p style="font-size:1.3em; font-weight:bold; color:#f0c040; margin:6px 0 2px;">July 1, 2026</p>
-        <p data-i18n="migration.body" style="font-size:0.95em; color:#ddd; line-height:1.5; margin:2px 0 10px;">the only home for Convention Planner will be:</p>
-        <p style="margin:14px 0;"><a href="https://app.conventionplanner.org" target="_blank" rel="noopener" style="font-size:1.15em; font-weight:bold; color:#4ea1ff; text-decoration:none;">app.conventionplanner.org</a></p>
-        <p data-i18n="migration.bookmark" style="font-size:0.85em; color:#aaa; margin:10px 0 0;">Please update your bookmark so you don't lose access.</p>
-        <div class="modal-actions" style="justify-content:center; margin-top:20px;">
-            <button onclick="dismissMigrationModal()" data-i18n="migration.gotit">Got it</button>
-        </div>
-    </div>
-</div>
+
 <div id="pdf-import-modal" class="modal-overlay" onclick="if(event.target===this) cancelPdfImportModal()">
     <div class="modal-card" role="dialog">
         <h2 data-i18n="pdfimport.title">PDF Sheet Settings</h2>
@@ -1976,7 +1964,6 @@
 
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group" style="display:flex; align-items:center; gap:8px;">
-            <span id="cp-migration-notice" data-i18n="notice.migration" title="Update your bookmark" style="font-size:0.72em; line-height:1.2; color:#f0c040; background:rgba(240,192,64,0.12); border:1px solid rgba(240,192,64,0.4); border-radius:5px; padding:4px 8px; max-width:200px; white-space:normal;">Heads up: starting July 1, 2026, the only home for Convention Planner will be app.conventionplanner.org</span>
             <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
@@ -2537,11 +2524,6 @@ const I18N_STRINGS = {
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
         "ribbon.help": "Help",
-        "notice.migration": "Heads up: starting July 1, 2026, the only home for Convention Planner will be app.conventionplanner.org",
-        "migration.title": "Convention Planner is moving",
-        "migration.body": "the only home for Convention Planner will be:",
-        "migration.bookmark": "Please update your bookmark so you don't lose access.",
-        "migration.gotit": "Got it",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
         "panel.title.area": "Seating Area Tools",
@@ -3273,11 +3255,6 @@ const I18N_STRINGS = {
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
         "ribbon.help": "Ayuda",
-        "notice.migration": "Aviso: a partir del 1 de julio de 2026, el \u00fanico hogar de Convention Planner ser\u00e1 app.conventionplanner.org",
-        "migration.title": "Convention Planner se muda",
-        "migration.body": "el \u00fanico hogar de Convention Planner ser\u00e1:",
-        "migration.bookmark": "Actualice su marcador para no perder el acceso.",
-        "migration.gotit": "Entendido",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
         "panel.title.area": "Asientos - Herramientas",
@@ -8987,27 +8964,6 @@ const I18N_STRINGS = {
     }
     // ─── END ANNOUNCEMENTS ──────────────────────────────────────────────────────
 
-    // Migration notice: app is consolidating to app.conventionplanner.org on
-    // July 1, 2026. Show once per browser session until that date, then stop.
-    const MIGRATION_DEADLINE = new Date('2026-07-01T00:00:00');
-    function showMigrationModalIfDue() {
-        try {
-            if (new Date() >= MIGRATION_DEADLINE) return false; // past the cutoff
-            if (sessionStorage.getItem('cpMigrationSeenThisSession') === '1') return false;
-            const m = document.getElementById('migration-modal');
-            if (!m) return false;
-            m.classList.add('show');
-            sessionStorage.setItem('cpMigrationSeenThisSession', '1');
-            return true;
-        } catch (e) { return false; }
-    }
-    function dismissMigrationModal() {
-        const m = document.getElementById('migration-modal');
-        if (m) m.classList.remove('show');
-        // After the migration modal closes, surface the version announcement
-        // (if new). Brief delay so the two modals don't overlap visually.
-        setTimeout(() => { if (typeof showAnnouncementIfNew === 'function') showAnnouncementIfNew(); }, 250);
-    }
     function showAnnouncementIfNew() {
         if (!ANNOUNCEMENT_VERSION) return;  // disabled
         // Per-language seen tracking. Each language has its own "last seen" key,
@@ -12382,10 +12338,8 @@ const I18N_STRINGS = {
                 : 'Language: English. Click to switch.';
         }
         updateUI(); setMode('idle'); applyLogo();
-        // Migration notice takes the first slot on load (once per session
-        // until July 1, 2026). If it shows, the version announcement is
-        // deferred until the user dismisses it; otherwise show it now.
-        if (!showMigrationModalIfDue()) showAnnouncementIfNew();
+        // Surface the version announcement on load (if a new one exists).
+        showAnnouncementIfNew();
         // Apply auto-scale once the layout is settled.
         fitAppToViewport();
     }
