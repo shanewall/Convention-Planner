@@ -114,10 +114,12 @@
            heading earns its pixels. ~280px wide gives the canvas more room
            while still fitting standard 280px sidebar widgets. */
         #properties-sidebar { width: 280px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; }
-        #properties-sidebar.collapsed { width: 0; min-width: 0; border-right: none; overflow: hidden; }
+        /* !important so collapse still wins over the inline width written by
+           the drag-resize grips (inline beats a normal rule, but not this). */
+        #properties-sidebar.collapsed { width: 0 !important; min-width: 0 !important; border-right: none; overflow: hidden; }
         /* Right sidebar mirrors the left; holds placed-item lists. Closed by default. */
         #right-sidebar { width: 280px; background: var(--panel-bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 90; }
-        #right-sidebar.collapsed { width: 0; min-width: 0; border-left: none; overflow: hidden; }
+        #right-sidebar.collapsed { width: 0 !important; min-width: 0 !important; border-left: none; overflow: hidden; }
         #right-sidebar .sidebar-header { background: #2d2d30; }
         #right-panel-body { flex: 1; overflow-y: auto; padding: 10px; }
         /* Floating collapse/expand handles, pinned to the canvas edges. */
@@ -125,6 +127,15 @@
         .sidebar-toggle:hover { opacity: 1; }
         #toggle-left { left: 6px; }
         #toggle-right { right: 6px; }
+        /* Drag-to-resize grips between each sidebar and the canvas. Thin hit
+           target, accent-highlighted on hover/drag. Hidden when the adjacent
+           sidebar is collapsed. Double-click resets to the default width. */
+        .sidebar-resizer { flex: 0 0 5px; width: 5px; cursor: col-resize; position: relative; z-index: 96; background: transparent; }
+        .sidebar-resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 1px; right: 1px; background: transparent; transition: background 0.12s; }
+        .sidebar-resizer:hover::after, .sidebar-resizer.dragging::after { background: var(--accent); }
+        .sidebar-resizer.hidden { display: none; }
+        body.resizing-sidebar { cursor: col-resize; }
+        body.resizing-sidebar * { user-select: none !important; }
         .sidebar-header { background: #2d2d30; padding: 8px 12px; font-weight: bold; color: var(--text-light); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; font-size: 0.92em; }
         
         .panel-content { flex-grow: 1; overflow: hidden; display: none; flex-direction: column; padding: 0; }
@@ -642,6 +653,11 @@
             padding: 2px 8px; border-radius: 10px; margin-left: 8px;
         }
         .collapse-body { overflow: hidden; }
+        /* Project Layers list lives inside .panel-tools, which never shrinks.
+           Without a height cap a long layer list pushes the placed-items list
+           and the stats summary off the bottom of the sidebar. Cap it and let
+           it scroll on its own. */
+        #project-layers-list { max-height: clamp(140px, 34vh, 420px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
         /* Accordion group: ALL headers pinned in a cluster at the top (via flex
            order), with the single open body filling the space below them and
            scrolling internally. Headers never get pushed down by content. */
@@ -940,6 +956,8 @@
                 height: auto !important;
                 display: block !important;
             }
+            /* ...but the layers list keeps its own cap + scroll. */
+            #project-layers-list { max-height: clamp(140px, 40vh, 420px) !important; overflow-y: auto !important; }
             .modal-card, .modal-card.wide {
                 max-height: 85vh !important;
                 overflow-y: auto !important;
@@ -2421,6 +2439,7 @@
         </div>
     </div>
 
+    <div id="resizer-left" class="sidebar-resizer" title="Drag to resize — double-click to reset"></div>
     <div id="viewport">
         <canvas id="mainCanvas"></canvas>
         <div id="crosshair-overlay">
@@ -2441,6 +2460,7 @@
                    white-space:pre; min-width:30px; min-height:1em;"
             spellcheck="false"></textarea>
     </div>
+    <div id="resizer-right" class="sidebar-resizer hidden" title="Drag to resize — double-click to reset"></div>
     <div id="right-sidebar" class="collapsed">
         <div class="sidebar-header"><span id="right-panel-title" data-i18n="right.placed_items">Placed Items</span><button onclick="toggleSidebar('right')" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:1.1em;">×</button></div>
         <div id="right-panel-body"></div>
@@ -4273,10 +4293,34 @@ const I18N_STRINGS = {
             const mark = o.marker ? `<span style="display:inline-block; width:1.1em;">${o.marker}</span>` : '<span style="display:inline-block; width:1.1em;"></span>';
             return `<div class="ctx-menu-item" onclick="_runCreateMenu(${i})">${mark}${label}</div>`;
         }).join('');
+        // Position within the viewport. #panel-create-menu is a fixed-position
+        // element OUTSIDE the transformed #app-root, so client coords apply
+        // directly (no app-scale compensation needed).
         const r = ev.currentTarget.getBoundingClientRect();
-        menu.style.left = r.left + 'px';
-        menu.style.top = (r.bottom + 4) + 'px';
+        const M = 8; // viewport margin
+        // Clear any clamp from a previous open so measurement is accurate.
+        menu.style.maxHeight = ''; menu.style.overflowY = '';
+        menu.style.left = '0px'; menu.style.top = '0px';
         menu.classList.add('show');
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const mw = menu.offsetWidth;
+        let mh = menu.offsetHeight;
+        // Too tall for the screen (many project layers) -> cap and scroll.
+        const maxH = vh - 2 * M;
+        if (mh > maxH) { menu.style.maxHeight = maxH + 'px'; menu.style.overflowY = 'auto'; mh = maxH; }
+        // Horizontal: prefer the anchor's left edge, pull back inside if needed.
+        let left = r.left;
+        if (left + mw > vw - M) left = vw - mw - M;
+        if (left < M) left = M;
+        // Vertical: prefer below the anchor; flip above when it would overflow
+        // the bottom (the right-click case near the bottom of the screen).
+        let top = r.bottom + 4;
+        if (top + mh > vh - M) {
+            const above = r.top - 4 - mh;
+            top = (above >= M) ? above : Math.max(M, vh - mh - M);
+        }
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
         setTimeout(() => {
             const close = (e) => { if (!menu.contains(e.target)) { menu.classList.remove('show'); document.removeEventListener('mousedown', close); } };
             document.addEventListener('mousedown', close);
@@ -7830,7 +7874,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.8.1";
+    const APP_VERSION = "2.8.2";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -8241,7 +8285,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.8.0-release";
+    const ANNOUNCEMENT_VERSION = "2.8.2-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -8249,6 +8293,25 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.8.2",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Resizable side panels, plus fixes for working with many layers:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Drag to resize the side panels.</strong> Grab the edge between either panel and the canvas and drag to widen it — handy when layer or item names are long. Double-click the edge to snap back to the default width. Your chosen widths are remembered on this browser, and collapsing or expanding a panel still works exactly as before.</li>
+                    <li><strong>Long layer lists now scroll.</strong> With many project layers, the list no longer pushes the placed-items list and the page totals off the bottom of the panel — it keeps its own scrollbar instead.</li>
+                    <li><strong>“Assign to Project Layer” no longer runs off-screen.</strong> Right-clicking near the bottom of the window used to cut off the layer menu. It now flips above the cursor, stays inside the window, and scrolls on its own if you have more layers than fit.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Paneles laterales ajustables, y correcciones para trabajar con muchas capas:</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Arrastre para ajustar los paneles laterales.</strong> Tome el borde entre cualquier panel y el lienzo y arrástrelo para ensancharlo — útil cuando los nombres de capas o elementos son largos. Haga doble clic en el borde para volver al ancho predeterminado. Los anchos elegidos se recuerdan en este navegador, y plegar o desplegar un panel sigue funcionando igual que antes.</li>
+                    <li><strong>Las listas largas de capas ahora se desplazan.</strong> Con muchas capas de proyecto, la lista ya no empuja la lista de elementos colocados ni los totales de página fuera del panel — ahora tiene su propia barra de desplazamiento.</li>
+                    <li><strong>“Asignar a Capa del Proyecto” ya no se sale de la pantalla.</strong> Al hacer clic derecho cerca del borde inferior, el menú de capas quedaba cortado. Ahora se abre hacia arriba, permanece dentro de la ventana y se desplaza por sí solo si tiene más capas de las que caben.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.8.1",
             en: `
@@ -9252,6 +9315,9 @@ const I18N_STRINGS = {
         // the view by the width delta so the drawing stays visually anchored.
         // (The RIGHT sidebar leaves the left edge fixed — no compensation.)
         if (side === 'left') { view.x += (wAfter - wBefore); }
+        // The resize grip only makes sense while the sidebar is visible.
+        const grip = document.getElementById(side === 'left' ? 'resizer-left' : 'resizer-right');
+        if (grip) grip.classList.toggle('hidden', nowCollapsed);
         const handle = document.getElementById(side === 'left' ? 'toggle-left' : 'toggle-right');
         if (handle) {
             if (side === 'left') handle.textContent = nowCollapsed ? '\u203a' : '\u2039';
@@ -9260,6 +9326,119 @@ const I18N_STRINGS = {
         _canvasRect = null;
         resize();   // single, clean resize (no-op-safe if size unchanged)
         render();
+    }
+
+    // ─── SIDEBAR DRAG-RESIZE ────────────────────────────────────────────────
+    // Both sidebars can be dragged wider so long layer/item names are readable.
+    // Widths persist per browser. Double-click a grip to reset to the default.
+    const SIDEBAR_DEFAULT_W = 280, SIDEBAR_MIN_W = 200, SIDEBAR_MAX_W = 640;
+    const SIDEBAR_MIN_CANVAS = 360; // never squeeze the canvas below this
+    function _appScale() { return (typeof _currentAppScale === 'number' && _currentAppScale > 0) ? _currentAppScale : 1; }
+    function _sidebarMaxW() {
+        // Leave the canvas usable no matter how narrow the window is.
+        const room = window.innerWidth / _appScale() - SIDEBAR_MIN_CANVAS;
+        return Math.max(SIDEBAR_MIN_W, Math.min(SIDEBAR_MAX_W, Math.floor(room)));
+    }
+    // Set a sidebar's width, keeping the drawing visually anchored. Widening the
+    // LEFT sidebar moves the canvas's left edge, so shift the view by the width
+    // delta (same compensation toggleSidebar uses). The RIGHT sidebar leaves the
+    // left edge fixed, so it needs none.
+    function _setSidebarWidth(side, w, compensate) {
+        const bar = document.getElementById(side === 'left' ? 'properties-sidebar' : 'right-sidebar');
+        const vp = document.getElementById('viewport');
+        if (!bar || !vp) return;
+        const before = vp.clientWidth;
+        bar.style.width = w + 'px';
+        const after = vp.clientWidth;
+        if (compensate && side === 'left') view.x += (after - before);
+        _canvasRect = null;
+    }
+    // Resize the canvas backing store and repaint IN THE SAME FRAME.
+    // render() is deferred (it queues drawScene on the next rAF) and writing
+    // canvas.width clears the canvas — so resize()+render() paints one blank
+    // frame. Once per drag frame, that blank flash is the flicker. Drawing
+    // synchronously here means a frame is never painted mid-update.
+    function _resizeAndPaintNow() {
+        const v = document.getElementById('viewport');
+        if (v && (canvas.width !== v.clientWidth || canvas.height !== v.clientHeight)) {
+            canvas.width = v.clientWidth;
+            canvas.height = v.clientHeight;
+        }
+        refreshCanvasRect();
+        drawScene(ctx, view, true);
+    }
+    function _initSidebarResizers() {
+        // Restore saved widths before the first layout settle (no view
+        // compensation needed — the initial view hasn't been established yet).
+        [['left', 'cpSidebarWidthLeft'], ['right', 'cpSidebarWidthRight']].forEach(([side, key]) => {
+            try {
+                const v = parseInt(localStorage.getItem(key), 10);
+                if (v >= SIDEBAR_MIN_W && v <= SIDEBAR_MAX_W) _setSidebarWidth(side, v, false);
+            } catch (e) {}
+        });
+        [['resizer-left', 'left', 'cpSidebarWidthLeft'], ['resizer-right', 'right', 'cpSidebarWidthRight']].forEach(([gid, side, key]) => {
+            const grip = document.getElementById(gid);
+            const bar = document.getElementById(side === 'left' ? 'properties-sidebar' : 'right-sidebar');
+            if (!grip || !bar) return;
+            let dragging = false, startX = 0, startW = 0, raf = null, pendingW = 0;
+            // Apply the width, resize the canvas backing store, and repaint all
+            // within a SINGLE rAF frame. Previously the layout changed in
+            // pointermove but the canvas resized a frame later, so the browser
+            // painted one frame of stale, mis-sized canvas — that gap was the
+            // flicker. Batching them means every painted frame is consistent.
+            const flush = () => {
+                raf = null;
+                if (!dragging) return;
+                _setSidebarWidth(side, pendingW, true);
+                _resizeAndPaintNow();
+            };
+            const schedule = () => { if (!raf) raf = requestAnimationFrame(flush); };
+            grip.addEventListener('pointerdown', (e) => {
+                if (bar.classList.contains('collapsed')) return;
+                dragging = true;
+                startX = e.clientX;
+                startW = bar.offsetWidth; // unscaled CSS px
+                grip.classList.add('dragging');
+                document.body.classList.add('resizing-sidebar');
+                beginInteract(); // hold off the crisp PDF re-raster while dragging
+                try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+                e.preventDefault();
+            });
+            grip.addEventListener('pointermove', (e) => {
+                if (!dragging) return;
+                // #app-root may be CSS-scaled; convert the screen-px drag delta
+                // into the sidebar's own (unscaled) coordinate space.
+                const d = (e.clientX - startX) / _appScale();
+                let w = (side === 'left') ? startW + d : startW - d;
+                w = Math.round(Math.max(SIDEBAR_MIN_W, Math.min(_sidebarMaxW(), w)));
+                if (w === bar.offsetWidth) return;
+                pendingW = w;
+                // Re-arms the 150ms settle timer; render() therefore skips the
+                // expensive crisp pass until the drag stops, instead of starting
+                // and cancelling one on every frame (the pop-in flicker).
+                beginInteract();
+                schedule();
+            });
+            const end = (e) => {
+                if (!dragging) return;
+                dragging = false;
+                grip.classList.remove('dragging');
+                document.body.classList.remove('resizing-sidebar');
+                if (raf) { cancelAnimationFrame(raf); raf = null; }
+                try { grip.releasePointerCapture(e.pointerId); } catch (err) {}
+                try { localStorage.setItem(key, String(bar.offsetWidth)); } catch (err) {}
+                _resizeAndPaintNow();
+            };
+            grip.addEventListener('pointerup', end);
+            grip.addEventListener('pointercancel', end);
+            grip.addEventListener('lostpointercapture', end);
+            grip.addEventListener('dblclick', () => {
+                if (bar.classList.contains('collapsed')) return;
+                _setSidebarWidth(side, SIDEBAR_DEFAULT_W, true);
+                try { localStorage.removeItem(key); } catch (err) {}
+                _resizeAndPaintNow();
+            });
+        });
     }
     // Placed-item sections that live in the RIGHT panel, per tab. Their tool/
     // profile controls stay in the left panel; only these placed-item lists move.
@@ -12338,6 +12517,8 @@ const I18N_STRINGS = {
                 : 'Language: English. Click to switch.';
         }
         updateUI(); setMode('idle'); applyLogo();
+        // Restore saved sidebar widths and arm the drag-resize grips.
+        _initSidebarResizers();
         // Surface the version announcement on load (if a new one exists).
         showAnnouncementIfNew();
         // Apply auto-scale once the layout is settled.
