@@ -83,7 +83,7 @@ A standalone printable-sign generator, opened from the **🪧 Sign Template** bu
 * **Saved signs.** Build a set of named signs and switch between them; export and import the whole set as a `.json` to reuse on site.
 * **High-contrast aware.** The dark control panel keeps its styling under Windows High Contrast / forced-colors mode, while the printable sheet stays print-friendly.
 
-The tool lives in the repository as `Sign_Template.html`, alongside `index.html`, and must be served from the same directory for the launcher link to resolve.
+The tool lives in the repository as `sign_template.html`, alongside `index.html`, and must be served from the same directory for the launcher link to resolve.
 
 ---
 
@@ -101,7 +101,7 @@ pdf-lib and SheetJS load from a CDN, and PDF.js is imported as an ES module, so 
 
 ## Deployment
 
-The app is a single `index.html`, served from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org). The companion `Sign_Template.html` is deployed alongside it in the same directory so the in-app launcher link resolves.
+The app is a single `index.html`, served from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org). The companion `sign_template.html` is deployed alongside it in the same directory so the in-app launcher link resolves.
 
 ```bash
 wrangler deploy
