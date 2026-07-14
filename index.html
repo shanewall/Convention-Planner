@@ -1983,6 +1983,7 @@
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group" style="display:flex; align-items:center; gap:8px;">
             <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
+            <button class="ribbon-btn action" onclick="openSignTemplate()" data-i18n-title="btn.signtemplate.tooltip" data-i18n="btn.signtemplate" title="Open the printable Sign Template in a new tab">🫧 Sign Template</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
     </div>
@@ -2543,6 +2544,8 @@ const I18N_STRINGS = {
         "ribbon.tools": "Tools & Filters",
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
+        "btn.signtemplate": "🫧 Sign Template",
+        "btn.signtemplate.tooltip": "Open the printable Sign Template in a new tab",
         "ribbon.help": "Help",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
@@ -3274,6 +3277,8 @@ const I18N_STRINGS = {
         "ribbon.tools": "Herramientas y Filtros",
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
+        "btn.signtemplate": "🫧 Plantilla de Letreros",
+        "btn.signtemplate.tooltip": "Abrir la Plantilla de Letreros imprimible en una pestaña nueva",
         "ribbon.help": "Ayuda",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
@@ -7814,6 +7819,10 @@ const I18N_STRINGS = {
     });
 
     // ─── Tutorials modal ─────────────────────────────────────────────────────────
+    // Opens the standalone Sign Template tool (its own page, own storage).
+    function openSignTemplate() {
+        window.open('./Sign_Template.html', '_blank', 'noopener');
+    }
     function showTutorialsModal() {
         // Always start at the menu view, even if the user closed mid-announcement.
         const menuView = document.getElementById('tutorials-menu-view');
@@ -8296,16 +8305,18 @@ const I18N_STRINGS = {
         {
             version: "2.8.2",
             en: `
-                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Resizable side panels, plus fixes for working with many layers:</strong></p>
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>New Sign Template tool, resizable side panels, plus fixes for working with many layers:</strong></p>
                 <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>New: printable Sign Template.</strong> A new <em>Sign Template</em> button in the Help group opens a standalone tool for making large printable directional signs (Letter or Tabloid, landscape) with your own text, colors, and logo. It opens in its own tab and keeps its own saved signs — export and import them as a <code>.json</code> to reuse on site.</li>
                     <li><strong>Drag to resize the side panels.</strong> Grab the edge between either panel and the canvas and drag to widen it — handy when layer or item names are long. Double-click the edge to snap back to the default width. Your chosen widths are remembered on this browser, and collapsing or expanding a panel still works exactly as before.</li>
                     <li><strong>Long layer lists now scroll.</strong> With many project layers, the list no longer pushes the placed-items list and the page totals off the bottom of the panel — it keeps its own scrollbar instead.</li>
                     <li><strong>“Assign to Project Layer” no longer runs off-screen.</strong> Right-clicking near the bottom of the window used to cut off the layer menu. It now flips above the cursor, stays inside the window, and scrolls on its own if you have more layers than fit.</li>
                 </ul>
             `,
             es: `
-                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Paneles laterales ajustables, y correcciones para trabajar con muchas capas:</strong></p>
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Nueva herramienta Plantilla de Letreros, paneles laterales ajustables, y correcciones para trabajar con muchas capas:</strong></p>
                 <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Nuevo: Plantilla de Letreros imprimible.</strong> Un nuevo botón <em>Plantilla de Letreros</em> en el grupo Ayuda abre una herramienta independiente para crear letreros direccionales grandes e imprimibles (Carta o Tabloide, horizontal) con su propio texto, colores y logo. Se abre en su propia pestaña y guarda sus letreros por separado — expórtelos e impórtelos como un archivo <code>.json</code> para reutilizarlos en el sitio.</li>
                     <li><strong>Arrastre para ajustar los paneles laterales.</strong> Tome el borde entre cualquier panel y el lienzo y arrástrelo para ensancharlo — útil cuando los nombres de capas o elementos son largos. Haga doble clic en el borde para volver al ancho predeterminado. Los anchos elegidos se recuerdan en este navegador, y plegar o desplegar un panel sigue funcionando igual que antes.</li>
                     <li><strong>Las listas largas de capas ahora se desplazan.</strong> Con muchas capas de proyecto, la lista ya no empuja la lista de elementos colocados ni los totales de página fuera del panel — ahora tiene su propia barra de desplazamiento.</li>
                     <li><strong>“Asignar a Capa del Proyecto” ya no se sale de la pantalla.</strong> Al hacer clic derecho cerca del borde inferior, el menú de capas quedaba cortado. Ahora se abre hacia arriba, permanece dentro de la ventana y se desplaza por sí solo si tiene más capas de las que caben.</li>

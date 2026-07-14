@@ -70,6 +70,21 @@ Convention Planner lets event coordinators import architectural floor plans, dra
 * **Undo/redo** throughout.
 * **Localization.** The interface ships with a built-in English and Spanish dictionary (~250 strings), switchable instantly from the toolbar.
 
+## Companion Tools
+
+### Sign Template
+
+A standalone printable-sign generator, opened from the **🪧 Sign Template** button in the Help group. It runs on its own page in a new tab and is fully independent of the planner — its own storage, its own file format — so signs and floor plans never entangle.
+
+* **Large directional signs.** Letter (11×8.5) or Tabloid (17×11), landscape, sized to print at 100% / "Actual size".
+* **Multi-line text with per-line color.** Blue and orange are preset as the event standard; add your own swatches.
+* **Logo.** Show/hide, corner placement, and size; import a PNG/JPG or an SVG for true vector printing (defaults to the Convention Planner logo).
+* **Auto-fit or manual sizing.** Text scales to fill the sheet automatically, or set a fixed size.
+* **Saved signs.** Build a set of named signs and switch between them; export and import the whole set as a `.json` to reuse on site.
+* **High-contrast aware.** The dark control panel keeps its styling under Windows High Contrast / forced-colors mode, while the printable sheet stays print-friendly.
+
+The tool lives in the repository as `Sign_Template.html`, alongside `index.html`, and must be served from the same directory for the launcher link to resolve.
+
 ---
 
 ## Technologies Used
@@ -86,7 +101,7 @@ pdf-lib and SheetJS load from a CDN, and PDF.js is imported as an ES module, so 
 
 ## Deployment
 
-The app is a single `index.html`, served from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org).
+The app is a single `index.html`, served from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org). The companion `Sign_Template.html` is deployed alongside it in the same directory so the in-app launcher link resolves.
 
 ```bash
 wrangler deploy
