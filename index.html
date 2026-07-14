@@ -1983,6 +1983,7 @@
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group" style="display:flex; align-items:center; gap:8px;">
             <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
+            <button class="ribbon-btn action" onclick="openSignTemplate()" data-i18n-title="btn.signtemplate.tooltip" data-i18n="btn.signtemplate" title="Open the printable Sign Template in a new tab">🫧 Sign Template</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
     </div>
@@ -2543,6 +2544,8 @@ const I18N_STRINGS = {
         "ribbon.tools": "Tools & Filters",
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
+        "btn.signtemplate": "🫧 Sign Template",
+        "btn.signtemplate.tooltip": "Open the printable Sign Template in a new tab",
         "ribbon.help": "Help",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
@@ -3274,6 +3277,8 @@ const I18N_STRINGS = {
         "ribbon.tools": "Herramientas y Filtros",
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
+        "btn.signtemplate": "🫧 Plantilla de Letreros",
+        "btn.signtemplate.tooltip": "Abrir la Plantilla de Letreros imprimible en una pestaña nueva",
         "ribbon.help": "Ayuda",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
@@ -7814,6 +7819,10 @@ const I18N_STRINGS = {
     });
 
     // ─── Tutorials modal ─────────────────────────────────────────────────────────
+    // Opens the standalone Sign Template tool (its own page, own storage).
+    function openSignTemplate() {
+        window.open('./Sign_Template.html', '_blank', 'noopener');
+    }
     function showTutorialsModal() {
         // Always start at the menu view, even if the user closed mid-announcement.
         const menuView = document.getElementById('tutorials-menu-view');
