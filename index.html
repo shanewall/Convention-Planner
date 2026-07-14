@@ -7883,7 +7883,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.8.2";
+    const APP_VERSION = "2.8.3";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -8302,6 +8302,21 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.8.3",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Fix: box-selecting boxes and ellipses.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>Dragging a selection window around boxes and ellipses now includes them, so you can copy or move a group in one go. Previously they could be clicked one at a time but slipped through a window-select — selection now follows the same per-type layer visibility as the canvas, so anything you can see, you can box-select.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Corrección: selección por ventana de cajas y elipses.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>Al arrastrar una ventana de selección alrededor de cajas y elipses ahora se incluyen, para poder copiar o mover un grupo de una sola vez. Antes se podían seleccionar una por una con clic, pero se escapaban de la selección por ventana — la selección ahora sigue la misma visibilidad por tipo de capa que el lienzo: todo lo que ve, lo puede seleccionar por ventana.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.8.2",
             en: `
@@ -12993,7 +13008,23 @@ const I18N_STRINGS = {
             return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy};
         }
         if (kind==='screen') { const r=it.radius||60; return {minX:it.x-r,minY:it.y-r,maxX:it.x+r,maxY:it.y+r}; }
-        if (kind==='text') { const s=it.size||24; const w=((it.text&&it.text.length)?it.text.length:3)*s*0.55; return {minX:it.x,minY:it.y-s,maxX:it.x+w,maxY:it.y+s*0.3}; }
+        if (kind==='text') {
+            const s=it.size||24;
+            measureCtx.font = `bold ${s}px Arial`;
+            const lines=((it.text!=null?String(it.text):'')||' ').split('\n');
+            let w=0; lines.forEach(ln=>{ const lw=measureCtx.measureText(ln||' ').width; if(lw>w)w=lw; });
+            const h=(s*1.1)*lines.length;
+            const hw=w/2, hh=h/2;                       // (it.x,it.y) is the CENTER
+            const rot=it.rot||0;
+            if (!rot) return {minX:it.x-hw,minY:it.y-hh,maxX:it.x+hw,maxY:it.y+hh};
+            const a=rot*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+            let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+            [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].forEach(([dx,dy])=>{
+                const rx=it.x+dx*ca-dy*sa, ry=it.y+dx*sa+dy*ca;
+                if(rx<mnx)mnx=rx; if(ry<mny)mny=ry; if(rx>mxx)mxx=rx; if(ry>mxy)mxy=ry;
+            });
+            return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy};
+        }
         const p=12; return {minX:it.x-p,minY:it.y-p,maxX:it.x+p,maxY:it.y+p}; // sign / point fallback
     }
     function itemInRect(kind, it, page, rect) {
@@ -13011,7 +13042,7 @@ const I18N_STRINGS = {
             case 'sign':    return uiState.showSigns !== false && !uiState.hiddenSignTypes.includes(it.typeIndex ?? 0);
             case 'screen':  return uiState.showScreens !== false;
             case 'measure': return uiState.showMeasures !== false && !(uiState.hiddenMeasureTypes||[]).includes(it.typeIndex ?? 0);
-            case 'line':    return uiState.showLines !== false;
+            case 'line':    return lineVisible(it);
             case 'text':    return uiState.showTexts !== false;
             default:        return true;
         }
