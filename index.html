@@ -2023,22 +2023,21 @@
                 <!-- Units toggle — pure display preference. Storage is always feet,
                      so switching back and forth is lossless. The two radios share
                      the name 'project-units' so the browser handles mutual exclusion. -->
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <label data-i18n="project.units.label" for="project-units-select">Units</label>
+                    <select id="project-units-select" onchange="setUnits(this.value)" style="width: 100%;">
+                        <option value="ft"    data-i18n="project.units.feet">Decimal feet (ft)</option>
+                        <option value="in"    data-i18n="project.units.inches">Decimal inches (in)</option>
+                        <option value="ft-in" data-i18n="project.units.ftin">Feet &amp; fractional inches</option>
+                        <option value="m"     data-i18n="project.units.meters">Meters (m)</option>
+                        <option value="mm"    data-i18n="project.units.millimeters">Millimeters (mm)</option>
+                    </select>
+                </div>
                 <div class="input-group" style="margin-bottom: 0;">
-                    <label data-i18n="project.units.label">Units</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 0;">
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
-                            <input type="radio" name="project-units" value="ft" id="project-units-ft" onchange="setUnits('ft')" style="width: auto; margin: 0;">
-                            <span data-i18n="project.units.feet">Feet (ft)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
-                            <input type="radio" name="project-units" value="m" id="project-units-m" onchange="setUnits('m')" style="width: auto; margin: 0;">
-                            <span data-i18n="project.units.meters">Meters (m)</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal;">
-                            <input type="radio" name="project-units" value="mm" id="project-units-mm" onchange="setUnits('mm')" style="width: auto; margin: 0;">
-                            <span data-i18n="project.units.millimeters">Millimeters (mm)</span>
-                        </label>
-                    </div>
+                    <label data-i18n="project.rounding.label" for="project-rounding-select">Rounding</label>
+                    <select id="project-rounding-select" onchange="setPrecision(this.value)" style="width: 100%;">
+                        <!-- options populated by updateUnitControls() based on the unit -->
+                    </select>
                 </div>
             </div>
             <div class="panel-tools" style="padding-top: 0;">
@@ -2560,9 +2559,18 @@ const I18N_STRINGS = {
         "right.placed_items": "Placed Items",
         "right.no_items": "No placed-item list for this tab.",
         "project.units.label": "Units",
-        "project.units.feet": "Feet (ft)",
+        "project.units.feet": "Decimal feet (ft)",
         "project.units.meters": "Meters (m)",
         "project.units.millimeters": "Millimeters (mm)",
+        "project.units.inches": "Decimal inches (in)",
+        "project.units.ftin": "Feet & fractional inches",
+        "project.rounding.label": "Rounding",
+        "project.rounding.whole": "Whole number",
+        "project.rounding.places": "{n} decimal place(s)",
+        "project.rounding.half": "Nearest 1/2\"",
+        "project.rounding.quarter": "Nearest 1/4\"",
+        "project.rounding.eighth": "Nearest 1/8\"",
+        "project.rounding.sixteenth": "Nearest 1/16\"",
         "project.pages.header": "Pages & Backgrounds",
         "project.pages.add": "+ New Page",
         "project.upload.header": "Upload & Scale",
@@ -3293,9 +3301,18 @@ const I18N_STRINGS = {
         "right.placed_items": "Elementos Colocados",
         "right.no_items": "No hay lista de elementos para esta pestaña.",
         "project.units.label": "Unidades",
-        "project.units.feet": "Pies (ft)",
+        "project.units.feet": "Pies decimales (ft)",
         "project.units.meters": "Metros (m)",
         "project.units.millimeters": "Milímetros (mm)",
+        "project.units.inches": "Pulgadas decimales (in)",
+        "project.units.ftin": "Pies y pulgadas fraccionarias",
+        "project.rounding.label": "Redondeo",
+        "project.rounding.whole": "Número entero",
+        "project.rounding.places": "{n} decimal(es)",
+        "project.rounding.half": "A 1/2\" más cercano",
+        "project.rounding.quarter": "A 1/4\" más cercano",
+        "project.rounding.eighth": "A 1/8\" más cercano",
+        "project.rounding.sixteenth": "A 1/16\" más cercano",
         "project.pages.header": "Páginas y Fondos",
         "project.pages.add": "+ Nueva página",
         "project.upload.header": "Subir y Escalar",
@@ -4692,7 +4709,8 @@ const I18N_STRINGS = {
             activeAttendantType: 0
         },
         activeSeatType: 0, activeSignType: 0, activeMeasureType: 0, activePageIndex: 0,
-        units: 'ft',  // 'ft' or 'mm' — display only; storage stays in feet
+        units: 'ft',        // 'ft' | 'in' | 'ft-in' | 'm' | 'mm' — display only; storage stays in feet
+        precision: 1,       // decimals for decimal units, or fraction denom for 'ft-in'
         pages: [{ name: "Main Floor", imgData: null, sheet: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], measures: [], lines: [], texts: [], legend: { show: true, x: 40, y: 40, scale: 1 }, seatLegend: { show: false, x: 40, y: 150, scale: 1 }, attLegend: { show: false, x: 40, y: 280, scale: 1 } }]
     };
 
@@ -7883,7 +7901,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.8.3";
+    const APP_VERSION = "2.9.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -7979,7 +7997,22 @@ const I18N_STRINGS = {
 
     function getUnits() {
         const u = project && project.units;
-        return (u === 'mm' || u === 'm') ? u : 'ft';
+        return (u === 'mm' || u === 'm' || u === 'in' || u === 'ft-in') ? u : 'ft';
+    }
+
+    // Rounding preference. For decimal formats (ft, in, m, mm) this is the number
+    // of decimal places; for 'ft-in' it is the fraction denominator (2,4,8,16).
+    // Stored on the project so it travels with the file; sensible per-unit default
+    // when unset preserves the historical display.
+    function getPrecision() {
+        const u = getUnits();
+        const p = project && project.precision;
+        if (p !== undefined && p !== null && p !== '') return p;
+        // defaults: ft=1dp, in=1dp, ft-in=1/16, m=2dp, mm=0dp
+        if (u === 'ft-in') return 16;
+        if (u === 'm') return 2;
+        if (u === 'mm') return 0;
+        return 1;
     }
 
     // Format a value-in-feet for display in the user's current unit.
@@ -7992,16 +8025,41 @@ const I18N_STRINGS = {
         const includeUnit = opts.includeUnit !== false;
         if (units === 'mm') {
             const mm = feet * FT_TO_MM;
-            const precision = (opts.precision !== undefined) ? opts.precision : 0;
+            const precision = (opts.precision !== undefined) ? opts.precision : getPrecision();
             const numStr = mm.toFixed(precision);
             return includeUnit ? `${numStr} mm` : numStr;
         } else if (units === 'm') {
             const m = feet * FT_TO_M;
-            const precision = (opts.precision !== undefined) ? opts.precision : 2;
+            const precision = (opts.precision !== undefined) ? opts.precision : getPrecision();
             const numStr = m.toFixed(precision);
             return includeUnit ? `${numStr} m` : numStr;
+        } else if (units === 'in') {
+            const precision = (opts.precision !== undefined) ? opts.precision : getPrecision();
+            const numStr = (feet * 12).toFixed(precision);
+            return includeUnit ? `${numStr} in` : numStr;
+        } else if (units === 'ft-in') {
+            const denom = (opts.precision !== undefined) ? opts.precision : getPrecision();
+            const neg = feet < 0;
+            const totalIn = Math.abs(feet) * 12;
+            let ft = Math.floor(totalIn / 12);
+            const inchRem = totalIn - ft * 12;
+            // round remainder to nearest 1/denom, carry into inches/feet
+            let n = Math.round(inchRem * denom);
+            let carryInch = Math.floor(n / denom);
+            n = n - carryInch * denom;
+            let inchWhole = carryInch;
+            if (inchWhole >= 12) { ft += Math.floor(inchWhole / 12); inchWhole %= 12; }
+            let fracStr = '';
+            if (n > 0) {
+                const g = (a, b) => b ? g(b, a % b) : a;
+                const d0 = g(n, denom);
+                fracStr = `${n / d0}/${denom / d0}`;
+            }
+            const inchStr = fracStr ? `${inchWhole} ${fracStr}"` : `${inchWhole}"`;
+            const body = `${ft}' ${inchStr}`;
+            return (neg ? '-' : '') + body;
         } else {
-            const precision = (opts.precision !== undefined) ? opts.precision : 1;
+            const precision = (opts.precision !== undefined) ? opts.precision : getPrecision();
             const numStr = feet.toFixed(precision);
             return includeUnit ? `${numStr} ft` : numStr;
         }
@@ -8011,14 +8069,43 @@ const I18N_STRINGS = {
     // Invalid input returns NaN; callers decide how to handle.
     // Accepts both "." and "," as decimal separators so Spanish/European users
     // who type "3,5" get the same result as English users who type "3.5".
+    // Parse "6", "6.5", "6 1/2", "6-1/2", or "1/2" into inches (number).
+    function parseInchPart(str) {
+        str = String(str).trim();
+        if (str === '') return NaN;
+        let m = str.match(/^(\d+)\s*[-\s]\s*(\d+)\s*\/\s*(\d+)$/); // mixed 6 1/2
+        if (m) return (+m[1]) + (+m[2]) / (+m[3]);
+        m = str.match(/^(\d+)\s*\/\s*(\d+)$/);                          // pure 1/2
+        if (m) return (+m[1]) / (+m[2]);
+        const n = parseFloat(str);
+        return isNaN(n) ? NaN : n;
+    }
+
     function parseLength(input) {
-        if (typeof input === 'string') input = input.replace(',', '.');
-        const num = parseFloat(input);
-        if (isNaN(num)) return NaN;
+        if (input == null) return NaN;
+        let str = String(input).trim().replace(',', '.');
+        if (str === '') return NaN;
         const units = getUnits();
-        if (units === 'mm') return num / FT_TO_MM;
-        if (units === 'm')  return num / FT_TO_M;
-        return num; // ft
+        if (units === 'mm') { const n = parseFloat(str); return isNaN(n) ? NaN : n / FT_TO_MM; }
+        if (units === 'm')  { const n = parseFloat(str); return isNaN(n) ? NaN : n / FT_TO_M; }
+        if (units === 'ft') { const n = parseFloat(str); return isNaN(n) ? NaN : n; }
+        // Imperial display modes: accept feet marks ('), inch marks (") and fractions.
+        if (units === 'in' && !/['\u2019]/.test(str)) {
+            const inch = parseInchPart(str);
+            return isNaN(inch) ? NaN : inch / 12;
+        }
+        const neg = /^-/.test(str);
+        let feet = 0, rest = str;
+        const fm = str.match(/^\s*-?(\d*\.?\d+)\s*['\u2019]/);
+        if (fm) { feet = Math.abs(parseFloat(fm[1])); rest = str.slice(fm[0].length); }
+        else if (units === 'ft-in' && /^-?\d*\.?\d+\s*$/.test(str)) {
+            const f = parseFloat(str); return isNaN(f) ? NaN : f; // bare number = feet
+        }
+        rest = rest.replace(/["\u201d]/g, ' ').trim();
+        let inch = rest === '' ? 0 : parseInchPart(rest);
+        if (isNaN(inch)) inch = 0;
+        const val = feet + inch / 12;
+        return neg ? -val : val;
     }
 
     // Convert feet to the current display unit (number, no formatting).
@@ -8027,12 +8114,16 @@ const I18N_STRINGS = {
         const units = getUnits();
         if (units === 'mm') return feet * FT_TO_MM;
         if (units === 'm')  return feet * FT_TO_M;
-        return feet; // ft
+        if (units === 'in') return feet * 12;
+        return feet; // ft and ft-in both use feet as the numeric base
     }
 
     // Returns the user-facing label for the current unit ("ft", "mm", or "m")
     function getUnitLabel() {
-        return getUnits();
+        const u = getUnits();
+        if (u === 'in') return 'in';
+        if (u === 'ft-in') return 'ft-in';
+        return u; // ft, m, mm
     }
 
     // Returns the step attribute for <input type="number"> in the current unit.
@@ -8041,14 +8132,16 @@ const I18N_STRINGS = {
         const u = getUnits();
         if (u === 'mm') return '1';
         if (u === 'm')  return '0.01';
-        return '0.1';
+        if (u === 'in') return '0.5';
+        return '0.1'; // ft, ft-in
     }
     // Number of decimal places to display in the current unit.
     function getUnitDecimals() {
         const u = getUnits();
         if (u === 'mm') return 0;
         if (u === 'm')  return 2;
-        return 1;
+        if (u === 'in') return 1;
+        return 1; // ft, ft-in (ft-in inputs are prefilled as decimal feet)
     }
 
     // ─── Sheet display units ───────────────────────────────────────────────────
@@ -8276,11 +8369,30 @@ const I18N_STRINGS = {
 
     // Switch the project's units. Storage stays in feet; only display changes.
     // Triggers a full UI rebuild + canvas redraw so every measurement re-renders.
+    const VALID_UNITS = ['ft', 'in', 'ft-in', 'm', 'mm'];
+
     function setUnits(unit) {
-        if (unit !== 'ft' && unit !== 'mm' && unit !== 'm') return;
+        if (VALID_UNITS.indexOf(unit) === -1) return;
         if (!project) return;
         if (project.units === unit) return;  // no-op if already set
         project.units = unit;
+        // Reset rounding to the sensible default for the new unit so the two
+        // controls never end up in a nonsensical pairing (e.g. a fraction denom
+        // left over when switching to millimetres).
+        project.precision = (unit === 'ft-in') ? 16 : (unit === 'm') ? 2 : (unit === 'mm') ? 0 : 1;
+        hasUnsavedChanges = true;
+        updateUI();
+        render();
+    }
+
+    // Set the rounding preference: decimal places for decimal units, or the
+    // fraction denominator for 'ft-in'. Value comes through as a string from the
+    // <select>; store as a number.
+    function setPrecision(value) {
+        if (!project) return;
+        const n = parseInt(value, 10);
+        if (isNaN(n)) return;
+        project.precision = n;
         hasUnsavedChanges = true;
         updateUI();
         render();
@@ -8294,7 +8406,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.8.2-release";
+    const ANNOUNCEMENT_VERSION = "2.9.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -8302,6 +8414,25 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.9.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>New: more ways to show feet &amp; inches.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>Under <em>Project &rsaquo; Units</em>, imperial measurements can now be shown three ways: <strong>decimal feet</strong> (12.5 ft), <strong>decimal inches</strong> (150 in), or <strong>feet &amp; fractional inches</strong> (12&#39; 6&nbsp;1/2&quot;). Meters and millimeters are still there too.</li>
+                    <li>A new <strong>Rounding</strong> control sets how values are rounded — decimal places (whole number up to 3 places) for the decimal formats, or nearest fraction (1/2, 1/4, 1/8, 1/16 inch) for feet &amp; fractional inches.</li>
+                    <li>Your choice is saved with the project, and everything is still stored internally in feet, so switching formats is lossless — you can move between them anytime without changing your drawing.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Nuevo: más maneras de mostrar pies y pulgadas.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>En <em>Proyecto &rsaquo; Unidades</em>, las medidas imperiales ahora se pueden mostrar de tres formas: <strong>pies decimales</strong> (12.5 ft), <strong>pulgadas decimales</strong> (150 in) o <strong>pies y pulgadas fraccionarias</strong> (12&#39; 6&nbsp;1/2&quot;). Los metros y milímetros siguen disponibles.</li>
+                    <li>Un nuevo control de <strong>Redondeo</strong> define cómo se redondean los valores — decimales (número entero hasta 3 decimales) para los formatos decimales, o la fracción más cercana (1/2, 1/4, 1/8, 1/16 de pulgada) para pies y pulgadas fraccionarias.</li>
+                    <li>Su elección se guarda con el proyecto, y todo se sigue almacenando internamente en pies, así que cambiar de formato no pierde precisión — puede alternar entre ellos en cualquier momento sin modificar su plano.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.8.3",
             en: `
@@ -9538,18 +9669,41 @@ const I18N_STRINGS = {
     }
     function getActivePage() { return project.pages[project.activePageIndex]; }
 
+    // Populate and sync the Units + adaptive Rounding selects. The rounding
+    // options depend on the unit: decimal places for decimal formats, or a
+    // fraction denominator for feet & fractional inches.
+    function updateUnitControls() {
+        const unitSel = document.getElementById('project-units-select');
+        const roundSel = document.getElementById('project-rounding-select');
+        if (!unitSel || !roundSel) return;
+        const u = getUnits();
+        unitSel.value = u;
+
+        const decimalLabel = (n) => n === 0
+            ? (t('project.rounding.whole') || 'Whole number')
+            : (t('project.rounding.places') || '{n} decimal place(s)').replace('{n}', n);
+
+        let opts = [];
+        if (u === 'ft-in') {
+            opts = [
+                ['2',  t('project.rounding.half')    || 'Nearest 1/2"'],
+                ['4',  t('project.rounding.quarter') || 'Nearest 1/4"'],
+                ['8',  t('project.rounding.eighth')  || 'Nearest 1/8"'],
+                ['16', t('project.rounding.sixteenth') || 'Nearest 1/16"'],
+            ];
+        } else {
+            opts = [['0', decimalLabel(0)], ['1', decimalLabel(1)], ['2', decimalLabel(2)], ['3', decimalLabel(3)]];
+        }
+        const cur = String(getPrecision());
+        roundSel.innerHTML = opts.map(([v, label]) =>
+            `<option value="${v}"${v === cur ? ' selected' : ''}>${escapeHTML(label)}</option>`
+        ).join('');
+    }
+
     function updateUI() {
         document.getElementById('project-title').value = project.title;
-        // Sync the units radios with project.units
-        const ftRadio = document.getElementById('project-units-ft');
-        const mmRadio = document.getElementById('project-units-mm');
-        const mRadio  = document.getElementById('project-units-m');
-        if (ftRadio && mmRadio) {
-            const u = getUnits();
-            ftRadio.checked = (u === 'ft');
-            mmRadio.checked = (u === 'mm');
-            if (mRadio) mRadio.checked = (u === 'm');
-        }
+        // Sync the Units + Rounding dropdowns with project state.
+        updateUnitControls();
         const pActive = getActivePage();
 
         document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
@@ -16183,7 +16337,15 @@ const I18N_STRINGS = {
         raw.activePageIndex = 0;
 
         // Units default — older saves don't have this field. Default to feet.
-        if (raw.units !== 'mm') raw.units = 'ft';
+        // Display units: accept the full set; anything unknown falls back to feet.
+        // (Previously this clamped everything except 'mm' to 'ft', which silently
+        //  dropped meters and would drop the imperial display modes.)
+        if (['ft','in','ft-in','m','mm'].indexOf(raw.units) === -1) raw.units = 'ft';
+        // Rounding preference travels with the file; keep it only if sane.
+        if (raw.precision !== undefined) {
+            const p = parseInt(raw.precision, 10);
+            if (isNaN(p) || p < 0) delete raw.precision; else raw.precision = p;
+        }
 
         raw.pages.forEach(p => {
             if (!Array.isArray(p.shapes)) p.shapes = [];
