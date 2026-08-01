@@ -1115,6 +1115,18 @@
                 <input type="number" id="profile-edit-seat-d" class="text-input-dark" style="width: 100%;" step="0.1" min="0.5">
             </div>
         </div>
+        <!-- Seat-only: default area-label size + opacity (applies to every area of this profile
+             that hasn't set its own). -->
+        <div id="profile-edit-seat-label-fields" style="display:none; gap: 12px; margin-bottom: 12px;">
+            <div style="flex:1;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="seat.field.label_size">Default Label Size</label>
+                <input type="number" id="profile-edit-seat-label-size" class="text-input-dark" style="width: 100%;" min="6" max="80" step="1">
+            </div>
+            <div style="flex:1;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="seat.field.label_opacity">Label Opacity (%)</label>
+                <input type="number" id="profile-edit-seat-label-opacity" class="text-input-dark" style="width: 100%;" min="10" max="100" step="5">
+            </div>
+        </div>
 
         <!-- Sign-only: size + label code -->
         <div id="profile-edit-sign-fields" style="display:none; gap: 12px; margin-bottom: 12px;">
@@ -1180,6 +1192,19 @@
             </div>
         </div>
 
+        <!-- Chair-style-only: on-plan reference number + number size. The
+             primary color group above serves as the number colour. -->
+        <div id="profile-edit-chair-fields" style="display:none; gap: 12px; margin-bottom: 12px;">
+            <div style="flex:1;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="chair.style.number">Number</label>
+                <input type="number" id="profile-edit-chair-number" class="text-input-dark" style="width: 100%;" step="1" min="0" max="999">
+            </div>
+            <div style="flex:1;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="chair.style.numsize">Number size</label>
+                <input type="number" id="profile-edit-chair-size" class="text-input-dark" style="width: 100%;" step="1" min="4" max="40">
+            </div>
+        </div>
+
         <div class="modal-actions">
             <button class="secondary" onclick="hideProfileEditModal()" data-i18n="modal.profile_edit.cancel">Cancel</button>
             <button id="profile-edit-save" data-i18n="modal.profile_edit.save">Save</button>
@@ -1231,8 +1256,14 @@
                 </div>
                 <div>
                     <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.text_size">Text Size</label>
-                    <input type="number" id="item-edit-shape-labelSize" class="text-input-dark" style="width: 100%;" min="6" max="80" step="1">
+                    <input type="number" id="item-edit-shape-labelSize" class="text-input-dark" style="width: 100%;" min="6" max="80" step="1" placeholder="–">
                 </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="seat.field.label_opacity">Label Opacity (%)</label>
+                <input type="number" id="item-edit-shape-labelOpacity" class="text-input-dark" style="width: 100%;" min="10" max="100" step="5" placeholder="–">
+                <div style="font-size:0.72em; color:#888; margin-top:4px;" data-i18n="seat.field.label_hint">Leave blank to use the seat profile's defaults.</div>
+                <button type="button" style="margin-top:6px; font-size:0.78em; background:#3a3a3d; color:#ddd; border:1px solid #555; border-radius:4px; padding:4px 8px; cursor:pointer;" onclick="document.getElementById('item-edit-shape-labelSize').value=''; document.getElementById('item-edit-shape-labelOpacity').value='';" data-i18n="seat.field.label_reset">↺ Use profile defaults</button>
             </div>
             <div style="margin-bottom: 12px;">
                 <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.profile">Profile</label>
@@ -2145,9 +2176,13 @@
 
         <div id="panel-area" class="panel-content">
             <div class="panel-tools">
-                <button class="btn-new-menu" onclick="showCreateMenu(event, [
-                    {labelKey:'seat.profiles.add', fallback:'New Seat Profile', fn:addSeatType}
-                ])"><span data-i18n="common.new">+ New</span> <span class="caret">▾</span></button>
+                <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:10px;">
+                    <button class="btn-new-menu" style="flex:0 0 auto; margin-bottom:0;" onclick="showCreateMenu(event, [
+                        {labelKey:'seat.profiles.add', fallback:'New Seat Profile', fn:addSeatType},
+                        {labelKey:'chair.style.add', fallback:'New Chair Style', fn:addChairStyle}
+                    ])"><span data-i18n="common.new">+ New</span> <span class="caret">▾</span></button>
+                    <button id="chair-select-btn" class="btn-new-menu" style="flex:0 0 auto; margin-bottom:0; background:#3a3a3d; display:none;" onclick="toggleChairSelectMode()" data-i18n-title="chair.select.tooltip" title="Select tagged chairs to reassign or remove their style (lasso, then right-click)">↖ <span data-i18n="chair.select.short">Select</span></button>
+                </div>
                 <div class="collapse-header collapsed" data-collapse-target="seat-profiles-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="seat.profiles.header">Seat Profiles <span id="seat-profiles-badge" class="badge">0</span></span>
                     <span style="display:flex; align-items:center; gap:4px;">
@@ -2159,6 +2194,17 @@
                     <div class="profile-scroll">
                         <ul class="item-list" id="seat-type-list" style="margin-bottom: 0;"></ul>
                     </div>
+                </div>
+
+                <div class="collapse-header collapsed" data-collapse-target="chair-styles-body" onclick="toggleCollapse(this)">
+                    <span class="title" data-i18n="chair.style.header">Chair Styles <span id="chair-styles-badge" class="badge">0</span></span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div id="chair-styles-body" class="collapse-body collapsed">
+                    <div class="profile-scroll">
+                        <ul class="item-list" id="chair-style-list" style="margin-bottom: 0;"></ul>
+                    </div>
+                    <p style="font-size:0.78em; color:#888; margin:6px 4px 0;" data-i18n="chair.style.hint">Tag seats on the plan with a lasso to register chairs. These counts are separate from Total Seats.</p>
                 </div>
             </div>
             <div class="panel-list-container" style="padding-top: 0;">
@@ -2585,11 +2631,40 @@ const I18N_STRINGS = {
         "project.logo.note": "Logo is saved with this project's .json file.",
         "project.logo.preview_empty": "none",
         "seat.profiles.header": "Seat Profiles",
+        "chair.style.header": "Chair Styles",
+        "chair.style.add": "+ New Chair Style",
+        "chair.style.default": "Chair Style",
+        "chair.style.name": "Name",
+        "chair.style.numcolor": "Number color",
+        "chair.style.numsize": "Number size",
+        "chair.style.empty": "No chair styles yet. Add one, then tag seats on the plan.",
+        "chair.style.hint": "Tag seats on the plan with a lasso to register chairs. These counts are separate from Total Seats.",
+        "chair.style.delete_confirm": "Delete this chair style? Tags using it will be cleared.",
+        "chair.lasso.start": "\uD83E\uDD9D Tag chairs with lasso",
+        "chair.select.start": "\u2196 Select chairs (edit/remove)",
+        "chair.select.short": "Select",
+        "chair.select.short_on": "Selecting\u2026",
+        "chair.select.tooltip": "Select tagged chairs to reassign or remove their style (lasso, then right-click)",
+        "chair.select.tooltip_on": "Right-click the selection to reassign or remove. Esc to stop.",
+        "chair.select.active": "\u2196 Selecting\u2026 right-click to edit (Esc to stop)",
+        "chair.select.count": "selected",
+        "chair.select.chairs": "chair(s) selected",
+        "chair.select.reassign": "Reassign to",
+        "chair.select.remove": "Remove tag",
+        "chair.lasso.active": "\uD83E\uDD9D Lassoing\u2026 (Esc to stop)",
+        "chair.lasso.nostyle": "Add a chair style first",
+        "chair.lasso.seat": "chair",
+        "chair.lasso.seats": "chairs",
+        "chair.lasso.ctrl": "hold Ctrl to keep selecting",
         "seat.profiles.add": "+ Add Profile",
         "seat.areas.header": "Drawn Areas",
         "seat.field.color": "Color",
         "seat.field.width": "Width ({unit})",
         "seat.field.depth": "Depth ({unit})",
+        "seat.field.label_size": "Default Label Size",
+        "seat.field.label_opacity": "Label Opacity (%)",
+        "seat.field.label_hint": "Leave blank to use the seat profile\u2019s defaults.",
+        "seat.field.label_reset": "\u21ba Use profile defaults",
         "seat.field.rotation": "Rotation",
         "seat.field.profile": "Profile",
         "seat.draw_with_profile": "✏️ Draw with this Profile",
@@ -3071,6 +3146,8 @@ const I18N_STRINGS = {
         "profile.confirm_delete": "Delete this profile?",
         "modal.profile_edit.title": "Edit Profile",
         "modal.profile_edit.title.seat": "Edit Seat Profile",
+        "modal.profile_edit.title.chair": "Edit Chair Style",
+        "chair.style.number": "Number",
         "modal.profile_edit.title.sign": "Edit Key Item Profile",
         "modal.profile_edit.title.measure": "Edit Measure Profile",
         "modal.profile_edit.title.attendant": "Edit Attendant Profile",
@@ -3191,6 +3268,12 @@ const I18N_STRINGS = {
         "modal.schedule.import.preview.group.project_role_updates": "Update {n} project role(s)",
         "modal.schedule.import.preview.group.notes_updates": "Update {n} note(s)",
         "legend.seat.title": "SEAT LEGEND",
+        "legend.chair.title": "CHAIR STYLE LEGEND",
+        "legend.chair.page": "Page",
+        "legend.chair.project": "Project",
+        "legend.chair.total": "TOTAL",
+        "layers.chair_numbers": "🔢 Show Chair Style Numbers",
+        "layers.chair_legend": "📋 Show Chair Style Legend",
         "legend.seat.total": "TOTAL",
         "legend.key.title": "KEY ITEM LEGEND",
         "legend.key.total": "TOTAL KEY ITEMS",
@@ -3327,11 +3410,40 @@ const I18N_STRINGS = {
         "project.logo.note": "El logo se guarda con el archivo .json de este proyecto.",
         "project.logo.preview_empty": "Ninguno",
         "seat.profiles.header": "Perfiles de Asientos",
+        "chair.style.header": "Estilos de Silla",
+        "chair.style.add": "+ Nuevo Estilo de Silla",
+        "chair.style.default": "Estilo de Silla",
+        "chair.style.name": "Nombre",
+        "chair.style.numcolor": "Color del número",
+        "chair.style.numsize": "Tamaño del número",
+        "chair.style.empty": "Aún no hay estilos de silla. Agregue uno y luego etiquete asientos en el plano.",
+        "chair.style.hint": "Etiquete asientos en el plano con un lazo para registrar sillas. Estos conteos son independientes del Total de Asientos.",
+        "chair.style.delete_confirm": "¿Eliminar este estilo de silla? Se borrarán las etiquetas que lo usan.",
+        "chair.lasso.start": "\uD83E\uDD9D Etiquetar sillas con lazo",
+        "chair.select.start": "\u2196 Seleccionar sillas (editar/quitar)",
+        "chair.select.short": "Seleccionar",
+        "chair.select.short_on": "Seleccionando\u2026",
+        "chair.select.tooltip": "Seleccione sillas etiquetadas para reasignar o quitar su estilo (lazo, luego clic derecho)",
+        "chair.select.tooltip_on": "Clic derecho en la selecci\u00f3n para reasignar o quitar. Esc para detener.",
+        "chair.select.active": "\u2196 Seleccionando\u2026 clic derecho para editar (Esc para detener)",
+        "chair.select.count": "seleccionadas",
+        "chair.select.chairs": "silla(s) seleccionada(s)",
+        "chair.select.reassign": "Reasignar a",
+        "chair.select.remove": "Quitar etiqueta",
+        "chair.lasso.active": "\uD83E\uDD9D Lazo activo\u2026 (Esc para detener)",
+        "chair.lasso.nostyle": "Agregue un estilo de silla primero",
+        "chair.lasso.seat": "silla",
+        "chair.lasso.seats": "sillas",
+        "chair.lasso.ctrl": "mantenga Ctrl para seguir seleccionando",
         "seat.profiles.add": "+ Añadir perfil",
         "seat.areas.header": "Áreas Dibujadas",
         "seat.field.color": "Color",
         "seat.field.width": "Ancho ({unit})",
         "seat.field.depth": "Profundidad ({unit})",
+        "seat.field.label_size": "Tama\u00f1o de Etiqueta Predet.",
+        "seat.field.label_opacity": "Opacidad de Etiqueta (%)",
+        "seat.field.label_hint": "D\u00e9jelo en blanco para usar los valores del perfil de asiento.",
+        "seat.field.label_reset": "\u21ba Usar valores del perfil",
         "seat.field.rotation": "Rotación",
         "seat.field.profile": "Perfil",
         "seat.draw_with_profile": "✏️ Dibujar con este Perfil",
@@ -3811,6 +3923,8 @@ const I18N_STRINGS = {
         "profile.confirm_delete": "¿Eliminar este perfil?",
         "modal.profile_edit.title": "Editar Perfil",
         "modal.profile_edit.title.seat": "Editar Perfil de Asiento",
+        "modal.profile_edit.title.chair": "Editar Estilo de Silla",
+        "chair.style.number": "Número",
         "modal.profile_edit.title.sign": "Editar Perfil de Artículo Clave",
         "modal.profile_edit.title.measure": "Editar Perfil de Medida",
         "modal.profile_edit.title.attendant": "Editar Perfil de Acomodador",
@@ -3931,6 +4045,12 @@ const I18N_STRINGS = {
         "modal.schedule.import.preview.group.project_role_updates": "Actualizar {n} rol(es) del proyecto",
         "modal.schedule.import.preview.group.notes_updates": "Actualizar {n} nota(s)",
         "legend.seat.title": "LEYENDA DE ASIENTOS",
+        "legend.chair.title": "LEYENDA DE ESTILOS DE SILLA",
+        "legend.chair.page": "Página",
+        "legend.chair.project": "Proyecto",
+        "legend.chair.total": "TOTAL",
+        "layers.chair_numbers": "🔢 Mostrar Números de Estilos de Silla",
+        "layers.chair_legend": "📋 Mostrar Leyenda de Estilos de Silla",
         "legend.seat.total": "TOTAL",
         "legend.key.title": "LEYENDA DE ARTÍCULOS CLAVES",
         "legend.key.total": "TOTAL DE ARTÍCULOS CLAVES",
@@ -4610,6 +4730,14 @@ const I18N_STRINGS = {
         // Right-click on canvas: if something is selected, show menu;
         // otherwise let the original mousedown handler start panning.
         e.preventDefault();
+        // Chair-select mode: right-click targets tagged chairs (single click
+        // selects the chair under the cursor if the selection is empty).
+        if (mode === 'select-chairs') {
+            isPanning = false;
+            // Right-click acts on whatever the select-lasso already grabbed.
+            if (_chairSel.size) showChairContextMenu(e.clientX, e.clientY);
+            return;
+        }
         const item = getSelectedItem();
         if (item || multiSel.length) {
             // We need to cancel the pan that mousedown(button=2) just kicked off
@@ -4654,7 +4782,7 @@ const I18N_STRINGS = {
         const idx = parseInt(swatch.dataset.paletteIndex, 10);
         const prop = swatch.dataset.paletteProp;
         const color = swatch.dataset.paletteColor;
-        const allowed = ['updateSeatColor', 'updateSignProp', 'updateMeasureProp', 'updateLineProp', 'updateTextProp', 'updateAttendantTypeProp', 'updateAttendantPostOverride'];
+        const allowed = ['updateSeatColor', 'updateSignProp', 'updateMeasureProp', 'updateLineProp', 'updateTextProp', 'updateAttendantTypeProp', 'updateAttendantPostOverride', 'updateChairStyleProp'];
         if (!allowed.includes(fn)) return;
         if (prop) window[fn](idx, prop, color);
         else window[fn](idx, color);
@@ -4697,6 +4825,12 @@ const I18N_STRINGS = {
         projectLayers: [{ id: 0, name: "Unassigned", visible: true, locked: false }],
         nextLayerId: 1,
         seatTypes: [{ name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }],
+        // Chair styles: a tagging layer over seats. Each seat may reference one
+        // style by id; the style's number is drawn inside the seat. Independent
+        // of seatTypes and never counts toward seating capacity.
+        chairStyles: [],
+        nextChairStyleId: 1,
+        activeChairStyle: 0,
         signTypes: [{ name: "Default Point", color: '#e74c3c', size: 20, label: "1" }],
         measureTypes: [{ name: "Tall pipe and drape", color: '#9b59b6', thickness: 4, labelSize: 13, showLabels: true }],
         attendantTypes: [{ name: "Standard Post", dotColor: '#3498db', dotSize: 18, labelColor: '#222', labelSize: 14 }],
@@ -4711,7 +4845,7 @@ const I18N_STRINGS = {
         activeSeatType: 0, activeSignType: 0, activeMeasureType: 0, activePageIndex: 0,
         units: 'ft',        // 'ft' | 'in' | 'ft-in' | 'm' | 'mm' — display only; storage stays in feet
         precision: 1,       // decimals for decimal units, or fraction denom for 'ft-in'
-        pages: [{ name: "Main Floor", imgData: null, sheet: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], measures: [], lines: [], texts: [], legend: { show: true, x: 40, y: 40, scale: 1 }, seatLegend: { show: false, x: 40, y: 150, scale: 1 }, attLegend: { show: false, x: 40, y: 280, scale: 1 } }]
+        pages: [{ name: "Main Floor", imgData: null, sheet: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], measures: [], lines: [], texts: [], legend: { show: true, x: 40, y: 40, scale: 1 }, seatLegend: { show: false, x: 40, y: 150, scale: 1 }, attLegend: { show: false, x: 40, y: 280, scale: 1 }, chairLegend: { show: false, x: 40, y: 410, scale: 1 } }]
     };
 
     let activeTab = 'project'; 
@@ -4720,6 +4854,7 @@ const I18N_STRINGS = {
         showAreaLabels: true,
         showSeats: true,
         hiddenSeatTypes: [],
+        showChairNumbers: true,   // global toggle for chair-style numbers drawn on chairs
         showSigns: true,
         hiddenSignTypes: [],
         showScreens: true,
@@ -4788,6 +4923,7 @@ const I18N_STRINGS = {
     let _calloutEditingIndex = -1;
     let _textEditingNewPos = null; // {x, y} for new-placement mode
     let isPanning = false, lastMouse = { x: 0, y: 0 }, mousePos = { x: 0, y: 0 };
+    let _lastMouseClientX = 0, _lastMouseClientY = 0; // viewport client coords for the lasso toast
     let bgImage = new Image();
     // ─── CRISP PDF UNDERLAY ───────────────────────────────────────────────
     // The blueprint raster (page.imgData) is fixed-resolution, so it blurs
@@ -4918,6 +5054,7 @@ const I18N_STRINGS = {
             legend: page.legend,
             seatLegend: page.seatLegend,
             attLegend: page.attLegend,
+            chairLegend: page.chairLegend,
             // Project-level: attendants is global (not per-page) so we snapshot the whole thing.
             // Same for attendantTypes since edits there are also undoable.
             attendants: project.attendants,
@@ -4942,6 +5079,7 @@ const I18N_STRINGS = {
             legend: page.legend,
             seatLegend: page.seatLegend,
             attLegend: page.attLegend,
+            chairLegend: page.chairLegend,
             attendants: project.attendants,
             attendantTypes: project.attendantTypes
         });
@@ -4958,6 +5096,7 @@ const I18N_STRINGS = {
         page.legend = s.legend || { show: true, x: 40, y: 40, scale: 1 };
         page.seatLegend = s.seatLegend || { show: false, x: 40, y: 150, scale: 1 };
         page.attLegend = s.attLegend || { show: false, x: 40, y: 280, scale: 1 };
+        page.chairLegend = s.chairLegend || { show: false, x: 40, y: 410, scale: 1 };
         if (s.attendants) project.attendants = s.attendants;
         if (s.attendantTypes) project.attendantTypes = s.attendantTypes;
     }
@@ -7901,7 +8040,7 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
-    const APP_VERSION = "2.9.0";
+    const APP_VERSION = "2.10.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -8406,7 +8545,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.9.0-release";
+    const ANNOUNCEMENT_VERSION = "2.10.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -8414,6 +8553,29 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.10.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>New: Chair Styles — tag and number chairs on your plan.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>Create <strong>Chair Styles</strong> in the Seating tab (under <em>+ New</em>), each with its own <strong>number</strong>, number color, and size. Styles are a labeling layer over your seats — they never change your seat profiles or affect Total Seats.</li>
+                    <li><strong>Tag chairs with a lasso:</strong> pick a style, then draw a lasso around chairs to stamp its number on them. The tool stays armed so you can keep tagging group after group until you press Esc.</li>
+                    <li><strong>Select chairs</strong> (button next to <em>+ New</em>): lasso already-tagged chairs, then right-click to <strong>reassign</strong> them to another style or <strong>remove</strong> the tag.</li>
+                    <li>A per-page <strong>Chair Style Legend</strong> lists every style with two live counts — <em>Page</em> (this sheet) and <em>Project</em> (all sheets) — and a total. Move it and resize it from the corner like the other legends.</li>
+                    <li>New <strong>Seating layer toggles</strong> for the chair numbers and the legend, and everything prints and exports to PDF as crisp vector.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Nuevo: Estilos de Silla — etiquete y numere sillas en su plano.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li>Cree <strong>Estilos de Silla</strong> en la pestaña de Asientos (en <em>+ Nuevo</em>), cada uno con su propio <strong>número</strong>, color y tamaño de número. Los estilos son una capa de etiquetado sobre sus asientos — no modifican los perfiles de asiento ni afectan el Total de Asientos.</li>
+                    <li><strong>Etiquete sillas con un lazo:</strong> elija un estilo y dibuje un lazo alrededor de las sillas para marcar su número. La herramienta permanece activa para seguir etiquetando grupo tras grupo hasta presionar Esc.</li>
+                    <li><strong>Seleccione sillas</strong> (botón junto a <em>+ Nuevo</em>): enlace con el lazo las sillas ya etiquetadas y haga clic derecho para <strong>reasignarlas</strong> a otro estilo o <strong>quitar</strong> la etiqueta.</li>
+                    <li>Una <strong>Leyenda de Estilos de Silla</strong> por hoja enumera cada estilo con dos conteos en vivo — <em>Página</em> (esta hoja) y <em>Proyecto</em> (todas las hojas) — y un total. Muévala y cambie su tamaño desde la esquina como las demás leyendas.</li>
+                    <li>Nuevos <strong>interruptores de capa</strong> para los números de silla y la leyenda, y todo se imprime y exporta a PDF como vector nítido.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.9.0",
             en: `
@@ -9661,6 +9823,7 @@ const I18N_STRINGS = {
         // Remember the last repeatable draw mode (for the Repeat Tool option).
         if (typeof m === 'string' && (m.startsWith('draw-') || m === 'place-text')) _lastDrawMode = m;
         mode = m; currentPoints = []; calPoint = null; _dblClickPending = false;
+        if (m !== 'select-chairs') { _chairSel = new Set(); }
         if (m !== 'idle') { clearSelections(); }
         // Counter sequence panel visibility — only when we're in counter mode.
         if (m === 'place-counter') showCounterControls();
@@ -9668,6 +9831,22 @@ const I18N_STRINGS = {
         updateUI(); render();
     }
     function getActivePage() { return project.pages[project.activePageIndex]; }
+
+    // Area label size/opacity resolution: per-area override wins, else the seat
+    // profile's default, else the built-in default.
+    function getAreaLabelSize(shape) {
+        if (shape && typeof shape.labelSize === 'number') return shape.labelSize;
+        const prof = project.seatTypes[shape && shape.seatTypeIndex || 0];
+        if (prof && typeof prof.labelSize === 'number') return prof.labelSize;
+        return 18;
+    }
+    function getAreaLabelOpacity(shape) {
+        // Stored 0..1. Per-area override, else profile default, else 1 (opaque).
+        if (shape && typeof shape.labelOpacity === 'number') return shape.labelOpacity;
+        const prof = project.seatTypes[shape && shape.seatTypeIndex || 0];
+        if (prof && typeof prof.labelOpacity === 'number') return prof.labelOpacity;
+        return 1;
+    }
 
     // Populate and sync the Units + adaptive Rounding selects. The rounding
     // options depend on the unit: decimal places for decimal formats, or a
@@ -9726,7 +9905,7 @@ const I18N_STRINGS = {
         buildPagesList();
         buildPageTabs();
         syncSheetSection();
-        if (activeTab === 'area') { buildSeatProfiles(); buildAreaList(); }
+        if (activeTab === 'area') { buildSeatProfiles(); renderChairStyles(); buildAreaList(); }
         if (activeTab === 'obs') buildObsList();
         if (activeTab === 'screen') buildScreenList();
         if (activeTab === 'sign') { buildSignProfiles(); buildMeasureProfiles(); buildPlacedSignsList(); updateSignPanelBadges(); if (typeof updateSignGroupLabels==='function') updateSignGroupLabels(); }
@@ -10072,6 +10251,10 @@ const I18N_STRINGS = {
                 h += `</div>`;
                 h += _layerToggleRow(t('layers.area_labels'), uiState.showAreaLabels !== false, 'uiState.showAreaLabels=this.checked; render();');
                 h += _layerToggleRow(t('layers.seat_legend'), getActivePage().seatLegend && getActivePage().seatLegend.show !== false, 'toggleSeatLegend(this.checked)');
+                if (project.chairStyles && project.chairStyles.length) {
+                    h += _layerToggleRow(t('layers.chair_numbers') || 'Chair Style Numbers', uiState.showChairNumbers !== false, 'uiState.showChairNumbers=this.checked; needsCacheUpdate=true; render();');
+                    h += _layerToggleRow(t('layers.chair_legend') || '📋 Show Chair Style Legend', getActivePage().chairLegend && getActivePage().chairLegend.show !== false, 'toggleChairLegend(this.checked)');
+                }
                 return h; } },
         keyitems: { emoji: '\u{1F4CD}', key: 'layers.cat.keyitems', fallback: 'Key Items',
             hidden: () => uiState.showSigns === false || (uiState.hiddenSignTypes && uiState.hiddenSignTypes.length > 0),
@@ -10288,6 +10471,169 @@ const I18N_STRINGS = {
                 }
             });
         });
+    }
+
+    // Render the Chair Styles list. Each row shows the on-plan number (in its
+    // colour), the style name, a per-row registered-seat count, and edit/delete.
+    // The expanded row exposes name, number colour and number size.
+    let _editingChairStyleId = null;
+    function editChairStyle(id) { _editingChairStyleId = id; renderChairStyles(); }
+    function closeChairStyleEditor() { _editingChairStyleId = null; renderChairStyles(); }
+
+    // Draw the Chair Key legend into the given context. Two count columns:
+    // Page (active page) and Project (all pages). Lists EVERY defined style,
+    // including zero counts, per the agreed design.
+    function drawChairLegend(ctx, page, isLive) {
+        if (!page.chairLegend || !page.chairLegend.show) return;
+        if (!project.chairStyles || !project.chairStyles.length) return;
+        const rows = chairLegendCounts();
+        const d = chairLegendDims(rows);
+        const sc = page.chairLegend.scale || 1;
+        const legW = d.width, legH = d.height;
+        ctx.save();
+        ctx.translate(page.chairLegend.x, page.chairLegend.y); ctx.scale(sc, sc);
+        // Box
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, legW, legH, 8); ctx.fill(); ctx.stroke(); }
+        else { ctx.fillRect(0, 0, legW, legH); ctx.strokeRect(0, 0, legW, legH); }
+        // Title
+        ctx.fillStyle = 'black'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(t('legend.chair.title') || 'CHAIR STYLE LEGEND', 15, 28);
+        // Column headers (right-aligned to each column's right edge)
+        const projRight = legW - d.rightPad;
+        const pageRight = projRight - d.colW - d.colGap;
+        ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#555'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(t('legend.chair.page') || 'Page', pageRight, 52);
+        ctx.fillText(t('legend.chair.project') || 'Project', projRight, 52);
+        ctx.beginPath(); ctx.moveTo(15, 58); ctx.lineTo(legW - 15, 58); ctx.lineWidth = 1; ctx.strokeStyle = '#333'; ctx.stroke();
+        // Rows
+        let y = d.headerH + d.rowH / 2; let pageSum = 0, projSum = 0;
+        rows.forEach(r => {
+            pageSum += r.page; projSum += r.project;
+            // number chip (in the style colour) + name
+            ctx.textBaseline = 'middle';
+            if (r.number != null) { ctx.fillStyle = r.numColor || '#e74c3c'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'left'; ctx.fillText(String(r.number), d.leftPad, y); }
+            ctx.fillStyle = 'black'; ctx.font = '16px Arial'; ctx.textAlign = 'left';
+            ctx.fillText(r.name, d.leftPad + d.swatch + d.gap, y);
+            ctx.textAlign = 'right'; ctx.font = '16px Arial';
+            ctx.fillText(fmtNum(r.page), pageRight, y);
+            ctx.fillText(fmtNum(r.project), projRight, y);
+            y += d.rowH;
+        });
+        // Totals row
+        ctx.beginPath(); ctx.moveTo(15, y - d.rowH/2 + 4); ctx.lineTo(legW - 15, y - d.rowH/2 + 4); ctx.lineWidth = 1; ctx.strokeStyle = '#ccc'; ctx.stroke();
+        ctx.fillStyle = 'black'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(t('legend.chair.total') || 'TOTAL', d.leftPad, y + 8);
+        ctx.textAlign = 'right';
+        ctx.fillText(fmtNum(pageSum), pageRight, y + 8);
+        ctx.fillText(fmtNum(projSum), projRight, y + 8);
+        // Resize handle (live only)
+        if (isLive) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.moveTo(legW - 20, legH); ctx.lineTo(legW, legH - 20); ctx.lineTo(legW, legH); ctx.fill(); }
+        ctx.restore();
+    }
+
+    // Base (unscaled) dimensions + layout numbers for the Chair Key legend, so
+    // the hit-test rectangle and the drawn box always match exactly.
+    function chairLegendDims(rows) {
+        measureCtx.font = 'bold 18px Arial';
+        const titleW = measureCtx.measureText(t('legend.chair.title') || 'CHAIR STYLE LEGEND').width;
+        measureCtx.font = '16px Arial';
+        let nameW = 0;
+        rows.forEach(r => { const w = measureCtx.measureText((r.number != null ? r.number + '  ' : '') + r.name).width; if (w > nameW) nameW = w; });
+        measureCtx.font = 'bold 13px Arial';
+        const pageHdr = measureCtx.measureText(t('legend.chair.page') || 'Page').width;
+        const projHdr = measureCtx.measureText(t('legend.chair.project') || 'Project').width;
+        // Column geometry: swatch(20) + gap + name | pageCol | projCol
+        const colW = Math.max(52, pageHdr + 10, projHdr + 10);
+        const leftPad = 15, swatch = 20, gap = 10, colGap = 14, rightPad = 15;
+        const width = Math.max(280, leftPad + swatch + gap + nameW + colGap + colW + colGap + colW + rightPad, titleW + 30);
+        const rowH = 30;
+        const headerH = 66; // title + column headers + rule
+        const totalH = 40;
+        const height = headerH + rows.length * rowH + totalH;
+        return { width, height, rowH, headerH, leftPad, swatch, gap, nameW, colGap, colW, rightPad };
+    }
+
+    // Per-style counts: chairs tagged on the ACTIVE page vs across ALL pages.
+    // Returns rows aligned to project.chairStyles (every defined style, even 0).
+    function chairLegendCounts() {
+        const styles = project.chairStyles || [];
+        const active = getActivePage();
+        const pageCount = {}, projCount = {};
+        styles.forEach(c => { pageCount[c.id] = 0; projCount[c.id] = 0; });
+        (project.pages || []).forEach(pg => {
+            const isActivePage = (pg === active);
+            (pg.shapes || []).forEach(sh => {
+                if (sh.type !== 'area' || !sh.chairTags) return;
+                for (const k in sh.chairTags) {
+                    const cid = sh.chairTags[k];
+                    if (projCount[cid] === undefined) continue;
+                    projCount[cid]++;
+                    if (isActivePage) pageCount[cid]++;
+                }
+            });
+        });
+        return styles.map(c => ({ id: c.id, number: (c.number != null ? c.number : null), name: c.name, numColor: c.numColor, page: pageCount[c.id], project: projCount[c.id] }));
+    }
+
+    function chairStyleSeatCount(id) {
+        let n = 0;
+        (project.pages || []).forEach(pg => (pg.shapes || []).forEach(sh => {
+            if (sh.type === 'area' && sh.chairTags) {
+                for (const k in sh.chairTags) if (sh.chairTags[k] === id) n++;
+            }
+        }));
+        return n;
+    }
+
+    function toggleChairSelectMode() {
+        setMode(mode === 'select-chairs' ? 'idle' : 'select-chairs');
+    }
+
+    // Keep the top 'Select chairs' button in sync: visible only when styles
+    // exist, highlighted while active.
+    function updateChairSelectBtn() {
+        const btn = document.getElementById('chair-select-btn');
+        if (!btn) return;
+        const has = project.chairStyles && project.chairStyles.length > 0;
+        btn.style.display = has ? 'block' : 'none';
+        const on = (mode === 'select-chairs');
+        btn.style.border = on ? '2px solid #00b4ff' : '';
+        btn.innerHTML = on ? ('↖ ' + escapeHTML(t('chair.select.short_on') || 'Selecting…'))
+                           : ('↖ ' + escapeHTML(t('chair.select.short') || 'Select'));
+        btn.title = on ? (t('chair.select.tooltip_on') || 'Right-click the selection to reassign or remove. Esc to stop.')
+                       : (t('chair.select.tooltip') || 'Select tagged chairs to reassign or remove their style (lasso, then right-click)');
+    }
+
+    function renderChairStyles() {
+        const host = document.getElementById('chair-style-list');
+        if (!host) return;
+        if (!project.chairStyles) project.chairStyles = [];
+        const badge = document.getElementById('chair-styles-badge');
+        if (badge) badge.textContent = project.chairStyles.length;
+        const el = { innerHTML: '' };
+        project.chairStyles.forEach((cs, i) => {
+            const num = (cs.number != null ? cs.number : (i + 1));
+            const cnt = chairStyleSeatCount(cs.id);
+            const isActive = (i === (project.activeChairStyle ?? 0));
+            const isLassoing = (isActive && mode === 'lasso-chairs');
+            el.innerHTML += `<li class="profile-item ${isActive ? 'active' : ''}" onclick="project.activeChairStyle=${i}; renderChairStyles();">
+                <div class="profile-header">
+                    <span><span style="display:inline-block; min-width:1.6em; text-align:center; font-weight:bold; color:${escapeHTML(cs.numColor)};">${num}</span> ${escapeHTML(cs.name)}</span>
+                    <div>
+                        <span class="badge" title="Registered chairs of this style" style="margin-right:4px;">${cnt}</span>
+                        <button class="icon-btn" onclick="event.stopPropagation(); editProfile('chair', ${i})">✎</button>
+                        <button class="icon-btn" onclick="event.stopPropagation(); if(confirm(t('chair.style.delete_confirm')||'Delete this chair style? Tags using it will be cleared.')) deleteChairStyle(${cs.id})">✕</button>
+                    </div>
+                </div>
+                ${isActive ? `<button class="btn-full btn-primary" style="margin-top:6px; ${isLassoing ? 'background:#0098ff; border:2px solid white;' : ''}" onclick="event.stopPropagation(); project.activeChairStyle=${i}; setMode('lasso-chairs');">${isLassoing ? (t('chair.lasso.active')||'\uD83E\uDD9D Lassoing\u2026 (Esc to stop)') : (t('chair.lasso.start')||'\uD83E\uDD9D Tag chairs with lasso')}</button>` : ''}
+            </li>`;
+        });
+        if (project.chairStyles.length === 0) {
+            el.innerHTML = `<li style="color:#888; font-size:0.85em; padding:8px 4px;" data-i18n="chair.style.empty">No chair styles yet. Add one, then tag seats on the plan.</li>`;
+        }
+        host.innerHTML = el.innerHTML;
+        updateChairSelectBtn();
     }
 
     function buildSeatProfiles() {
@@ -10757,6 +11103,7 @@ const I18N_STRINGS = {
     }
     function toggleSeatLegend(show) { saveState(); let p = getActivePage(); if (!p.seatLegend) p.seatLegend = { show: true, x: 40, y: 150, scale: 1 }; p.seatLegend.show = show; triggerUpdate(); }
     function toggleAttLegend(show) { saveState(); let p = getActivePage(); if (!p.attLegend) p.attLegend = { show: true, x: 40, y: 280, scale: 1 }; p.attLegend.show = show; triggerUpdate(); }
+    function toggleChairLegend(show) { saveState(); let p = getActivePage(); if (!p.chairLegend) p.chairLegend = { show: true, x: 40, y: 410, scale: 1 }; p.chairLegend.show = show; triggerUpdate(); }
     
     function addSeatType() {
         const c = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f'][project.seatTypes.length % 4];
@@ -10766,6 +11113,96 @@ const I18N_STRINGS = {
         updateUI(); triggerUpdate();
         editProfile('seat', idx);
     }
+    // ─── Chair Styles (tagging layer over seats) ───────────────────────────────
+    function addChairStyle() {
+        if (!project.chairStyles) project.chairStyles = [];
+        if (project.nextChairStyleId == null) project.nextChairStyleId = 1;
+        const palette = ['#e74c3c', '#2980b9', '#27ae60', '#8e44ad', '#e67e22', '#16a085', '#c0392b', '#2c3e50'];
+        const id = project.nextChairStyleId++;
+        const idx = project.chairStyles.length;
+        // Default on-plan number = smallest positive integer not already used.
+        const used = new Set((project.chairStyles || []).map(c => c.number).filter(n => n != null));
+        let num = 1; while (used.has(num)) num++;
+        project.chairStyles.push({
+            id,
+            name: (t('chair.style.default') || 'Chair Style') + ' ' + num,
+            number: num,           // user-controllable on-plan reference
+            numColor: palette[idx % palette.length],
+            numSize: 10            // points, per-style
+        });
+        renderChairStyles();
+        updateUI();
+        triggerUpdate();
+        // Open inline rename immediately (mirrors seat-profile flow feel).
+        editChairStyle(id);
+    }
+
+    // The on-plan number for a style. User-controllable (profile.number); if
+    // unset, falls back to 1-based position so older styles still read 1..N.
+    function chairStyleNumber(id) {
+        if (!project.chairStyles) return null;
+        const i = project.chairStyles.findIndex(c => c.id === id);
+        if (i === -1) return null;
+        const c = project.chairStyles[i];
+        return (c && c.number != null) ? c.number : (i + 1);
+    }
+    function getChairStyleById(id) {
+        if (!project.chairStyles) return null;
+        return project.chairStyles.find(c => c.id === id) || null;
+    }
+
+    function deleteChairStyle(id) {
+        if (!project.chairStyles) return;
+        saveState();
+        // Remove the style, and clear any seat tags that referenced it.
+        project.chairStyles = project.chairStyles.filter(c => c.id !== id);
+        (project.pages || []).forEach(pg => (pg.shapes || []).forEach(sh => {
+            if (sh.type === 'area' && sh.chairTags) {
+                Object.keys(sh.chairTags).forEach(k => { if (sh.chairTags[k] === id) delete sh.chairTags[k]; });
+            }
+        }));
+        renderChairStyles();
+        updateUI();
+        triggerUpdate();
+        render();
+    }
+
+    // Light repaint used while editing a chair style: repaint the canvas and
+    // refresh only the row's number-swatch + count, WITHOUT rebuilding the whole
+    // list (which would blur the input the user is typing in — that was the
+    // number-size 'doesn't work' bug).
+    function _repaintChairEdits(id) {
+        hasUnsavedChanges = true;
+        markSeatCachesDirty();
+        triggerUpdate();
+        render();
+        // Update the small number preview swatch in the header live.
+        const cs = getChairStyleById(id);
+        if (cs) {
+            const hex = document.getElementById('chair-hex-' + id);
+            const nat = document.getElementById('chair-native-' + id);
+            if (hex && document.activeElement !== hex) hex.value = (cs.numColor||'').substring(0,7);
+            if (nat && document.activeElement !== nat) nat.value = (cs.numColor||'#e74c3c').substring(0,7);
+        }
+    }
+
+    // Canonical mutator, BY LIST INDEX (matches the palette dispatch signature).
+    function updateChairStyleProp(index, prop, value) {
+        const cs = (project.chairStyles || [])[index];
+        if (!cs) return;
+        if (prop === 'numSize') { const n = parseFloat(value); if (!isNaN(n)) cs.numSize = Math.max(4, Math.min(40, n)); }
+        else if (prop === 'numColor') { cs.numColor = value; }
+        else cs[prop] = value;
+        _repaintChairEdits(cs.id);
+    }
+
+    // BY ID wrapper for the inline editor inputs.
+    function updateChairStyleField(id, field, value) {
+        const i = (project.chairStyles || []).findIndex(c => c.id === id);
+        if (i === -1) return;
+        updateChairStyleProp(i, field, value);
+    }
+
     function addSignType() {
         const c = ['#e74c3c', '#9b59b6', '#f1c40f', '#3498db'][project.signTypes.length % 4];
         const idx = project.signTypes.length;
@@ -10870,6 +11307,7 @@ const I18N_STRINGS = {
         else if (kind === 'sign')      profile = project.signTypes[index];
         else if (kind === 'measure')   profile = project.measureTypes[index];
         else if (kind === 'attendant') profile = project.attendantTypes[index];
+        else if (kind === 'chair')     profile = (project.chairStyles || [])[index];
         if (!profile) return;
 
         _profileEditState = { kind, index };
@@ -10887,6 +11325,7 @@ const I18N_STRINGS = {
         let primaryColor;
         if (kind === 'seat')           primaryColor = profile.stroke || '#2ecc71';
         else if (kind === 'attendant') primaryColor = profile.dotColor || '#3498db';
+        else if (kind === 'chair')     primaryColor = profile.numColor || '#e74c3c';
         else                            primaryColor = profile.color || '#9b59b6';
 
         // Truncate to 7 chars (some profiles store rgba); use only the hex.
@@ -10899,6 +11338,7 @@ const I18N_STRINGS = {
         const colorLabel = (kind === 'attendant')
             ? t('att.types.field.dot_color')
             : (kind === 'sign') ? t('common.color') + ' / ' + t('common.label')
+            : (kind === 'chair') ? (t('chair.style.numcolor') || 'Number color')
             : t('common.color');
         document.getElementById('profile-edit-color-label').textContent = colorLabel;
 
@@ -10911,11 +11351,15 @@ const I18N_STRINGS = {
         const measureFields = document.getElementById('profile-edit-measure-fields');
         const measureShowLabelsGroup = document.getElementById('profile-edit-measure-showlabels-group');
         const attFields = document.getElementById('profile-edit-attendant-fields');
+        const chairFields = document.getElementById('profile-edit-chair-fields');
+        const seatLabelFields = document.getElementById('profile-edit-seat-label-fields');
         seatFields.style.display = 'none';
         signFields.style.display = 'none';
         measureFields.style.display = 'none';
         measureShowLabelsGroup.style.display = 'none';
         attFields.style.display = 'none';
+        if (chairFields) chairFields.style.display = 'none';
+        if (seatLabelFields) seatLabelFields.style.display = 'none';
 
         if (kind === 'seat') {
             seatFields.style.display = 'flex';
@@ -10927,6 +11371,9 @@ const I18N_STRINGS = {
             document.getElementById('profile-edit-seat-d').value = feetToDisplay(profile.d).toFixed(getUnitDecimals());
             document.getElementById('profile-edit-seat-w').step = getUnitStep();
             document.getElementById('profile-edit-seat-d').step = getUnitStep();
+            if (seatLabelFields) seatLabelFields.style.display = 'flex';
+            document.getElementById('profile-edit-seat-label-size').value = (typeof profile.labelSize === 'number') ? profile.labelSize : 18;
+            document.getElementById('profile-edit-seat-label-opacity').value = Math.round(((typeof profile.labelOpacity === 'number') ? profile.labelOpacity : 1) * 100);
         } else if (kind === 'sign') {
             signFields.style.display = 'flex';
             document.getElementById('profile-edit-sign-size').value = profile.size || 20;
@@ -10951,6 +11398,10 @@ const I18N_STRINGS = {
             document.getElementById('profile-edit-att-label-color-hex').value = labelColor;
             _populatePaletteFor('profile-edit-att-label-color-palette', 'profile-edit-att-label-color', 'profile-edit-att-label-color-hex');
             _wireColorSync('profile-edit-att-label-color', 'profile-edit-att-label-color-hex');
+        } else if (kind === 'chair') {
+            if (chairFields) chairFields.style.display = 'flex';
+            document.getElementById('profile-edit-chair-number').value = (profile.number != null ? profile.number : (index + 1));
+            document.getElementById('profile-edit-chair-size').value = profile.numSize || 10;
         }
 
         // Wire the save button. Replace any previous handler via cloneNode.
@@ -10990,6 +11441,10 @@ const I18N_STRINGS = {
             const d = parseLength(dVal);
             if (!isNaN(w) && w > 0) profile.w = w;
             if (!isNaN(d) && d > 0) profile.d = d;
+            const lsz = parseInt(document.getElementById('profile-edit-seat-label-size').value, 10);
+            if (!isNaN(lsz)) profile.labelSize = Math.max(6, Math.min(80, lsz));
+            const lop = parseInt(document.getElementById('profile-edit-seat-label-opacity').value, 10);
+            if (!isNaN(lop)) profile.labelOpacity = Math.max(0.1, Math.min(1, lop / 100));
             markSeatCachesDirty();
         } else if (kind === 'sign') {
             const profile = project.signTypes[index];
@@ -11017,6 +11472,18 @@ const I18N_STRINGS = {
             const ls = parseInt(document.getElementById('profile-edit-att-label-size').value, 10);
             if (!isNaN(ls) && ls > 0) profile.labelSize = ls;
             profile.labelColor = document.getElementById('profile-edit-att-label-color').value;
+        } else if (kind === 'chair') {
+            const profile = project.chairStyles[index];
+            profile.name = name;
+            profile.numColor = colorHex;
+            const sz = parseInt(document.getElementById('profile-edit-chair-size').value, 10);
+            if (!isNaN(sz)) profile.numSize = Math.max(4, Math.min(40, sz));
+            const numVal = parseInt(document.getElementById('profile-edit-chair-number').value, 10);
+            if (!isNaN(numVal)) {
+                profile.number = Math.max(0, Math.min(999, numVal));
+            }
+            markSeatCachesDirty();
+            renderChairStyles();
         }
 
         hideProfileEditModal();
@@ -11136,7 +11603,8 @@ const I18N_STRINGS = {
             // Seat area: rotation, text size, profile
             document.getElementById('item-edit-shape-fields').style.display = 'block';
             document.getElementById('item-edit-shape-rot').value = item.rot ?? 0;
-            document.getElementById('item-edit-shape-labelSize').value = item.labelSize || 18;
+            document.getElementById('item-edit-shape-labelSize').value = (typeof item.labelSize === 'number') ? item.labelSize : '';
+            document.getElementById('item-edit-shape-labelOpacity').value = (typeof item.labelOpacity === 'number') ? Math.round(item.labelOpacity * 100) : '';
             const sel = document.getElementById('item-edit-shape-profile');
             sel.innerHTML = project.seatTypes.map((st, idx) =>
                 `<option value="${idx}" ${(item.seatTypeIndex ?? 0) === idx ? 'selected' : ''}>${escapeHTML(st.name)}</option>`
@@ -11399,10 +11867,13 @@ const I18N_STRINGS = {
             const item = page.shapes[index];
             if (!item) return;
             const rot = parseFloat(document.getElementById('item-edit-shape-rot').value);
-            const ls  = parseInt(document.getElementById('item-edit-shape-labelSize').value, 10);
+            const lsRaw = document.getElementById('item-edit-shape-labelSize').value.trim();
+            const loRaw = document.getElementById('item-edit-shape-labelOpacity').value.trim();
             const pi  = parseInt(document.getElementById('item-edit-shape-profile').value, 10);
             if (!isNaN(rot)) item.rot = rot;
-            if (!isNaN(ls) && ls > 0) item.labelSize = ls;
+            // Blank = clear the per-area override (fall back to the profile default).
+            if (lsRaw === '') { delete item.labelSize; } else { const ls = parseInt(lsRaw, 10); if (!isNaN(ls) && ls > 0) item.labelSize = Math.max(6, Math.min(80, ls)); }
+            if (loRaw === '') { delete item.labelOpacity; } else { const lo = parseInt(loRaw, 10); if (!isNaN(lo)) item.labelOpacity = Math.max(0.1, Math.min(1, lo / 100)); }
             if (!isNaN(pi) && pi >= 0 && pi < project.seatTypes.length) item.seatTypeIndex = pi;
             markSeatCachesDirty();
         } else if (kind === 'obs') {
@@ -12063,7 +12534,7 @@ const I18N_STRINGS = {
             const type = document.querySelector('input[name="newpage-type"]:checked')?.value || 'sheet';
             saveState();
             const newPage = { name, imgData: null, sheet: null, pixelsPerFoot: 0, shapes: [], screens: [], signs: [], measures: [], lines: [], texts: [],
-                              legend: { show: true, x: 40, y: 40, scale: 1 }, seatLegend: { show: true, x: 40, y: 150, scale: 1 }, attLegend: { show: false, x: 40, y: 280, scale: 1 } };
+                              legend: { show: true, x: 40, y: 40, scale: 1 }, seatLegend: { show: true, x: 40, y: 150, scale: 1 }, attLegend: { show: false, x: 40, y: 280, scale: 1 }, chairLegend: { show: false, x: 40, y: 410, scale: 1 } };
             if (type === 'sheet') {
                 const wIn = sheetDisplayToInches(document.getElementById('newpage-sheet-w').value);
                 const hIn = sheetDisplayToInches(document.getElementById('newpage-sheet-h').value);
@@ -12886,6 +13357,16 @@ const I18N_STRINGS = {
     // stroke. mousemove appends points only while this is set, so cursor moves
     // outside drawing modes don't accidentally accumulate.
     let isFreehandActive = false;
+    // Chair-lasso state. A freehand drag paints a polygon; on release, seats
+    // whose centre is inside get added to _lassoSeatSel (keys 'shapeIdx:seatIdx').
+    // Ctrl-held keeps the running selection so several lassos accumulate.
+    let isLassoActive = false;
+    let _lassoSeatSel = new Set();
+    // Chair SELECT mode (distinct from the tagging lasso): lasso or right-click
+    // picks already-tagged chairs into _chairSel ('shapeIdx:seatIdx' keys) for
+    // reassign / remove via a right-click menu.
+    let isChairSelDrag = false;
+    let _chairSel = new Set();
 
     // Find the next sequential counter number on the page. Scans existing
     // 'counter' items, parses their integer labels, returns max+1 (or 1 if none).
@@ -13656,6 +14137,7 @@ const I18N_STRINGS = {
     // handler runs. Without this, the crosshair appears glued to the result of
     // the previous frame's hit tests on dense scenes.
     document.getElementById('viewport').addEventListener('mousemove', (e) => {
+        _lastMouseClientX = e.clientX; _lastMouseClientY = e.clientY;
         // Use a cached rect to avoid a layout flush on every move. The crosshair
         // overlay lives in CSS pixels, so position it with raw CSS coordinates
         // (cssX/cssY) — that tracks the actual cursor exactly. The canvas-internal
@@ -13760,7 +14242,21 @@ const I18N_STRINGS = {
                 }
             }
         }
-        
+
+        // Chair Key legend hit-test (drag/resize)
+        if (page.chairLegend && page.chairLegend.show && project.chairStyles && project.chairStyles.length) {
+            const rows = chairLegendCounts();
+            const dims = chairLegendDims(rows);
+            const sc = page.chairLegend.scale || 1;
+            const legW = dims.width * sc, legH = dims.height * sc;
+            const lx = page.chairLegend.x, ly = page.chairLegend.y, handleSize = 25 * sc;
+            if (world.x > lx + legW - handleSize && world.x < lx + legW && world.y > ly + legH - handleSize && world.y < ly + legH) {
+                saveState(); mode = 'resize-chair-legend'; project.dragStartScale = sc; project.dragStartX = world.x; project.dragBaseW = dims.width; return;
+            } else if (world.x > lx && world.x < lx + legW && world.y > ly && world.y < ly + legH) {
+                saveState(); mode = 'drag-chair-legend'; project.dragOffsetX = world.x - lx; project.dragOffsetY = world.y - ly; return;
+            }
+        }
+
         if (mode === 'idle') {
             // Rotate grip: if a box/ellipse/text is selected and the click lands
             // on its grip, start a rotation drag (takes priority over selection).
@@ -13994,6 +14490,14 @@ const I18N_STRINGS = {
             let w = applyGridSnap(world);
             currentPoints.push(w);
             isFreehandActive = true;
+        } else if (mode === 'lasso-chairs') {
+            // Chair lasso: begin a freehand polygon. No grid snap — we want the
+            // raw path around seats.
+            currentPoints = [{ x: world.x, y: world.y }];
+            isLassoActive = true;
+        } else if (mode === 'select-chairs') {
+            currentPoints = [{ x: world.x, y: world.y }];
+            isChairSelDrag = true;
         } else if (mode === 'place-counter') {
             // Numbered pin — single click places a counter with the current
             // _counterNextNum (set on entering mode, editable via the sidebar
@@ -14047,7 +14551,7 @@ const I18N_STRINGS = {
     let _lastHoverHit = 0;
     let _lastMoveEvent = null;
     function _runHeavyMouseMove(e) {
-        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isMarqueeSelecting || isDraggingGroup || isRotatingGrip || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend')) {
+        if (e.buttons === 0 && (isPanning || isDraggingShapePoint || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isMarqueeSelecting || isDraggingGroup || isRotatingGrip || mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend' || mode === 'drag-chair-legend' || mode === 'resize-chair-legend')) {
             _releaseDrags(); return;
         }
 
@@ -14061,6 +14565,25 @@ const I18N_STRINGS = {
         // button is held. Skip if too close to the previous point so we don't
         // accumulate noise at low mouse speeds.
         if (isFreehandActive && mode === 'draw-freehand') {
+            const last = currentPoints[currentPoints.length - 1];
+            const dx = world.x - last.x, dy = world.y - last.y;
+            const minDist = 2 / view.zoom;
+            if (dx * dx + dy * dy >= minDist * minDist) {
+                currentPoints.push({ x: world.x, y: world.y });
+                render();
+            }
+        }
+
+        if (isLassoActive && mode === 'lasso-chairs') {
+            const last = currentPoints[currentPoints.length - 1];
+            const dx = world.x - last.x, dy = world.y - last.y;
+            const minDist = 2 / view.zoom;
+            if (dx * dx + dy * dy >= minDist * minDist) {
+                currentPoints.push({ x: world.x, y: world.y });
+                render();
+            }
+        }
+        if (isChairSelDrag && mode === 'select-chairs') {
             const last = currentPoints[currentPoints.length - 1];
             const dx = world.x - last.x, dy = world.y - last.y;
             const minDist = 2 / view.zoom;
@@ -14124,6 +14647,8 @@ const I18N_STRINGS = {
         if (mode === 'resize-legend') { let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / (project.dragBaseW || 250)); if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0; getActivePage().legend.scale = newScale; hasUnsavedChanges = true; render(); return; }
         if (mode === 'drag-seat-legend') { getActivePage().seatLegend.x = world.x - project.dragOffsetX; getActivePage().seatLegend.y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
         if (mode === 'resize-seat-legend') { let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / (project.dragBaseW || 250)); if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0; getActivePage().seatLegend.scale = newScale; hasUnsavedChanges = true; render(); return; }
+        if (mode === 'drag-chair-legend') { getActivePage().chairLegend.x = world.x - project.dragOffsetX; getActivePage().chairLegend.y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
+        if (mode === 'resize-chair-legend') { let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / (project.dragBaseW || 280)); if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0; getActivePage().chairLegend.scale = newScale; hasUnsavedChanges = true; render(); return; }
         if (mode === 'drag-att-legend') { getActivePage().attLegend.x = world.x - project.dragOffsetX; getActivePage().attLegend.y = world.y - project.dragOffsetY; hasUnsavedChanges = true; render(); return; }
         if (mode === 'resize-att-legend') { let dx = world.x - project.dragStartX; let newScale = project.dragStartScale + (dx / (project.dragBaseW || 250)); if (newScale < 0.3) newScale = 0.3; if (newScale > 10.0) newScale = 10.0; getActivePage().attLegend.scale = newScale; hasUnsavedChanges = true; render(); return; }
 
@@ -14285,6 +14810,64 @@ const I18N_STRINGS = {
             triggerUpdate();
             return;
         }
+        // Chair SELECT commit: pick already-tagged chairs inside the polygon.
+        if (mode === 'select-chairs' && isChairSelDrag) {
+            isChairSelDrag = false;
+            const poly = currentPoints.slice();
+            currentPoints = [];
+            if (poly.length >= 3) {
+                const page = getActivePage();
+                const add = (e && (e.ctrlKey || e.metaKey));
+                if (!add) _chairSel = new Set();
+                page.shapes.forEach(sh => { if (sh.type === 'area' && sh.cacheDirty) rebuildSeatCache(sh, page); });
+                page.shapes.forEach((sh, si) => {
+                    if (sh.type !== 'area' || !sh.cachedSeats || !sh.chairTags) return;
+                    if (!isItemVisibleByLayer(sh)) return;
+                    sh.cachedSeats.forEach((seat, sei) => {
+                        if (sh.chairTags[sei] == null) return; // only tagged chairs
+                        if (isInside(poly, { x: seat.x, y: seat.y })) _chairSel.add(si + ':' + sei);
+                    });
+                });
+                if (_chairSel.size) showLassoToast(t('chair.select.count') || 'selected', _chairSel.size);
+            }
+            markSeatCachesDirty();
+            render();
+            return;
+        }
+
+        // Chair-lasso commit: find seats whose centre lies inside the drawn
+        // polygon and tag them with the active chair style. Ctrl-held keeps the
+        // prior selection so multiple lassos accumulate before assigning.
+        if (mode === 'lasso-chairs' && isLassoActive) {
+            isLassoActive = false;
+            const poly = currentPoints.slice();
+            currentPoints = [];
+            if (poly.length >= 3) {
+                const page = getActivePage();
+                // Each lasso is its own assignment: collect the seats whose CENTRE
+                // is inside this loop, then apply the active style (overwriting any
+                // prior tag, so re-lassoing reassigns).
+                _lassoSeatSel = new Set();
+                page.shapes.forEach(sh => { if (sh.type === 'area' && sh.cacheDirty) rebuildSeatCache(sh, page); });
+                page.shapes.forEach((sh, si) => {
+                    if (sh.type !== 'area' || !sh.cachedSeats) return;
+                    if (!isItemVisibleByLayer(sh)) return;
+                    sh.cachedSeats.forEach((seat, sei) => {
+                        if (isInside(poly, { x: seat.x, y: seat.y })) _lassoSeatSel.add(si + ':' + sei);
+                    });
+                });
+                if (_lassoSeatSel.size) applyChairStyleToSelection();
+            }
+            // Stay armed (repeat-tool style): keep lassoing until Esc. Do NOT
+            // call setMode/endDrawMode here, which would exit the tool and clear
+            // selections; just refresh the view and the panel counts.
+            markSeatCachesDirty();
+            updateUI();
+            triggerUpdate();
+            render();
+            return;
+        }
+
         // Freehand commit: finalize the captured stroke. Strokes with too few
         // points (<2) or that didn't move at all are discarded as accidental.
         if (mode === 'draw-freehand' && isFreehandActive) {
@@ -14314,7 +14897,7 @@ const I18N_STRINGS = {
         if (isDraggingText) { isDraggingText = false; if (hasDraggedText) updateUI(); }
         if (isDraggingLine) { isDraggingLine = false; if (hasDraggedLine) updateUI(); }
         if (isDraggingMeasure) { isDraggingMeasure = false; if (hasDraggedMeasure) updateUI(); }
-        if (mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend') setMode('idle');
+        if (mode === 'drag-legend' || mode === 'resize-legend' || mode === 'drag-seat-legend' || mode === 'resize-seat-legend' || mode === 'drag-att-legend' || mode === 'resize-att-legend' || mode === 'drag-chair-legend' || mode === 'resize-chair-legend') setMode('idle');
     };
 
     // ─── FIX #1: dblclick — set flag, strip the two phantom mousedown points ─────
@@ -14895,6 +15478,105 @@ const I18N_STRINGS = {
         getActivePage().shapes.forEach(s => s.cacheDirty = true);
     }
 
+    // Assign the active chair style to every seat currently in _lassoSeatSel.
+    // Tags are stored per-area on shape.chairTags, keyed by seat index, holding
+    // the style id. One style per seat (assignment overwrites).
+    function applyChairStyleToSelection() {
+        const page = getActivePage();
+        const styles = project.chairStyles || [];
+        if (!styles.length) { showLassoToast(t('chair.lasso.nostyle') || 'Add a chair style first', _lassoSeatSel.size); return; }
+        const active = styles[project.activeChairStyle] || styles[0];
+        if (!active) return;
+        saveState();
+        _lassoSeatSel.forEach(key => {
+            const [si, sei] = key.split(':').map(Number);
+            const sh = page.shapes[si];
+            if (!sh || sh.type !== 'area') return;
+            if (!sh.chairTags) sh.chairTags = {};
+            sh.chairTags[sei] = active.id;
+        });
+        renderChairStyles();
+        showLassoToast(active.name, _lassoSeatSel.size);
+        render();
+    }
+
+    // Right-click menu for selected tagged chairs: Reassign ▸ (style submenu)
+    // and Remove tag. Reuses the shared #canvas-ctx-menu element + styling.
+    function showChairContextMenu(clientX, clientY) {
+        const ctxMenu = document.getElementById('canvas-ctx-menu');
+        if (!ctxMenu || !_chairSel.size) return;
+        const styles = project.chairStyles || [];
+        const n = _chairSel.size;
+        let html = `<div class="ctx-menu-header">${escapeHTML(n + ' ' + (t('chair.select.chairs') || 'chair(s)'))}</div>`;
+        // Reassign options — one row per style (flat list; simpler than a submenu).
+        html += `<div class="ctx-menu-header" style="font-size:0.72em; opacity:0.7;">${escapeHTML(t('chair.select.reassign') || 'Reassign to')}</div>`;
+        styles.forEach((cs, i) => {
+            const num = (cs.number != null ? cs.number : (i + 1));
+            html += `<div class="ctx-menu-item" data-chair-reassign="${cs.id}"><span style="display:inline-block; min-width:1.4em; font-weight:bold; color:${escapeHTML(cs.numColor)};">${num}</span> ${escapeHTML(cs.name)}</div>`;
+        });
+        html += `<div class="ctx-menu-sep"></div>`;
+        html += `<div class="ctx-menu-item danger" data-chair-remove="1">${escapeHTML(t('chair.select.remove') || 'Remove tag')}</div>`;
+        ctxMenu.innerHTML = html;
+        ctxMenu.classList.add('show');
+        const mr = ctxMenu.getBoundingClientRect();
+        let x = clientX, y = clientY;
+        if (x + mr.width > window.innerWidth - 8) x = window.innerWidth - mr.width - 8;
+        if (y + mr.height > window.innerHeight - 8) y = window.innerHeight - mr.height - 8;
+        ctxMenu.style.left = x + 'px'; ctxMenu.style.top = y + 'px';
+        ctxMenu.querySelectorAll('.ctx-menu-item').forEach(el => {
+            el.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                hideCtxMenu();
+                if (el.dataset.chairReassign) reassignChairSelection(parseInt(el.dataset.chairReassign, 10));
+                else if (el.dataset.chairRemove) removeChairSelection();
+            });
+        });
+    }
+
+    function reassignChairSelection(styleId) {
+        if (!_chairSel.size) return;
+        const page = getActivePage();
+        saveState();
+        _chairSel.forEach(key => {
+            const [si, sei] = key.split(':').map(Number);
+            const sh = page.shapes[si];
+            if (sh && sh.chairTags && sh.chairTags[sei] != null) sh.chairTags[sei] = styleId;
+        });
+        markSeatCachesDirty(); renderChairStyles(); updateUI(); triggerUpdate(); render();
+    }
+
+    function removeChairSelection() {
+        if (!_chairSel.size) return;
+        const page = getActivePage();
+        saveState();
+        _chairSel.forEach(key => {
+            const [si, sei] = key.split(':').map(Number);
+            const sh = page.shapes[si];
+            if (sh && sh.chairTags) delete sh.chairTags[sei];
+        });
+        _chairSel = new Set();
+        markSeatCachesDirty(); renderChairStyles(); updateUI(); triggerUpdate(); render();
+    }
+
+    // Brief floating count readout after a lasso, near the cursor's last spot.
+    let _lassoToastTimer = null;
+    function showLassoToast(styleName, count) {
+        let el = document.getElementById('lasso-toast');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'lasso-toast';
+            el.style.cssText = 'position:fixed; z-index:9999; pointer-events:none; background:#2d2d30; color:#fff; border:1px solid #007acc; border-radius:6px; padding:6px 10px; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,.4); transition:opacity .2s; opacity:0;';
+            document.body.appendChild(el);
+        }
+        const noun = count === 1 ? (t('chair.lasso.seat') || 'chair') : (t('chair.lasso.seats') || 'chairs');
+        el.textContent = count + ' ' + noun + ' \u2192 ' + styleName + '  (' + (t('chair.lasso.ctrl') || 'hold Ctrl to keep selecting') + ')';
+        el.style.left = (_lastMouseClientX || window.innerWidth/2) + 'px';
+        el.style.top = ((_lastMouseClientY || window.innerHeight/2) - 40) + 'px';
+        el.style.opacity = '1';
+        if (_lassoToastTimer) clearTimeout(_lassoToastTimer);
+        _lassoToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1600);
+    }
+
     function rebuildSeatCache(area, page) {
         area.cachedSeats = []; area.count = 0;
         const st = project.seatTypes[area.seatTypeIndex ?? 0] || project.seatTypes[0];
@@ -15012,13 +15694,28 @@ const I18N_STRINGS = {
                 if (s.cacheDirty === undefined || s.cacheDirty) rebuildSeatCache(s, page);
                 if (uiState.showSeats && !uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) {
                     const cw = st.w * page.pixelsPerFoot; const rd = st.d * page.pixelsPerFoot;
-                    s.cachedSeats.forEach(seat => {
+                    const _dimArea = uiState.dimNotCounted && !itemIsCounted(s, page);
+                    const _tags = s.chairTags || null;
+                    s.cachedSeats.forEach((seat, _si) => {
                         cCtx.save(); cCtx.translate(seat.x, seat.y); cCtx.rotate(seat.rot);
-                        cCtx.fillStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? '#d8d8d8' : (seat.fill || st.color);
+                        cCtx.fillStyle = _dimArea ? '#d8d8d8' : (seat.fill || st.color);
                         cCtx.fillRect(-cw/2, -rd/2, cw, rd); 
-                        cCtx.strokeStyle = (uiState.dimNotCounted && !itemIsCounted(s, page)) ? 'rgba(150,150,150,0.55)' : "rgba(0,0,0,0.85)"; 
+                        cCtx.strokeStyle = _dimArea ? 'rgba(150,150,150,0.55)' : "rgba(0,0,0,0.85)"; 
                         cCtx.lineWidth = 0.4; 
                         cCtx.strokeRect(-cw/2, -rd/2, cw, rd); 
+                        if (_tags && !_dimArea && uiState.showChairNumbers !== false) {
+                            const _cid = _tags[_si];
+                            if (_cid != null) {
+                                const _cs = getChairStyleById(_cid);
+                                if (_cs) {
+                                    cCtx.rotate(-seat.rot);
+                                    cCtx.fillStyle = _cs.numColor || '#e74c3c';
+                                    cCtx.font = 'bold ' + (_cs.numSize || 10) + 'px Arial';
+                                    cCtx.textAlign = 'center'; cCtx.textBaseline = 'middle';
+                                    cCtx.fillText(String(chairStyleNumber(_cid)), 0, 0);
+                                }
+                            }
+                        }
                         cCtx.restore();
                     });
                 }
@@ -15105,7 +15802,10 @@ const I18N_STRINGS = {
 
         if (bgImage.src) targetCtx.drawImage(bgImage, 0, 0);
         if (isLive && bgImage.src) {
-            if (_crispBg && _crispBg.pageIdx === project.activePageIndex && !_interacting) {
+            // View-stable interactions (marquee select, chair lasso/select) keep
+            // showing the crisp PDF tile too — they don't move the background.
+            const _viewStableInteract = isMarqueeSelecting || mode === 'lasso-chairs' || mode === 'select-chairs';
+            if (_crispBg && _crispBg.pageIdx === project.activePageIndex && (!_interacting || _viewStableInteract)) {
                 const r = _crispBg.rect;
                 targetCtx.drawImage(_crispBg.canvas, 0, 0, _crispBg.canvas.width, _crispBg.canvas.height, r.x, r.y, r.w, r.h);
             }
@@ -15167,22 +15867,48 @@ const I18N_STRINGS = {
         // Seats: blit the fast bitmap cache while actively interacting (pan/zoom/drag) for smoothness,
         // then snap to crisp vectors once settled. updateCache builds the cache + runs the layout
         // rebuild (gated by cacheDirty) and the totals tally above.
-        const _fastSeats = isLive && (_interacting || isPanning || isMarqueeSelecting || isDraggingGroup || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isDraggingShapePoint);
+        // NB: marquee selection deliberately NOT in this list — it doesn't move
+        // the view, so seats can render crisply during a marquee drag (matching
+        // the chair-lasso behaviour). Including it made the whole seat layer blurry
+        // while box-selecting.
+        const _fastSeats = isLive && (_interacting || isPanning || isDraggingGroup || isDraggingShape || isDraggingScreen || isDraggingSign || isDraggingText || isDraggingLine || isDraggingMeasure || isDraggingAttendant || isDraggingShapePoint);
         if (_fastSeats) {
             targetCtx.drawImage(layerCache, 0, 0);
         } else {
-            page.shapes.forEach(s => {
+            page.shapes.forEach((s, _shapeIdx) => {
                 if (!isItemVisibleByLayer(s)) return; // hidden project layer
                 if (s.type !== 'area' || !page.pixelsPerFoot || !s.cachedSeats) return;
                 if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                 const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                 const cw = sst.w * page.pixelsPerFoot, rd = sst.d * page.pixelsPerFoot;
                 const _dimSeatArea = uiState.dimNotCounted && !itemIsCounted(s, page); // hoisted: once per area, not twice per seat
+                const _chairTags = s.chairTags || null;
                 for (let si = 0; si < s.cachedSeats.length; si++) {
                     const seat = s.cachedSeats[si];
                     targetCtx.save(); targetCtx.translate(seat.x, seat.y); targetCtx.rotate(seat.rot);
                     targetCtx.fillStyle = _dimSeatArea ? '#d8d8d8' : (seat.fill || sst.color); targetCtx.fillRect(-cw/2, -rd/2, cw, rd);
                     targetCtx.strokeStyle = _dimSeatArea ? 'rgba(150,150,150,0.55)' : 'rgba(0,0,0,0.85)'; targetCtx.lineWidth = 0.4; targetCtx.strokeRect(-cw/2, -rd/2, cw, rd);
+                    // Chair-style number (tagging layer). Drawn upright over the seat.
+                    if (_chairTags && !_dimSeatArea && uiState.showChairNumbers !== false) {
+                        const _cid = _chairTags[si];
+                        if (_cid != null) {
+                            const _cs = getChairStyleById(_cid);
+                            if (_cs) {
+                                const _num = chairStyleNumber(_cid);
+                                targetCtx.rotate(-seat.rot); // upright regardless of seat rotation
+                                targetCtx.fillStyle = _cs.numColor || '#e74c3c';
+                                targetCtx.font = 'bold ' + (_cs.numSize || 10) + 'px Arial';
+                                targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+                                targetCtx.fillText(String(_num), 0, 0);
+                            }
+                        }
+                    }
+                    // Chair-select highlight (live only): ring selected chairs.
+                    if (isLive && mode === 'select-chairs' && _chairSel.size && _chairSel.has(_shapeIdx + ':' + si)) {
+                        targetCtx.strokeStyle = '#00b4ff'; targetCtx.lineWidth = 2 / v.zoom;
+                        targetCtx.strokeRect(-cw/2, -rd/2, cw, rd);
+                        targetCtx.fillStyle = 'rgba(0,180,255,0.25)'; targetCtx.fillRect(-cw/2, -rd/2, cw, rd);
+                    }
                     targetCtx.restore();
                 }
             });
@@ -15256,13 +15982,15 @@ const I18N_STRINGS = {
                 // Per-instance label size (default 18). Seat-count text renders
                 // 4px smaller to match the original visual ratio. Labels are
                 // content — no .scale(1/zoom), they grow with the drawing.
-                const lblSize = s.labelSize || 18;
+                const lblSize = getAreaLabelSize(s);
+                const _lblOpacity = getAreaLabelOpacity(s);
                 const countSize = Math.max(8, lblSize - 4);
                 // Vertical offset between name and count scales with the size
                 // so they stay visually balanced at any size.
                 const nameOffset = -lblSize * 0.6;
                 const countOffset = lblSize * 0.5;
                 targetCtx.save(); targetCtx.translate(cen.x, cen.y);
+                if (_lblOpacity < 1) targetCtx.globalAlpha = _lblOpacity;
                 targetCtx.textAlign = "center"; targetCtx.textBaseline = "middle"; targetCtx.strokeStyle = "black"; targetCtx.lineWidth = 4;
                 if (s.type === 'area') {
                     targetCtx.font = `bold ${lblSize}px Arial`; targetCtx.strokeText(s.name, 0, nameOffset); targetCtx.fillStyle = "white"; targetCtx.fillText(s.name, 0, nameOffset);
@@ -15753,6 +16481,8 @@ const I18N_STRINGS = {
         }
 
         // ─── Attendant legend ───────────────────────────────────────────────────
+        drawChairLegend(targetCtx, page, isLive);
+
         if (page.attLegend && page.attLegend.show && uiState.showAttendants) {
             const dims = computeAttLegendDimensions();
             if (!dims.empty) {
@@ -15944,6 +16674,21 @@ const I18N_STRINGS = {
         }
 
         if (isLive) {
+            // Chair lasso: draw the freehand selection path (dashed, accent) as
+            // it's dragged, auto-closing back to the start for clarity.
+            if (((mode === 'lasso-chairs' && isLassoActive) || (mode === 'select-chairs' && isChairSelDrag)) && currentPoints.length > 1) {
+                targetCtx.save();
+                targetCtx.beginPath();
+                targetCtx.moveTo(currentPoints[0].x, currentPoints[0].y);
+                for (let i = 1; i < currentPoints.length; i++) targetCtx.lineTo(currentPoints[i].x, currentPoints[i].y);
+                targetCtx.closePath();
+                targetCtx.fillStyle = 'rgba(0,122,204,0.12)';
+                targetCtx.fill();
+                targetCtx.setLineDash([6 / v.zoom, 4 / v.zoom]);
+                targetCtx.strokeStyle = '#007acc'; targetCtx.lineWidth = 1.5 / v.zoom;
+                targetCtx.stroke();
+                targetCtx.restore();
+            }
             if (calPoint) { targetCtx.fillStyle = "yellow"; targetCtx.beginPath(); targetCtx.arc(calPoint.x, calPoint.y, 5/v.zoom, 0, Math.PI*2); targetCtx.fill(); }
             if (currentPoints.length > 0) { 
                 // Apply grid snap to the preview endpoint so it tracks the
@@ -16341,6 +17086,25 @@ const I18N_STRINGS = {
         // (Previously this clamped everything except 'mm' to 'ft', which silently
         //  dropped meters and would drop the imperial display modes.)
         if (['ft','in','ft-in','m','mm'].indexOf(raw.units) === -1) raw.units = 'ft';
+        // Chair styles (tagging layer). Backward compatible: older files simply
+        // have none. Repair the id counter and prune tags to existing styles.
+        if (!Array.isArray(raw.chairStyles)) raw.chairStyles = [];
+        raw.chairStyles = raw.chairStyles.filter(c => c && typeof c === 'object' && c.id != null);
+        let _maxCsId = 0;
+        raw.chairStyles.forEach((c, _i) => {
+            if (typeof c.numSize !== 'number') c.numSize = 10;
+            if (typeof c.numColor !== 'string') c.numColor = '#e74c3c';
+            if (typeof c.name !== 'string') c.name = 'Chair Style';
+            if (c.number == null || typeof c.number !== 'number') c.number = _i + 1;
+            if (c.id > _maxCsId) _maxCsId = c.id;
+        });
+        if (typeof raw.nextChairStyleId !== 'number' || raw.nextChairStyleId <= _maxCsId) raw.nextChairStyleId = _maxCsId + 1;
+        const _validCsIds = new Set(raw.chairStyles.map(c => c.id));
+        (raw.pages || []).forEach(pg => (pg.shapes || []).forEach(sh => {
+            if (sh && sh.type === 'area' && sh.chairTags && typeof sh.chairTags === 'object') {
+                Object.keys(sh.chairTags).forEach(k => { if (!_validCsIds.has(sh.chairTags[k])) delete sh.chairTags[k]; });
+            }
+        }));
         // Rounding preference travels with the file; keep it only if sane.
         if (raw.precision !== undefined) {
             const p = parseInt(raw.precision, 10);
@@ -16349,6 +17113,10 @@ const I18N_STRINGS = {
 
         raw.pages.forEach(p => {
             if (!Array.isArray(p.shapes)) p.shapes = [];
+            // Legacy cleanup: a per-area labelSize of exactly 18 was the old
+            // un-editable default, not a user choice. Clear it so the area
+            // inherits the seat profile's Default Label Size.
+            p.shapes.forEach(sh => { if (sh && sh.type === 'area' && sh.labelSize === 18) delete sh.labelSize; });
             if (!Array.isArray(p.screens)) p.screens = [];
             if (!Array.isArray(p.signs)) p.signs = [];
             if (!Array.isArray(p.measures)) p.measures = [];
@@ -17382,6 +18150,14 @@ const I18N_STRINGS = {
     }
     // CSS color -> pdf-lib rgb (hex #rgb/#rrggbb and rgb()/rgba()).
     const _PDF_NAMED_COLORS = { black: '#000000', white: '#ffffff', red: '#ff0000', green: '#008000', blue: '#0000ff', gray: '#808080', grey: '#808080', yellow: '#ffff00', orange: '#ffa500', purple: '#800080', pink: '#ffc0cb', cyan: '#00ffff', magenta: '#ff00ff', silver: '#c0c0c0', brown: '#a52a2a' };
+    // Extract the alpha channel (0..1) from a CSS color string; 1 if none.
+    function _hexAlpha(str) {
+        str = (str || '').trim(); let m;
+        if ((m = str.match(/^#([0-9a-f]{8})$/i))) return parseInt(m[1].slice(6, 8), 16) / 255;
+        if ((m = str.match(/^#([0-9a-f]{4})$/i))) { const a = m[1][3]; return parseInt(a + a, 16) / 255; }
+        if ((m = str.match(/^rgba\(([^)]+)\)$/i))) { const p = m[1].split(',').map(x => parseFloat(x)); return isNaN(p[3]) ? 1 : Math.max(0, Math.min(1, p[3])); }
+        return 1;
+    }
     function _pdfColor(str, fallback) {
         str = (str || '').trim(); let m;
         if (_PDF_NAMED_COLORS[str.toLowerCase()]) str = _PDF_NAMED_COLORS[str.toLowerCase()];
@@ -17414,10 +18190,29 @@ const I18N_STRINGS = {
         }
         return out2;
     }
-    function _vecOutlinedText(out, font, txt, x, y, size, fill, outline, strokeW, rotate) {
+    function _vecOutlinedText(out, font, txt, x, y, size, fill, outline, strokeW, rotate, opacity) {
         txt = _winAnsi(txt); if (!txt) return;
         const opts = { x, y, size, font, color: fill };
         if (rotate) opts.rotate = rotate;
+        const _faded = (typeof opacity === 'number' && opacity < 1);
+        // Fade BOTH fill (ca) and stroke (CA) so the black text OUTLINE fades with
+        // the fill in the PDF. NOTE: pdf-lib's drawText ignores an options.graphicsState
+        // and builds its own ExtGState from `opacity` alone (fill only) — that left the
+        // outline opaque and made faded labels print dark. So we register an ExtGState
+        // with ca+CA and emit the `gs` operator manually around every draw below.
+        let _gsPushed = false;
+        if (_faded) {
+            try {
+                const gsDict = out.doc.context.obj({ Type: 'ExtGState', ca: opacity, CA: opacity });
+                const gsRef = out.doc.context.register(gsDict);
+                const gsName = out.node.newExtGState('GS', gsRef);
+                out.pushOperators(PDFLib.pushGraphicsState(), PDFLib.setGraphicsState(gsName));
+                _gsPushed = true;
+            } catch (e) {
+                _gsPushed = false;
+                opts.opacity = opacity; // fallback: at least fade the fill
+            }
+        }
         if (outline && strokeW > 0.01) {
             const hasOps = PDFLib.setTextRenderingMode && PDFLib.setStrokingColor && PDFLib.setLineWidth && PDFLib.pushGraphicsState && PDFLib.popGraphicsState;
             if (hasOps) {
@@ -17437,6 +18232,7 @@ const I18N_STRINGS = {
             }
         }
         out.drawText(txt, opts);
+        if (_gsPushed) { try { out.pushOperators(PDFLib.popGraphicsState()); } catch (e) {} }
     }
     // Draws the title band as TRUE VECTOR content (text via Helvetica, logo
     // as embedded image or a drawn CP mark) — crisp at any zoom, no canvases.
@@ -17891,11 +18687,13 @@ const I18N_STRINGS = {
     }
     // Seats and area labels, reusable by both the composed-paper export
     // and the markup-on-original export. g maps world px -> PDF pt.
-    function _drawVectorSeats(out, page, g) {
+    async function _drawVectorSeats(doc, out, page, g) {
         const sc = g.sc, ox = g.ox, boxY = g.boxY, ch = g.ch;
         // ── Seats: true vector rectangles — crisp at any zoom ──
         if (uiState.showSeats && page.pixelsPerFoot) {
             const seatBlack = PDFLib.rgb(0, 0, 0);
+            // Font for chair-style numbers (embedded once).
+            const numFont = (project.chairStyles && project.chairStyles.length) ? await doc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
             page.shapes.forEach(s => {
                 if (!isItemVisibleByLayer(s)) return;
                 if (s.type !== 'area' || !s.cachedSeats) return;
@@ -17906,13 +18704,29 @@ const I18N_STRINGS = {
                 // dense seats into a solid black mass. Use a fraction of the
                 // smaller drawn dimension, clamped so it never dominates.
                 const seatBw = Math.max(0.05, Math.min(0.6, Math.min(wPt, hPt) * 0.08));
-                s.cachedSeats.forEach(seat => {
+                const _tags = s.chairTags || null;
+                s.cachedSeats.forEach((seat, _si) => {
                     const cxPt = ox + seat.x * sc, cyPt = boxY + ch - seat.y * sc;
                     const phi = -(seat.rot || 0); // y-flip: canvas CW -> PDF CCW
                     const cosP = Math.cos(phi), sinP = Math.sin(phi);
                     const x0 = cxPt + (-wPt / 2) * cosP - (-hPt / 2) * sinP;
                     const y0 = cyPt + (-wPt / 2) * sinP + (-hPt / 2) * cosP;
-                    out.drawRectangle({ x: x0, y: y0, width: wPt, height: hPt, rotate: PDFLib.radians(phi), color: _pdfColor(seat.fill || sst.color), borderColor: seatBlack, borderOpacity: 0.85, borderWidth: seatBw });
+                    const _fillStr = seat.fill || sst.color;
+                    const _fillAlpha = _hexAlpha(_fillStr);
+                    out.drawRectangle({ x: x0, y: y0, width: wPt, height: hPt, rotate: PDFLib.radians(phi), color: _pdfColor(_fillStr), opacity: _fillAlpha, borderColor: seatBlack, borderOpacity: 0.85, borderWidth: seatBw });
+                    // Chair-style number: upright, centred on the seat.
+                    if (_tags && numFont && uiState.showChairNumbers !== false) {
+                        const _cid = _tags[_si];
+                        if (_cid != null) {
+                            const _cs = getChairStyleById(_cid);
+                            if (_cs) {
+                                const _txt = String(chairStyleNumber(_cid));
+                                const _sz = (_cs.numSize || 10) * sc;
+                                const _tw = numFont.widthOfTextAtSize(_txt, _sz);
+                                out.drawText(_txt, { x: cxPt - _tw / 2, y: cyPt - _sz * 0.36, size: _sz, font: numFont, color: _pdfColor(_cs.numColor || '#e74c3c') });
+                            }
+                        }
+                    }
                 });
             });
         }
@@ -17924,13 +18738,13 @@ const I18N_STRINGS = {
             const lblFont = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
             const lblBlack = PDFLib.rgb(0, 0, 0);
             // Real stroked-text outline (matches the SVG stroke-width 4).
-            const drawOutlined = (txt, wcx, wcy, worldSize, fill) => {
+            const drawOutlined = (txt, wcx, wcy, worldSize, fill, opacity) => {
                 txt = _winAnsi(txt); if (!txt) return;
                 const sizePt = worldSize * sc;
                 const w = lblFont.widthOfTextAtSize(txt, sizePt);
                 const x = ox + wcx * sc - w / 2;
                 const yB = boxY + ch - wcy * sc - sizePt * 0.36; // central baseline
-                _vecOutlinedText(out, lblFont, txt, x, yB, sizePt, fill, lblBlack, 4 * sc);
+                _vecOutlinedText(out, lblFont, txt, x, yB, sizePt, fill, lblBlack, 4 * sc, 0, opacity);
             };
             const lblWhite = PDFLib.rgb(1, 1, 1), lblGray = PDFLib.rgb(0.8, 0.8, 0.8);
             page.shapes.forEach(s => {
@@ -17939,14 +18753,15 @@ const I18N_STRINGS = {
                 if (s.type === 'aisle') return;
                 let sX = 0, sY = 0; s.points.forEach(pp => { sX += pp.x; sY += pp.y; });
                 const cen = { x: sX / s.points.length, y: sY / s.points.length };
-                const lblSize = (s.labelSize || 18);
+                const lblSize = getAreaLabelSize(s);
+                const _lblOp = getAreaLabelOpacity(s);
                 const countSize = Math.max(8, lblSize - 4);
                 if (s.type === 'area') {
-                    drawOutlined(s.name || '', cen.x, cen.y - lblSize * 0.6, lblSize, lblWhite);
+                    drawOutlined(s.name || '', cen.x, cen.y - lblSize * 0.6, lblSize, lblWhite, _lblOp);
                     const countStr = s.count !== undefined ? tn('canvas.seats', s.count, { n: fmtNum(s.count) }) : tn('canvas.seats', 0, { n: fmtNum(0) });
-                    drawOutlined(countStr, cen.x, cen.y + lblSize * 0.5, countSize, lblGray);
+                    drawOutlined(countStr, cen.x, cen.y + lblSize * 0.5, countSize, lblGray, _lblOp);
                 } else {
-                    drawOutlined(s.name || '', cen.x, cen.y, lblSize, lblWhite);
+                    drawOutlined(s.name || '', cen.x, cen.y, lblSize, lblWhite, _lblOp);
                 }
             });
         }
@@ -18087,7 +18902,7 @@ const I18N_STRINGS = {
         }
         // ── Screen cones (under everything, like the print) ──
         if (uiState.showScreens) _drawVectorCones(out, page, { sc, ox, boxY, ch }, activeScreens);
-        _drawVectorSeats(out, page, { sc, ox, boxY, ch });
+        await _drawVectorSeats(doc, out, page, { sc, ox, boxY, ch });
         await _drawVectorAreaLabels(doc, out, page, { sc, ox, boxY, ch });
         // ── All other drawing content as vector ──
         await _drawVectorLayers(doc, out, page, { sc, ox, boxY, ch });
@@ -18816,9 +19631,20 @@ const I18N_STRINGS = {
                         if (!uiState.showSeats || uiState.hiddenSeatTypes.includes(s.seatTypeIndex ?? 0)) return;
                         const sst = project.seatTypes[s.seatTypeIndex ?? 0] || project.seatTypes[0];
                         const cw = sst.w * page.pixelsPerFoot, rd = sst.d * page.pixelsPerFoot;
-                        s.cachedSeats.forEach(seat => {
+                        const _tags = s.chairTags || null;
+                        s.cachedSeats.forEach((seat, _si) => {
                             const deg = seat.rot * 180 / Math.PI;
                             svg += `<g transform="translate(${seat.x.toFixed(2)},${seat.y.toFixed(2)}) rotate(${deg.toFixed(2)})"><rect x="${(-cw/2).toFixed(2)}" y="${(-rd/2).toFixed(2)}" width="${cw.toFixed(2)}" height="${rd.toFixed(2)}" fill="${escapeHTML(seat.fill || sst.color)}" stroke="rgba(0,0,0,0.85)" stroke-width="0.4" /></g>`;
+                            // Chair-style number, drawn upright (counter-rotate), centred on the seat.
+                            if (_tags && uiState.showChairNumbers !== false) {
+                                const _cid = _tags[_si];
+                                if (_cid != null) {
+                                    const _cs = getChairStyleById(_cid);
+                                    if (_cs) {
+                                        svg += `<text x="${seat.x.toFixed(2)}" y="${seat.y.toFixed(2)}" font-family="Arial" font-size="${(_cs.numSize||10)}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="${escapeHTML(_cs.numColor||'#e74c3c')}">${escapeHTML(String(chairStyleNumber(_cid)))}</text>`;
+                                    }
+                                }
+                            }
                         });
                     });
                     if (uiState.showScreens && hasScreens && !(printOpts && printOpts.exportPdf)) {
@@ -18847,11 +19673,14 @@ const I18N_STRINGS = {
                             // Per-instance label size (default 18). Seat-count
                             // renders 4 smaller. Vertical offsets scale with the
                             // label so spacing looks consistent at any size.
-                            const lblSize = (s.labelSize || 18);
+                            const lblSize = getAreaLabelSize(s);
+                            const _lblOp = getAreaLabelOpacity(s);
                             const countSize = Math.max(8, lblSize - (4));
                             const nameOffset = -lblSize * 0.6;
                             const countOffset = lblSize * 0.5;
                             if (printOpts && printOpts.exportPdf) return; // labels drawn as vector text in the PDF
+                            const _lblG = _lblOp < 1 ? ` opacity="${_lblOp.toFixed(2)}"` : '';
+                            if (_lblOp < 1) svg += `<g${_lblG}>`;
                             if (s.type === 'area') {
                                 svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="4" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
                                 svg += `<text x="${cen.x}" y="${cen.y + nameOffset}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
@@ -18862,6 +19691,7 @@ const I18N_STRINGS = {
                                 svg += `<text x="${cen.x}" y="${cen.y}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="none" stroke="black" stroke-width="4" stroke-linejoin="round">${escapeHTML(s.name)}</text>`;
                                 svg += `<text x="${cen.x}" y="${cen.y}" font-size="${lblSize}px" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="white">${escapeHTML(s.name)}</text>`;
                             }
+                            if (_lblOp < 1) svg += `</g>`;
                         });
                     }
                     if (page.measures && uiState.showMeasures !== false && !(printOpts && printOpts.exportPdf)) {
@@ -19117,6 +19947,35 @@ const I18N_STRINGS = {
                             activeSeatIndices.forEach(idx => { const st = project.seatTypes[idx]; const count = pageTypeTotals[idx]; grandTotal += count; svg += `<rect x="15" y="${yOffset - 12}" width="24" height="24" fill="${escapeHTML(st.color)}" stroke="${escapeHTML(st.stroke)}" stroke-width="2" /><text x="50" y="${yOffset}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(st.name)}</text><text x="${legendWidth - 15}" y="${yOffset}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(count)}</text>`; yOffset += 35; });
                             svg += `<line x1="15" y1="${yOffset - 15}" x2="${legendWidth - 15}" y2="${yOffset - 15}" stroke="#ccc" stroke-width="1" /><text x="15" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" dominant-baseline="central" fill="black">${escapeHTML(t("legend.seat.total"))}</text><text x="${legendWidth - 15}" y="${yOffset + 5}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(grandTotal)}</text></g>`;
                         }
+                    }
+                    // ── Chair Style Legend (two columns: Page | Project) ──
+                    if (page.chairLegend && page.chairLegend.show && project.chairStyles && project.chairStyles.length) {
+                        const rowsC = chairLegendCounts();
+                        const dC = chairLegendDims(rowsC);
+                        const lx = page.chairLegend.x, ly = page.chairLegend.y, scC = (page.chairLegend.scale || 1);
+                        const legW = dC.width, legH = dC.height;
+                        const projRight = legW - dC.rightPad;
+                        const pageRight = projRight - dC.colW - dC.colGap;
+                        svg += `<g transform="translate(${lx}, ${ly}) scale(${scC})">`;
+                        svg += `<rect x="0" y="0" width="${legW}" height="${legH}" fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="2" rx="8" ry="8" />`;
+                        svg += `<text x="15" y="28" font-family="Arial" font-size="18px" font-weight="bold" fill="black">${escapeHTML(t('legend.chair.title') || 'CHAIR STYLE LEGEND')}</text>`;
+                        svg += `<text x="${pageRight}" y="52" font-family="Arial" font-size="13px" font-weight="bold" text-anchor="end" fill="#555">${escapeHTML(t('legend.chair.page') || 'Page')}</text>`;
+                        svg += `<text x="${projRight}" y="52" font-family="Arial" font-size="13px" font-weight="bold" text-anchor="end" fill="#555">${escapeHTML(t('legend.chair.project') || 'Project')}</text>`;
+                        svg += `<line x1="15" y1="58" x2="${legW - 15}" y2="58" stroke="#333" stroke-width="1" />`;
+                        let yC = dC.headerH + dC.rowH / 2; let pSum = 0, prSum = 0;
+                        rowsC.forEach(r => {
+                            pSum += r.page; prSum += r.project;
+                            if (r.number != null) svg += `<text x="${dC.leftPad}" y="${yC}" font-family="Arial" font-size="16px" font-weight="bold" dominant-baseline="central" fill="${escapeHTML(r.numColor || '#e74c3c')}">${escapeHTML(String(r.number))}</text>`;
+                            svg += `<text x="${dC.leftPad + dC.swatch + dC.gap}" y="${yC}" font-family="Arial" font-size="16px" dominant-baseline="central" fill="black">${escapeHTML(r.name)}</text>`;
+                            svg += `<text x="${pageRight}" y="${yC}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(r.page)}</text>`;
+                            svg += `<text x="${projRight}" y="${yC}" font-family="Arial" font-size="16px" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(r.project)}</text>`;
+                            yC += dC.rowH;
+                        });
+                        svg += `<line x1="15" y1="${yC - dC.rowH/2 + 4}" x2="${legW - 15}" y2="${yC - dC.rowH/2 + 4}" stroke="#ccc" stroke-width="1" />`;
+                        svg += `<text x="${dC.leftPad}" y="${yC + 8}" font-family="Arial" font-size="16px" font-weight="bold" dominant-baseline="central" fill="black">${escapeHTML(t('legend.chair.total') || 'TOTAL')}</text>`;
+                        svg += `<text x="${pageRight}" y="${yC + 8}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(pSum)}</text>`;
+                        svg += `<text x="${projRight}" y="${yC + 8}" font-family="Arial" font-size="16px" font-weight="bold" text-anchor="end" dominant-baseline="central" fill="black">${fmtNum(prSum)}</text>`;
+                        svg += `</g>`;
                     }
                     if (page.signs && page.signs.length > 0 && uiState.showSigns && !(printOpts && printOpts.exportPdf)) {
                         page.signs.forEach(s => {
