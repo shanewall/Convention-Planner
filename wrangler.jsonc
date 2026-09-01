@@ -1,14 +1,22 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "convention-planner",
+  "main": "_worker.js",
   "compatibility_date": "2026-05-06",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS"
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "USAGE",
+      "id": "c40b8df94f7945c88fb1aa23bbca43cb"
+    }
   ]
 }

@@ -20284,5 +20284,17 @@ const I18N_STRINGS = {
 
     init();
 </script>
+<script>
+// Usage beacon: fire once per browser session (cookieless dedupe via
+// sessionStorage). Server tallies a city-level visit count from Cloudflare
+// request metadata. No cookies, no personal data; fails silently.
+(function () {
+  try {
+    if (sessionStorage.getItem('cp_beacon_sent')) return;
+    sessionStorage.setItem('cp_beacon_sent', '1');
+    fetch('/beacon', { method: 'POST', keepalive: true, cache: 'no-store' }).catch(function () {});
+  } catch (e) { /* private mode / storage blocked — ignore */ }
+})();
+</script>
 </body>
 </html>
