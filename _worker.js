@@ -8,9 +8,9 @@
  * IPs, no cookies, and nothing personally identifying.
  *
  * KV layout (namespace binding: USAGE):
- *   count|<COUNTRY>|<CITY>  -> integer, total unique-ish session visits
- *   last|<COUNTRY>|<CITY>   -> ISO timestamp of the most recent visit
- *   total                   -> integer, all visits across all cities
+ *   count|<COUNTRY>|<REGION>|<CITY>  -> integer, total unique-ish session visits
+ *   last|<COUNTRY>|<REGION>|<CITY>   -> ISO timestamp of the most recent visit
+ *   total                            -> integer, all visits across all locations
  */
 
 export default {
@@ -34,7 +34,9 @@ async function handleBeacon(request, env, ctx) {
 
   const cf = request.cf || {};
   // Cloudflare-provided, server-side location. Fall back gracefully.
+  // cf.region is the state/province (e.g. "Wisconsin").
   const country = sanitize(cf.country) || "??";
+  const region = sanitize(cf.region) || "Unknown";
   const city = sanitize(cf.city) || "Unknown";
 
   // If KV isn't bound yet (e.g. first deploy before the namespace exists),
@@ -43,8 +45,9 @@ async function handleBeacon(request, env, ctx) {
     return new Response(null, { status: 204 });
   }
 
-  const key = `count|${country}|${city}`;
-  const lastKey = `last|${country}|${city}`;
+  const loc = `${country}|${region}|${city}`;
+  const key = `count|${loc}`;
+  const lastKey = `last|${loc}`;
 
   // Do the read-modify-write off the critical path so the beacon returns fast.
   ctx.waitUntil(
