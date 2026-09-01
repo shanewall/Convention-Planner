@@ -1,0 +1,10 @@
+# Redirect the old Netlify URL to the live app on Cloudflare.
+# Netlify reads this file; Cloudflare's wrangler deploy ignores it — so it
+# can't break the Cloudflare build the way a shared root _redirects file did.
+# force = true is the netlify.toml equivalent of the trailing "!" in _redirects
+# (it overrides the deployed index.html so the redirect actually fires).
+[[redirects]]
+  from = "/*"
+  to = "https://app.conventionplanner.org/:splat"
+  status = 301
+  force = true

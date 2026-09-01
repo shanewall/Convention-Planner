@@ -1,3 +1,7 @@
 _worker.js
 .assetsignore
 wrangler.jsonc
+_redirects
+_headers
+.git
+.wrangler
