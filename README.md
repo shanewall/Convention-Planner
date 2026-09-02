@@ -26,6 +26,7 @@ Convention Planner lets event coordinators import architectural floor plans, dra
 * **Multiple seat profiles.** Define as many chair types as the venue needs; each area references a profile, and totals break down per profile and per section.
 * **Cutouts.** Carve holes out of a seating area — aisles, camera platforms, wheelchair bays — and the chair count adjusts automatically.
 * **Per-section totals.** A running summary shows chair counts by page, by section, and by seat type, with items or layers excluded from counts on request.
+* **Chair Styles.** Tag any subset of chairs with a named, numbered style (held seats, ADA companion chairs, VIP blocks) via a lasso, then reassign or clear tags. A per-page legend tallies each style for the current sheet and the whole project. Styles are a labeling layer only — they never affect the seat count.
 
 ### A/V Sightlines
 
@@ -69,21 +70,7 @@ Convention Planner lets event coordinators import architectural floor plans, dra
 * **Deep zoom.** Imported PDF sheets re-render crisply when you stop panning, cancelling cleanly if you move again — so large, detail-heavy plans stay smooth.
 * **Undo/redo** throughout.
 * **Localization.** The interface ships with a built-in English and Spanish dictionary (~250 strings), switchable instantly from the toolbar.
-
-## Companion Tools
-
-### Sign Template
-
-A standalone printable-sign generator, opened from the **🪧 Sign Template** button in the Help group. It runs on its own page in a new tab and is fully independent of the planner — its own storage, its own file format — so signs and floor plans never entangle.
-
-* **Large directional signs.** Letter (11×8.5) or Tabloid (17×11), landscape, sized to print at 100% / "Actual size".
-* **Multi-line text with per-line color.** Blue and orange are preset as the event standard; add your own swatches.
-* **Logo.** Show/hide, corner placement, and size; import a PNG/JPG or an SVG for true vector printing (defaults to the Convention Planner logo).
-* **Auto-fit or manual sizing.** Text scales to fill the sheet automatically, or set a fixed size.
-* **Saved signs.** Build a set of named signs and switch between them; export and import the whole set as a `.json` to reuse on site.
-* **High-contrast aware.** The dark control panel keeps its styling under Windows High Contrast / forced-colors mode, while the printable sheet stays print-friendly.
-
-The tool lives in the repository as `sign_template.html`, alongside `index.html`, and must be served from the same directory for the launcher link to resolve.
+* **In-app feedback.** A Feedback button in the Help group opens a short form for bug reports and feature requests.
 
 ---
 
@@ -101,11 +88,9 @@ pdf-lib and SheetJS load from a CDN, and PDF.js is imported as an ES module, so 
 
 ## Deployment
 
-The app is a single `index.html`, served from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org). The companion `sign_template.html` is deployed alongside it in the same directory so the in-app launcher link resolves.
+The app is a single `index.html`, served as a static asset from Cloudflare Workers at [app.conventionplanner.org](https://app.conventionplanner.org). Deployment is automatic: committing to `main` publishes through the GitHub integration — no manual `wrangler deploy` step is needed.
 
-```bash
-wrangler deploy
-```
+A small `_worker.js` accompanies the static assets to handle one dynamic route (`/beacon`), used for cookieless, city-level usage counts stored in Cloudflare KV. An `.assetsignore` file keeps `_worker.js` and config files from being served publicly.
 
 ---
 

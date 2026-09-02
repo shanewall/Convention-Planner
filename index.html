@@ -2014,7 +2014,7 @@
     <div class="ribbon-group-wrapper">
         <div class="ribbon-group" style="display:flex; align-items:center; gap:8px;">
             <button class="ribbon-btn action" onclick="showTutorialsModal()" data-i18n-title="btn.tutorials.tooltip" data-i18n="btn.tutorials" title="About & Help — manuals, announcements, and more">ℹ Help</button>
-            <button class="ribbon-btn action" onclick="openSignTemplate()" data-i18n-title="btn.signtemplate.tooltip" data-i18n="btn.signtemplate" title="Open the printable Sign Template in a new tab">🫧 Sign Template</button>
+            <button class="ribbon-btn action" onclick="openFeedback()" data-i18n-title="btn.feedback.tooltip" data-i18n="btn.feedback" title="Send feedback — report a bug or request a feature">💬 Feedback</button>
         </div>
         <div class="ribbon-title" data-i18n="ribbon.help">Help</div>
     </div>
@@ -2589,8 +2589,9 @@ const I18N_STRINGS = {
         "ribbon.tools": "Tools & Filters",
         "btn.tutorials": "ℹ Help",
         "btn.tutorials.tooltip": "About & Help — manuals, announcements, and more",
-        "btn.signtemplate": "🫧 Sign Template",
-        "btn.signtemplate.tooltip": "Open the printable Sign Template in a new tab",
+        "btn.feedback": "💬 Feedback",
+        "btn.feedback.tooltip": "Send feedback — report a bug or request a feature",
+        "feedback.notset": "The feedback form link has not been configured yet.",
         "ribbon.help": "Help",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
@@ -3368,8 +3369,9 @@ const I18N_STRINGS = {
         "ribbon.tools": "Herramientas y Filtros",
         "btn.tutorials": "ℹ Ayuda",
         "btn.tutorials.tooltip": "Información y Ayuda — manuales, avisos y más",
-        "btn.signtemplate": "🫧 Plantilla de Letreros",
-        "btn.signtemplate.tooltip": "Abrir la Plantilla de Letreros imprimible en una pestaña nueva",
+        "btn.feedback": "💬 Comentarios",
+        "btn.feedback.tooltip": "Enviar comentarios — reportar un error o sugerir una función",
+        "feedback.notset": "El enlace del formulario de comentarios aún no está configurado.",
         "ribbon.help": "Ayuda",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
@@ -7976,9 +7978,15 @@ const I18N_STRINGS = {
     });
 
     // ─── Tutorials modal ─────────────────────────────────────────────────────────
-    // Opens the standalone Sign Template tool (its own page, own storage).
-    function openSignTemplate() {
-        window.open('./sign_template.html', '_blank', 'noopener');
+    // Opens the feedback form (Google Form) in a new tab.
+    // NOTE: replace FEEDBACK_FORM_URL below with your real Google Form share link.
+    const FEEDBACK_FORM_URL = 'https://forms.gle/jVRQbEtyuaHjqS8b7';
+    function openFeedback() {
+        if (!FEEDBACK_FORM_URL || FEEDBACK_FORM_URL === 'FEEDBACK_FORM_URL_PLACEHOLDER') {
+            alert(t('feedback.notset') || 'The feedback form link has not been configured yet.');
+            return;
+        }
+        window.open(FEEDBACK_FORM_URL, '_blank', 'noopener');
     }
     function showTutorialsModal() {
         // Always start at the menu view, even if the user closed mid-announcement.
