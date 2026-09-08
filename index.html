@@ -9807,6 +9807,7 @@ const I18N_STRINGS = {
     }
     function setTab(t) {
         if (mode.startsWith('draw') || mode.startsWith('place') || mode === 'calibrate') setMode('idle');
+        if (t === 'attendant' && window.cpTrack) cpTrack('used_attendants');
         activeTab = t;
         updateUI();
         syncRightPanel();
@@ -12560,6 +12561,7 @@ const I18N_STRINGS = {
                 newPage.pixelsPerFoot = drawingScale * PIXELS_PER_PAPER_INCH;
             }
             project.pages.push(newPage);
+            if (window.cpTrack && project.pages.length >= 2) cpTrack('built_out');
             hideNewPageModal();
             switchPage(project.pages.length - 1);
         } else {
@@ -13526,6 +13528,14 @@ const I18N_STRINGS = {
                               (mode === 'draw-obs' ? "Obstacle " : "Aisle ") + (page.shapes.length + 1);
             let t = mode === 'draw-area' ? 'area' : (mode === 'draw-obs' ? 'obs' : 'aisle');
             page.shapes.push({ type: t, points: [...currentPoints], name: defaultName, rot: 0, count: 0, seatTypeIndex: project.activeSeatType ?? 0 });
+            if (t === 'area' && window.cpTrack) {
+                cpTrack('drew_first_area');
+                // 'built out' = 3+ seating areas across the project (real layout).
+                try {
+                    var _areaTotal = project.pages.reduce(function (n, pg) { return n + (pg.shapes ? pg.shapes.filter(function (x) { return x.type === 'area'; }).length : 0); }, 0);
+                    if (_areaTotal >= 3) cpTrack('built_out');
+                } catch (e) {}
+            }
             markSeatCachesDirty(); triggerUpdate(); setMode('idle'); return true;
         } else if (currentPoints.length > 1 && mode === 'draw-poly') {
             saveState(); if (!page.lines) page.lines = [];
@@ -16847,6 +16857,7 @@ const I18N_STRINGS = {
 
     // ─── SAVE / LOAD ─────────────────────────────────────────────────────────────
     function saveProject() {
+        if (window.cpTrack) cpTrack('saved_project');
         // Tag the project with the app version at save time. Loaders can read
         // project.appVersion to know what version produced the file (useful for
         // bug reports and for future migration logic if save format changes).
@@ -19096,6 +19107,7 @@ const I18N_STRINGS = {
     }
 
     function printReport(type, scheduleFilters, scheduleOptions, printOpts) {        try {
+            if (window.cpTrack) cpTrack('exported');
             populatePrintLogos();
             const dateStr = fmtDate(new Date());
             document.getElementById('rpt-date-print').innerText = dateStr;
@@ -20296,11 +20308,33 @@ const I18N_STRINGS = {
 // Usage beacon: fire once per browser session (cookieless dedupe via
 // sessionStorage). Server tallies a city-level visit count from Cloudflare
 // request metadata. No cookies, no personal data; fails silently.
+// Usage beacon + depth-funnel events. All cookieless; per-session dedupe via
+// sessionStorage (localStorage only for the cross-session "returned" flag).
+// Every call fails silently and never blocks the app.
+window.cpTrack = function (event) {
+  try {
+    var k = 'cp_ev_' + event;
+    if (sessionStorage.getItem(k)) return;   // once per session per event
+    sessionStorage.setItem(k, '1');
+    fetch('/beacon?e=' + encodeURIComponent(event), { method: 'POST', keepalive: true, cache: 'no-store' }).catch(function () {});
+  } catch (e) { /* ignore */ }
+};
 (function () {
   try {
-    if (sessionStorage.getItem('cp_beacon_sent')) return;
-    sessionStorage.setItem('cp_beacon_sent', '1');
-    fetch('/beacon', { method: 'POST', keepalive: true, cache: 'no-store' }).catch(function () {});
+    // Location visit — once per session.
+    if (!sessionStorage.getItem('cp_beacon_sent')) {
+      sessionStorage.setItem('cp_beacon_sent', '1');
+      fetch('/beacon', { method: 'POST', keepalive: true, cache: 'no-store' }).catch(function () {});
+    }
+    // Baseline funnel denominator.
+    cpTrack('app_loaded');
+    // Returned visitor — localStorage persists across sessions. If the flag
+    // already exists, this is a repeat visit; either way, (re)set it.
+    if (localStorage.getItem('cp_seen_before')) {
+      cpTrack('returned');
+    } else {
+      localStorage.setItem('cp_seen_before', '1');
+    }
   } catch (e) { /* private mode / storage blocked — ignore */ }
 })();
 </script>
