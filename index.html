@@ -2538,6 +2538,10 @@
                 </div>
                 <div id="project-layers-body" class="collapse-body collapsed">
                     <button class="btn-new-menu" style="width:100%; justify-content:center; margin-bottom:8px;" onclick="addProjectLayer()"><span data-i18n="layers.project.add">+ New Layer</span></button>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;" title="New items you draw or place are automatically assigned to this layer. Set to none to keep sending them to Unassigned.">
+                        <label style="font-size:0.85em; color:#ccc; white-space:nowrap;" data-i18n="layers.working">✏️ Working layer</label>
+                        <select id="working-layer-select" style="flex:1; min-width:0;" onchange="setWorkingLayer(this.value)"></select>
+                    </div>
                     <div id="project-layers-list"></div>
                 </div>
             </div>
@@ -2896,6 +2900,8 @@ const I18N_STRINGS = {
         "modal.item_edit.layer": "Project Layer",
         "layers.project_header": "📚 Project Layers",
         "layers.project.add": "+ New Layer",
+        "layers.working": "\u270F\uFE0F Working layer",
+        "layers.working.none": "None (Unassigned)",
         "layers.project.new_name": "Layer",
         "layers.project.rename_prompt": "Rename layer:",
         "layers.project.delete_confirm": "Delete this layer? Its items will move to Unassigned.",
@@ -3678,6 +3684,8 @@ const I18N_STRINGS = {
         "modal.item_edit.layer": "Capa del Proyecto",
         "layers.project_header": "📚 Capas del Proyecto",
         "layers.project.add": "+ Nueva Capa",
+        "layers.working": "\u270F\uFE0F Capa de trabajo",
+        "layers.working.none": "Ninguna (Sin asignar)",
         "layers.project.new_name": "Capa",
         "layers.project.rename_prompt": "Renombrar capa:",
         "layers.project.delete_confirm": "¿Eliminar esta capa? Sus elementos pasarán a Sin asignar.",
@@ -4896,6 +4904,7 @@ const I18N_STRINGS = {
         // Project Layers: per-project, shared across all pages. Every item has
         // a layerId; id 0 ("Unassigned") always exists and can't be deleted.
         projectLayers: [{ id: 0, name: "Unassigned", visible: true, locked: false }],
+        workingLayerId: 0,   // 0 = no working layer (new items go to Unassigned)
         nextLayerId: 1,
         seatTypes: [{ name: "Type 1", w: 2.0, d: 3.0, color: 'rgba(46, 204, 113, 0.4)', stroke: '#2ecc71', los: 'rgba(46, 204, 113, 0.9)' }],
         // Chair styles: a tagging layer over seats. Each seat may reference one
@@ -5246,7 +5255,7 @@ const I18N_STRINGS = {
         redoStack = []; hasUnsavedChanges = true;
     }
 
-    function triggerUpdate() { hasUnsavedChanges = true; needsCacheUpdate = true; render(); }
+    function triggerUpdate() { hasUnsavedChanges = true; needsCacheUpdate = true; if (typeof applyWorkingLayer === 'function') applyWorkingLayer(); render(); }
 
     function _captureCurrentState() {
         const page = getActivePage();
@@ -8364,7 +8373,7 @@ const I18N_STRINGS = {
       }
     ];
 
-    const APP_VERSION = "2.10.0";
+    const APP_VERSION = "2.11.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
     // When the viewport is narrower than the app's natural layout, shrink the
@@ -8869,7 +8878,7 @@ const I18N_STRINGS = {
     // The content uses HTML — paragraphs, links, simple emphasis are all fine.
     // English and Spanish are written separately; the app picks based on currentLang.
     // ────────────────────────────────────────────────────────────────────────────
-    const ANNOUNCEMENT_VERSION = "2.10.0-release";
+    const ANNOUNCEMENT_VERSION = "2.11.0-release";
 
     // ─── Changelog ─────────────────────────────────────────────────────────────
     // List of release entries in REVERSE CHRONOLOGICAL order (newest first).
@@ -8877,6 +8886,31 @@ const I18N_STRINGS = {
     // Announcement view renders the full list, with the latest expanded and
     // older ones collapsed. Adding a new release: prepend a new entry.
     const CHANGELOG = [
+        {
+            version: "2.11.0",
+            en: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Working layer, cleaner measurement labels, video tutorials, and more.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Working layer.</strong> In the Layers tab, set a <em>Working layer</em> and everything you draw or place from then on is assigned to it automatically. Set it to <em>None</em> to send new items to Unassigned as before. Existing items are never moved.</li>
+                    <li><strong>Measurement labels.</strong> Dimension, line, polyline, and polymeasure labels are now solid color with no dark outline (it turned into a blob at small sizes and never printed anyway). Dimensions and polylines get a separate <em>Label Color</em> for contrast, and line weights can go below 1 (down to 0.25).</li>
+                    <li><strong>Area label size &amp; transparency.</strong> Set a default label size and opacity on a chair profile, or override them on a single area (leave blank to follow the profile).</li>
+                    <li><strong>Video tutorials.</strong> The Help menu now lists tutorials by chapter, each opening with the problem it solves. Videos will appear as they are published.</li>
+                    <li><strong>Feedback.</strong> A <em>Feedback</em> button in the Help group opens a short form for bug reports and feature requests. (The separate Sign Template tool has been retired.)</li>
+                    <li><strong>Logos in PDF export.</strong> SVG project logos now print (as vector when the SVG is simple, otherwise rasterized) instead of falling back to the default mark.</li>
+                </ul>
+            `,
+            es: `
+                <p style="font-size: 0.95em; margin: 4px 0 8px 0;"><strong>Capa de trabajo, etiquetas de medida m\u00e1s limpias, videotutoriales y m\u00e1s.</strong></p>
+                <ul style="font-size: 0.9em; margin: 4px 0 8px 18px; padding-left: 0;">
+                    <li><strong>Capa de trabajo.</strong> En la pesta\u00f1a Capas, fije una <em>Capa de trabajo</em> y todo lo que dibuje o coloque a partir de entonces se asigna a ella autom\u00e1ticamente. P\u00f3ngala en <em>Ninguna</em> para enviar los elementos nuevos a Sin asignar como antes. Los elementos existentes nunca se mueven.</li>
+                    <li><strong>Etiquetas de medida.</strong> Las etiquetas de dimensiones, l\u00edneas, polil\u00edneas y polimedidas ahora son de color s\u00f3lido, sin contorno oscuro (se convert\u00eda en una mancha en tama\u00f1os peque\u00f1os y nunca se imprim\u00eda). Dimensiones y polil\u00edneas tienen un <em>Color de Etiqueta</em> propio para contraste, y el grosor de l\u00ednea puede bajar de 1 (hasta 0.25).</li>
+                    <li><strong>Tama\u00f1o y transparencia de etiquetas de \u00e1rea.</strong> Fije un tama\u00f1o y opacidad de etiqueta por defecto en un perfil de silla, o an\u00falelos en un \u00e1rea concreta (en blanco = seguir el perfil).</li>
+                    <li><strong>Videotutoriales.</strong> El men\u00fa de Ayuda ahora lista tutoriales por cap\u00edtulo, cada uno empieza con el problema que resuelve. Los videos aparecer\u00e1n a medida que se publiquen.</li>
+                    <li><strong>Comentarios.</strong> Un bot\u00f3n <em>Comentarios</em> en el grupo Ayuda abre un formulario breve para reportar errores o sugerir funciones. (La herramienta Plantilla de Letreros se ha retirado.)</li>
+                    <li><strong>Logos en la exportaci\u00f3n a PDF.</strong> Los logos SVG del proyecto ahora se imprimen (como vector si el SVG es simple, si no rasterizados) en lugar de volver a la marca predeterminada.</li>
+                </ul>
+            `,
+        },
         {
             version: "2.10.0",
             en: `
@@ -10660,6 +10694,15 @@ const I18N_STRINGS = {
         const cont = document.getElementById('project-layers-list');
         if (!cont) return;
         const layers = getProjectLayers();
+        // Working-layer dropdown: 'None' + every layer except Unassigned.
+        const wsel = document.getElementById('working-layer-select');
+        if (wsel) {
+            const cur = project.workingLayerId || 0;
+            let opts = `<option value="0"${cur === 0 ? ' selected' : ''}>${escapeHTML(t('layers.working.none') || 'None (Unassigned)')}</option>`;
+            layers.filter(l => l.id !== 0).forEach(l => { opts += `<option value="${l.id}"${l.id === cur ? ' selected' : ''}>${escapeHTML(l.name)}</option>`; });
+            wsel.innerHTML = opts;
+            wsel.style.borderColor = cur ? 'var(--accent)' : '';
+        }
         const counts = {};
         const tally = (it) => { const id = it.layerId || 0; counts[id] = (counts[id] || 0) + 1; };
         project.pages.forEach(pg => {
@@ -11487,6 +11530,35 @@ const I18N_STRINGS = {
     // ─── Project Layers ──────────────────────────────────────────────────
     // Per-project named layers (shared across pages). Every item has a layerId;
     // id 0 = 'Unassigned' and is protected (can't rename/delete).
+    // ── Working layer ─────────────────────────────────────────────────────
+    // When set (non-zero), every newly created item that can belong to a layer
+    // is auto-assigned to it. 0 = off: new items go to Unassigned, as before.
+    const _LAYERED_KEYS = ['shapes', 'signs', 'measures', 'lines', 'texts', 'screens'];
+    function _forEachLayeredItem(fn) {
+        (project.pages || []).forEach(pg => {
+            _LAYERED_KEYS.forEach(k => { if (Array.isArray(pg[k])) pg[k].forEach(fn); });
+            if (pg.attendants && Array.isArray(pg.attendants.posts)) pg.attendants.posts.forEach(fn);
+        });
+        if (project.attendants && Array.isArray(project.attendants.posts)) project.attendants.posts.forEach(fn);
+    }
+    // Give every existing item an explicit layerId so only NEW items (which
+    // have none yet) get picked up by the working layer.
+    function normalizeItemLayers() { _forEachLayeredItem(it => { if (it && it.layerId === undefined) it.layerId = 0; }); }
+    // Stamp new items with the working layer. Cheap; runs on every triggerUpdate.
+    function applyWorkingLayer() {
+        const wl = project.workingLayerId || 0;
+        if (wl && !getProjectLayers().some(l => l.id === wl)) project.workingLayerId = 0;
+        const target = project.workingLayerId || 0;
+        _forEachLayeredItem(it => { if (it && it.layerId === undefined) it.layerId = target; });
+    }
+    function setWorkingLayer(id) {
+        id = parseInt(id, 10) || 0;
+        normalizeItemLayers();   // lock in current assignments before switching
+        project.workingLayerId = id;
+        hasUnsavedChanges = true;
+        renderProjectLayers();
+    }
+
     function getProjectLayers() { return project.projectLayers || (project.projectLayers = [{ id: 0, name: 'Unassigned', visible: true, locked: false }]); }
     function getLayerById(id) { return getProjectLayers().find(l => l.id === (id || 0)) || getProjectLayers()[0]; }
     // Stage 3 enforcement helpers. A hidden layer's items are treated as not
@@ -11526,6 +11598,7 @@ const I18N_STRINGS = {
             if (pg.attendants && Array.isArray(pg.attendants.posts)) pg.attendants.posts.forEach(p => { if (p.layerId === id) p.layerId = 0; });
         });
         if (project.attendants && Array.isArray(project.attendants.posts)) project.attendants.posts.forEach(p => { if (p.layerId === id) p.layerId = 0; });
+        if (project.workingLayerId === id) project.workingLayerId = 0;
         layers.splice(idx, 1);
         updateUI(); triggerUpdate();
     }
@@ -17494,6 +17567,15 @@ const I18N_STRINGS = {
         if (!raw.projectLayers.some(l => l.id === 0)) {
             raw.projectLayers.unshift({ id: 0, name: "Unassigned", visible: true, locked: false });
         }
+        // Working layer: must reference an existing layer; default off.
+        if (typeof raw.workingLayerId !== 'number' || !raw.projectLayers.some(l => l.id === raw.workingLayerId)) raw.workingLayerId = 0;
+        // Every existing item gets an explicit layerId so the working-layer
+        // auto-assign only ever touches items created from now on.
+        (raw.pages || []).forEach(pg => {
+            ['shapes','signs','measures','lines','texts','screens'].forEach(k => { if (Array.isArray(pg[k])) pg[k].forEach(it => { if (it && it.layerId === undefined) it.layerId = 0; }); });
+            if (pg.attendants && Array.isArray(pg.attendants.posts)) pg.attendants.posts.forEach(p => { if (p && p.layerId === undefined) p.layerId = 0; });
+        });
+        if (raw.attendants && Array.isArray(raw.attendants.posts)) raw.attendants.posts.forEach(p => { if (p && p.layerId === undefined) p.layerId = 0; });
         if (typeof raw.nextLayerId !== "number") {
             raw.nextLayerId = Math.max(0, ...raw.projectLayers.map(l => l.id)) + 1;
         }
