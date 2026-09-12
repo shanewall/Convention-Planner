@@ -5017,6 +5017,25 @@ const I18N_STRINGS = {
         // Slightly longer settle so we only render once you've actually stopped.
         _crispTimer = setTimeout(_updateCrispBg, 180);
     }
+    // Rasterize an image data URL (e.g. SVG) to a PNG data URL via an offscreen
+    // canvas. Rendered at ~512px on the long side so it stays crisp in print.
+    function _rasterizeLogoToPng(dataUrl) {
+        return new Promise((resolve, reject) => {
+            const im = new Image();
+            im.onload = () => {
+                try {
+                    const w0 = im.naturalWidth || im.width || 512, h0 = im.naturalHeight || im.height || 512;
+                    const k = 512 / Math.max(w0, h0);
+                    const c = document.createElement('canvas');
+                    c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+                    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+                    resolve(c.toDataURL('image/png'));
+                } catch (e) { reject(e); }
+            };
+            im.onerror = () => reject(new Error('logo decode failed'));
+            im.src = dataUrl;
+        });
+    }
     function _b64ToU8(b64) { const bin = atob(b64); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
     async function _updateCrispBg() {
         // Don't rasterize mid-motion — wait until movement has settled.
@@ -18617,10 +18636,17 @@ const I18N_STRINGS = {
         const contentH = H - PADY * 2 - 1.5;
         const logoTop = top - PADY - (contentH - LOGO) / 2;
         let drewLogo = false;
-        if (project.logoData && /^data:image\/(png|jpe?g)/i.test(project.logoData)) {
+        // pdf-lib can only embed PNG/JPEG. Any other image logo (SVG, WebP, GIF, ...)
+        // is rasterized to PNG here at export time, so existing projects that saved
+        // an SVG logo still print it instead of falling back to the default mark.
+        let logoSrc = project.logoData;
+        if (logoSrc && /^data:image\//i.test(logoSrc) && !/^data:image\/(png|jpe?g)/i.test(logoSrc)) {
+            try { logoSrc = await _rasterizeLogoToPng(logoSrc); } catch (e) { logoSrc = null; }
+        }
+        if (logoSrc && /^data:image\/(png|jpe?g)/i.test(logoSrc)) {
             try {
-                const bytes = _b64ToU8(project.logoData.split(',')[1]);
-                const img = /png/i.test(project.logoData.slice(0, 20)) ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+                const bytes = _b64ToU8(logoSrc.split(',')[1]);
+                const img = /png/i.test(logoSrc.slice(0, 20)) ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
                 const fit = Math.min(LOGO / img.width, LOGO / img.height);
                 const dw = img.width * fit, dh = img.height * fit;
                 out.drawImage(img, { x: M + PADX + (LOGO - dw) / 2, y: logoTop - LOGO + (LOGO - dh) / 2, width: dw, height: dh });
