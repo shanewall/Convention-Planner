@@ -1922,13 +1922,13 @@
             <button class="tutorial-option-btn" onclick="downloadManual('es')" data-i18n="modal.tutorials.descargar">Descargar</button>
         </div>
 
-        <div class="tutorial-option tutorial-option-disabled">
+        <div class="tutorial-option">
             <div class="tutorial-option-icon">🎬</div>
             <div class="tutorial-option-text">
-                <div class="tutorial-option-title" data-i18n="modal.tutorials.videos.title">Video Tutorials</div>
-                <div class="tutorial-option-desc" data-i18n="modal.tutorials.videos.desc">Coming soon — bite-sized walkthroughs of every feature</div>
+                <div class="tutorial-option-title">Video Tutorials</div>
+                <div class="tutorial-option-desc">Short walkthroughs — each starts with the problem it solves</div>
             </div>
-            <button class="tutorial-option-btn tutorial-option-btn-disabled" disabled data-i18n="modal.tutorials.coming_soon">Coming soon</button>
+            <button class="tutorial-option-btn" onclick="showTutorialsList()">View</button>
         </div>
 
         <div class="modal-actions" style="margin-top: 20px;">
@@ -1950,6 +1950,25 @@
             <div class="modal-actions" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #444; flex-shrink: 0;">
                 <button class="secondary" onclick="hideAnnouncementFromTutorials()" data-i18n="modal.tutorials.back">← Back</button>
                 <button onclick="hideTutorialsModal()" data-i18n="modal.tutorials.close">Close</button>
+            </div>
+        </div>
+
+        <!-- Video list view — the grid of tutorials. Populated by JS from TUTORIALS. -->
+        <div id="tutorials-videos-view" style="display: none; flex: 1 1 auto; min-height: 0; flex-direction: column;">
+            <p style="text-align:center; color: #aaa; margin: 0 0 16px 0;">Each tutorial opens with the problem it solves, then shows you how.</p>
+            <div id="tutorials-videos-list" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px;"></div>
+            <div class="modal-actions" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #444; flex-shrink: 0;">
+                <button class="secondary" onclick="hideTutorialsList()">← Back</button>
+                <button onclick="hideTutorialsModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- Video player view — framing intro + embedded player for one tutorial. -->
+        <div id="tutorials-player-view" style="display: none; flex: 1 1 auto; min-height: 0; flex-direction: column;">
+            <div id="tutorials-player-content" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px;"></div>
+            <div class="modal-actions" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #444; flex-shrink: 0;">
+                <button class="secondary" onclick="backToTutorialsList()">← All tutorials</button>
+                <button onclick="hideTutorialsModal()">Close</button>
             </div>
         </div>
     </div>
@@ -8024,6 +8043,12 @@ const I18N_STRINGS = {
     }
     function hideTutorialsModal() {
         document.getElementById('tutorials-modal').classList.remove('show');
+        // Reset all sub-views back to the menu, and clear any playing video.
+        const pv = document.getElementById('tutorials-player-content'); if (pv) pv.innerHTML = '';
+        ['tutorials-videos-view', 'tutorials-player-view', 'tutorials-announcement-view'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
+        const menu = document.getElementById('tutorials-menu-view'); if (menu) menu.style.display = 'block';
     }
     // Close modal on Escape
     window.addEventListener('keydown', (e) => {
@@ -8048,6 +8073,84 @@ const I18N_STRINGS = {
     // files (project.appVersion) so files can be traced back to the version that
     // wrote them.
     // ────────────────────────────────────────────────────────────────────────────
+    // ── Video tutorials ─────────────────────────────────────────────────
+    // Each entry: an intro (the PROBLEM these tools solve) shown above the
+    // embedded player. Set `youtubeId` to the video's ID (the part after
+    // "watch?v=") once uploaded; leave it "" to show a "Coming soon" state for
+    // that row. Uses youtube-nocookie.com so tutorials stay privacy-friendly.
+    const TUTORIALS = [
+      {
+        icon: "\uD83D\uDC4B", num: "Intro",
+        title: "Why Convention Planner?",
+        blurb: "What it is and who it's for.",
+        intro: "Convention Planner was built to solve a real, stubborn problem: laying out large events\u2014seating, sightlines, staffing, signage\u2014with tools that either cost a fortune, need CAD training, or don't understand events at all. This short intro explains why it exists, who it's for, and what you can do with it before you dive into the how-to videos.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83E\uDDED", num: "1",
+        title: "Getting Started \u2014 Setup & Navigation",
+        blurb: "Projects, pages, scale, and finding your way around.",
+        intro: "Before you can plan anything, the app has to know what it's looking at\u2014how big the room really is and how you'll move around it. A plan drawn at the wrong scale is worse than no plan. This video covers creating a project, choosing a blueprint or sheet page, setting the scale so every measurement is true, and navigating with zoom, pan, and the panels.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83E\uDE91", num: "2",
+        title: "Seating Areas & Chair Profiles",
+        blurb: "Draw sections and let the seats count themselves.",
+        intro: "Counting chairs by hand is slow and error-prone, and every time you reshape a section you'd have to recount. Convention Planner generates the seats for you from the shape you draw and the chair size you pick\u2014so the count is always right and always live. This video shows how to define chair profiles and draw seating areas that count themselves.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDD22", num: "3",
+        title: "Chair Styles \u2014 Tagging & Numbering",
+        blurb: "Mark held seats, ADA, VIP, and any special blocks.",
+        intro: "Not every chair is the same in practice\u2014some are held, some are ADA companion seats, some belong to a VIP block\u2014but they're not different chairs, just differently designated ones. Chair Styles let you tag any subset of chairs with a number, without changing your seat count. This video covers creating styles, tagging with the lasso, reassigning or clearing tags, and the legend that tallies them.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDEA7", num: "4",
+        title: "Obstacles, Aisles & Screens",
+        blurb: "Carve out space and check the view.",
+        intro: "A room is never a clean rectangle\u2014there are pillars, aisles you must keep clear, and screens people need to actually see. Ignore those and your seat count is fiction. This video shows how to place obstacles and aisles that remove seats automatically, and screens with sightline cones so you can see who has a good view and who doesn't.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDCCF", num: "5",
+        title: "Measuring & Annotation",
+        blurb: "Dimensions, notes, and markup that print cleanly.",
+        intro: "A floor plan has to communicate\u2014distances, clearances, callouts, and revisions that other people can read and trust. This video covers the measuring and annotation tools: dimensions, lines and arrows, area measurements, callouts, and revision clouds, all in real-world units so what you mark is what it measures.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDCCD", num: "6",
+        title: "Key Items & Signage",
+        blurb: "Numbered markers for signs, AV, and more.",
+        intro: "Every event has fixed points that aren't seats\u2014sign locations, AV stations, check-in tables\u2014that crews need to find and place. This video shows how to drop numbered key items, measure runs with polymeasures, and generate a Key Item report so nothing on the plan gets missed on the ground.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDC41\uFE0F", num: "7",
+        title: "Layers & Organization",
+        blurb: "Keep complex plans readable and reusable.",
+        intro: "As a plan fills up, it gets noisy\u2014and you often need two versions of the same sheet: a clean one and a marked-up one. This video covers Project Layers, category visibility toggles, reference sheets, and \u201Cnot counted\u201D items, so you can control exactly what shows on screen and in print without deleting anything.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83E\uDDCD", num: "8",
+        title: "Attendants & Staffing",
+        blurb: "Roster, posts, shifts, and chain of command.",
+        intro: "A great floor plan still needs people to run it, and coordinating who stands where, on which shift, reporting to whom, is its own headache. This video covers the attendant system: building a roster, placing posts on the plan, scheduling shifts, and setting up the chain of command\u2014then printing exactly the part each person needs.",
+        youtubeId: ""
+      },
+      {
+        icon: "\uD83D\uDDA8\uFE0F", num: "9",
+        title: "Printing, PDF Export & Reports",
+        blurb: "Get your work out\u2014sharp and to scale.",
+        intro: "All the planning is worthless if you can't hand it off in a form people trust. This video covers getting your work out: true vector PDFs that stay sharp at any size, the Markup PDF round-trip for sheets you were sent, printing to exact scale, and the Chair Summary, Key Item, and Schedule reports.",
+        youtubeId: ""
+      }
+    ];
+
     const APP_VERSION = "2.10.0";
 
     // ─── AUTO-SCALE TO FIT VIEWPORT ─────────────────────────────────────────────
@@ -9432,6 +9535,99 @@ const I18N_STRINGS = {
         // works fine in either display mode. Use 'block' to match how it
         // was originally rendered.
         menuView.style.display = 'block';
+    }
+
+    // ── Video tutorials: list + player views (swap inline like the announcement) ──
+    let _currentTutorial = -1;
+
+    function showTutorialsList() {
+        const menuView = document.getElementById('tutorials-menu-view');
+        const vidView  = document.getElementById('tutorials-videos-view');
+        if (!menuView || !vidView) return;
+        renderTutorialsList();
+        menuView.style.display = 'none';
+        vidView.style.display  = 'flex';
+    }
+
+    function hideTutorialsList() {
+        const menuView = document.getElementById('tutorials-menu-view');
+        const vidView  = document.getElementById('tutorials-videos-view');
+        if (!menuView || !vidView) return;
+        vidView.style.display  = 'none';
+        menuView.style.display = 'block';
+    }
+
+    function renderTutorialsList() {
+        const host = document.getElementById('tutorials-videos-list');
+        if (!host) return;
+        let html = '';
+        TUTORIALS.forEach((tut, i) => {
+            const ready = !!tut.youtubeId;
+            const badge = ready
+                ? ''
+                : ' <span style="font-size:0.72em; color:#e0a030; border:1px solid #e0a030; border-radius:4px; padding:1px 5px; margin-left:6px;">Coming soon</span>';
+            const btn = ready
+                ? `<button class="tutorial-option-btn" onclick="openTutorial(${i})">Watch</button>`
+                : `<button class="tutorial-option-btn tutorial-option-btn-disabled" onclick="openTutorial(${i})">Preview</button>`;
+            html += `<div class="tutorial-option">
+                <div class="tutorial-option-icon">${tut.icon}</div>
+                <div class="tutorial-option-text">
+                    <div class="tutorial-option-title"><span style="color:#888; font-weight:normal;">${escapeHTML(tut.num)}.</span> ${escapeHTML(tut.title)}${badge}</div>
+                    <div class="tutorial-option-desc">${escapeHTML(tut.blurb)}</div>
+                </div>
+                ${btn}
+            </div>`;
+        });
+        host.innerHTML = html;
+    }
+
+    // Open one tutorial: show the framing intro (the problem it solves) then the
+    // player. Uses youtube-nocookie.com so tutorials stay privacy-friendly. If a
+    // video isn't uploaded yet, show the intro with a 'coming soon' placeholder.
+    function openTutorial(i) {
+        const tut = TUTORIALS[i];
+        if (!tut) return;
+        _currentTutorial = i;
+        const vidView    = document.getElementById('tutorials-videos-view');
+        const playerView = document.getElementById('tutorials-player-view');
+        const content    = document.getElementById('tutorials-player-content');
+        if (!vidView || !playerView || !content) return;
+
+        let media;
+        if (tut.youtubeId) {
+            // Responsive 16:9 iframe embed (privacy-enhanced domain).
+            const src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(tut.youtubeId) + '?rel=0';
+            media = `<div style="position:relative; width:100%; padding-bottom:56.25%; height:0; border-radius:8px; overflow:hidden; background:#000;">
+                <iframe src="${src}" title="${escapeHTML(tut.title)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+            <div style="text-align:right; margin-top:8px;"><a href="https://www.youtube.com/watch?v=${encodeURIComponent(tut.youtubeId)}" target="_blank" rel="noopener" style="color:var(--accent); font-size:0.85em; text-decoration:none;">Watch on YouTube \u2197</a></div>`;
+        } else {
+            media = `<div style="width:100%; padding:40px 20px; border-radius:8px; background:#2a2a2d; border:1px dashed #555; text-align:center; color:#aaa;">
+                <div style="font-size:2em; margin-bottom:8px;">\uD83C\uDFAC</div>
+                <div style="font-weight:bold; color:#ddd;">This video is coming soon.</div>
+                <div style="font-size:0.88em; margin-top:6px;">The overview below explains what it will cover.</div>
+            </div>`;
+        }
+
+        content.innerHTML = `
+            <h3 style="margin:0 0 4px 0; color:#fff;">${tut.icon} <span style="color:#888; font-weight:normal;">${escapeHTML(tut.num)}.</span> ${escapeHTML(tut.title)}</h3>
+            <p style="margin:0 0 14px 0; line-height:1.5; color:#ccc;">${escapeHTML(tut.intro)}</p>
+            ${media}
+        `;
+        content.scrollTop = 0;
+        vidView.style.display    = 'none';
+        playerView.style.display = 'flex';
+    }
+
+    // Leaving the player: clear the iframe so the video stops playing.
+    function backToTutorialsList() {
+        const playerView = document.getElementById('tutorials-player-view');
+        const content    = document.getElementById('tutorials-player-content');
+        const vidView    = document.getElementById('tutorials-videos-view');
+        if (content) content.innerHTML = '';
+        if (playerView) playerView.style.display = 'none';
+        if (vidView) vidView.style.display = 'flex';
+        _currentTutorial = -1;
     }
 
 
