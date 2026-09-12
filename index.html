@@ -324,29 +324,29 @@
 
         /* ── Video tutorials: accordion chapters + video rows ── */
         .tut-chapter { margin-bottom: 10px; }
-        .tut-chapter-head {
+        .modal-card .tut-chapter-head {
             display: flex; align-items: center; gap: 12px; width: 100%;
             padding: 14px 16px; text-align: left; cursor: pointer;
             background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 10px;
-            color: #fff; font: inherit;
+            color: #fff; font: inherit; font-weight: normal;
         }
-        .tut-chapter-head:hover { background: #323234; }
+        .modal-card .tut-chapter-head:hover { background: #323234; border-color: #4a4a4a; }
         .tut-chevron { flex-shrink: 0; color: #888; width: 1em; font-size: 0.9em; }
         .tut-icon { flex-shrink: 0; font-size: 1.8em; line-height: 1; }
         .tut-chapter-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-        .tut-chapter-title { font-weight: bold; font-size: 1.02em; line-height: 1.25; }
+        .tut-chapter-title { font-weight: bold; font-size: 1.02em; line-height: 1.25; color: #fff; }
         .tut-num { color: #888; font-weight: normal; }
-        .tut-chapter-blurb { font-size: 0.85em; color: #aaa; line-height: 1.3; }
+        .tut-chapter-blurb { font-size: 0.85em; color: #b8b8b8; line-height: 1.3; font-weight: normal; }
         .tut-count { flex-shrink: 0; font-size: 0.78em; color: #9ab; background: #23313a; border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
         .tut-soon { flex-shrink: 0; font-size: 0.75em; color: #e0a030; border: 1px solid #e0a030; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
         .tut-videos { padding: 6px 0 6px 14px; margin-left: 12px; border-left: 2px solid #3a3a3a; }
-        .tut-video-row {
+        .modal-card .tut-video-row {
             display: flex; align-items: center; gap: 12px; width: 100%;
             padding: 11px 14px; margin: 4px 0; text-align: left; cursor: pointer;
             background: #242426; border: 1px solid #333; border-radius: 8px;
-            color: #eee; font: inherit; font-size: 0.95em;
+            color: #eee; font: inherit; font-size: 0.95em; font-weight: normal;
         }
-        .tut-video-row:hover { background: #2d2d30; border-color: #007acc; }
+        .modal-card .tut-video-row:hover { background: #2d2d30; border-color: #007acc; }
         .tut-play { flex-shrink: 0; color: var(--accent); width: 1em; text-align: center; }
         .tut-video-title { flex: 1 1 auto; min-width: 0; }
         .tut-video-soon { opacity: 0.6; }
