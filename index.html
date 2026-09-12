@@ -5017,6 +5017,95 @@ const I18N_STRINGS = {
         // Slightly longer settle so we only render once you've actually stopped.
         _crispTimer = setTimeout(_updateCrispBg, 180);
     }
+    // Draw a simple SVG logo as TRUE VECTOR into the PDF. Supports circle, ellipse,
+    // rect (rx), line, polyline, polygon, path, text (Arial/Helvetica -> Helvetica,
+    // bold aware, text-anchor), <g>, and translate()/scale() transforms, with flat
+    // fills/strokes and opacity. Anything else (gradients, letter-spacing, filters,
+    // images, unknown elements) makes it return false so the caller can fall back
+    // to the raster path. All ops are validated before anything is drawn.
+    async function _drawSvgLogoVector(doc, out, svgText, boxX, boxTop, boxSize) {
+        const dom = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+        const root = dom.documentElement;
+        if (!root || root.nodeName.toLowerCase() !== 'svg' || dom.getElementsByTagName('parsererror').length) return false;
+        let vx = 0, vy = 0, vw, vh;
+        const vb = (root.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+        if (vb.length === 4 && vb.every(n => !isNaN(n)) && vb[2] > 0 && vb[3] > 0) { [vx, vy, vw, vh] = vb; }
+        else { vw = parseFloat(root.getAttribute('width')); vh = parseFloat(root.getAttribute('height')); if (!(vw > 0 && vh > 0)) return false; }
+        const k = boxSize / Math.max(vw, vh);
+        const ox = boxX + (boxSize - vw * k) / 2, oyTop = boxTop - (boxSize - vh * k) / 2;
+        const X = x => ox + (x - vx) * k, Y = y => oyTop - (y - vy) * k;
+        const num = (el, n, d) => { const v = parseFloat(el.getAttribute(n)); return isNaN(v) ? d : v; };
+        const color = (str) => {
+            if (!str) return undefined; str = str.trim();
+            if (str === 'none' || str === 'transparent') return null;
+            if (/^url\(/i.test(str)) throw new Error('gradient');
+            const c = _pdfColor(str, null); if (!c) throw new Error('color'); return c;
+        };
+        const ops = [];
+        const pushShape = (d, el, tx, ty, sc) => {
+            const fill = el.hasAttribute('fill') ? color(el.getAttribute('fill')) : _pdfColor('#000000');
+            const stroke = el.hasAttribute('stroke') ? color(el.getAttribute('stroke')) : null;
+            const sw = num(el, 'stroke-width', 1) * k * sc;
+            const op = Math.min(num(el, 'opacity', 1), num(el, 'fill-opacity', 1));
+            if (fill === null && !stroke) return;
+            const o = { x: X(tx), y: Y(ty), scale: k * sc };
+            if (fill) o.color = fill;
+            if (stroke) { o.borderColor = stroke; o.borderWidth = sw; }
+            if (op < 1) { o.opacity = op; o.borderOpacity = op; }
+            ops.push(() => out.drawSvgPath(d, o));
+        };
+        const rectPath = (x, y, w, h, rx) => {
+            rx = Math.max(0, Math.min(rx || 0, w / 2, h / 2));
+            if (!rx) return `M${x} ${y}h${w}v${h}h${-w}Z`;
+            return `M${x + rx} ${y}h${w - 2 * rx}a${rx} ${rx} 0 0 1 ${rx} ${rx}v${h - 2 * rx}a${rx} ${rx} 0 0 1 ${-rx} ${rx}h${-(w - 2 * rx)}a${rx} ${rx} 0 0 1 ${-rx} ${-rx}v${-(h - 2 * rx)}a${rx} ${rx} 0 0 1 ${rx} ${-rx}Z`;
+        };
+        const ellipsePath = (cx, cy, rx, ry) => `M${cx - rx} ${cy}a${rx} ${ry} 0 1 0 ${2 * rx} 0a${rx} ${ry} 0 1 0 ${-2 * rx} 0Z`;
+        const applyTransform = (el, tx, ty, sc) => {
+            const t = el.getAttribute('transform'); if (!t) return [tx, ty, sc];
+            const re = /(translate|scale)\s*\(([^)]*)\)/g; let m;
+            while ((m = re.exec(t))) {
+                const a = m[2].split(/[\s,]+/).filter(Boolean).map(Number);
+                if (m[1] === 'translate') { tx += (a[0] || 0) * sc; ty += (a[1] || 0) * sc; }
+                else { if (a.length > 1 && a[0] !== a[1]) throw new Error('nonuniform'); sc *= (a[0] || 1); }
+            }
+            if (/rotate|matrix|skew/i.test(t)) throw new Error('transform');
+            return [tx, ty, sc];
+        };
+        const helv = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const helvB = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+        const walk = (el, tx, ty, sc) => {
+            for (const c of Array.from(el.children)) {
+                const tag = c.nodeName.toLowerCase();
+                if (['defs', 'title', 'desc', 'metadata', 'style'].includes(tag)) { if (tag === 'style' && c.textContent.trim()) throw new Error('style'); continue; }
+                const [ctx, cty, csc] = applyTransform(c, tx, ty, sc);
+                if (tag === 'g') { walk(c, ctx, cty, csc); continue; }
+                if (tag === 'circle') { const r = num(c, 'r', 0); pushShape(ellipsePath(num(c, 'cx', 0), num(c, 'cy', 0), r, r), c, ctx, cty, csc); }
+                else if (tag === 'ellipse') pushShape(ellipsePath(num(c, 'cx', 0), num(c, 'cy', 0), num(c, 'rx', 0), num(c, 'ry', 0)), c, ctx, cty, csc);
+                else if (tag === 'rect') pushShape(rectPath(num(c, 'x', 0), num(c, 'y', 0), num(c, 'width', 0), num(c, 'height', 0), num(c, 'rx', num(c, 'ry', 0))), c, ctx, cty, csc);
+                else if (tag === 'line') pushShape(`M${num(c, 'x1', 0)} ${num(c, 'y1', 0)}L${num(c, 'x2', 0)} ${num(c, 'y2', 0)}`, c, ctx, cty, csc);
+                else if (tag === 'polyline' || tag === 'polygon') { const p = (c.getAttribute('points') || '').trim().split(/[\s,]+/).filter(Boolean); if (p.length < 4) continue; let d = `M${p[0]} ${p[1]}`; for (let i = 2; i < p.length; i += 2) d += `L${p[i]} ${p[i + 1]}`; if (tag === 'polygon') d += 'Z'; pushShape(d, c, ctx, cty, csc); }
+                else if (tag === 'path') pushShape(c.getAttribute('d') || '', c, ctx, cty, csc);
+                else if (tag === 'text') {
+                    if (c.hasAttribute('letter-spacing') || c.getElementsByTagName('tspan').length) throw new Error('text');
+                    const txt = _winAnsi((c.textContent || '').trim()); if (!txt) continue;
+                    const fsz = num(c, 'font-size', 16) * k * csc;
+                    const w = (c.getAttribute('font-weight') || '').toLowerCase();
+                    const font = (w === 'bold' || parseInt(w, 10) >= 600) ? helvB : helv;
+                    const tw = font.widthOfTextAtSize(txt, fsz);
+                    const anchor = c.getAttribute('text-anchor') || 'start';
+                    let px = X(ctx + num(c, 'x', 0) * csc); if (anchor === 'middle') px -= tw / 2; else if (anchor === 'end') px -= tw;
+                    const py = Y(cty + num(c, 'y', 0) * csc);
+                    const fill = c.hasAttribute('fill') ? color(c.getAttribute('fill')) : _pdfColor('#000000'); if (!fill) continue;
+                    ops.push(() => out.drawText(txt, { x: px, y: py, size: fsz, font, color: fill }));
+                }
+                else throw new Error('unsupported:' + tag);
+            }
+        };
+        try { walk(root, 0, 0, 1); } catch (e) { return false; }
+        if (!ops.length) return false;
+        ops.forEach(fn => fn());
+        return true;
+    }
     // Rasterize an image data URL (e.g. SVG) to a PNG data URL via an offscreen
     // canvas. Rendered at ~512px on the long side so it stays crisp in print.
     function _rasterizeLogoToPng(dataUrl) {
@@ -18640,10 +18729,20 @@ const I18N_STRINGS = {
         // is rasterized to PNG here at export time, so existing projects that saved
         // an SVG logo still print it instead of falling back to the default mark.
         let logoSrc = project.logoData;
-        if (logoSrc && /^data:image\//i.test(logoSrc) && !/^data:image\/(png|jpe?g)/i.test(logoSrc)) {
+        // SVG logos: draw as true vector when the SVG only uses supported elements;
+        // otherwise fall through to the raster path below.
+        if (logoSrc && /^data:image\/svg\+xml/i.test(logoSrc)) {
+            try {
+                const comma = logoSrc.indexOf(',');
+                const meta = logoSrc.slice(0, comma), body = logoSrc.slice(comma + 1);
+                const svgText = /;base64/i.test(meta) ? new TextDecoder().decode(_b64ToU8(body)) : decodeURIComponent(body);
+                if (await _drawSvgLogoVector(doc, out, svgText, M + PADX, logoTop, LOGO)) drewLogo = true;
+            } catch (e) { /* fall back to raster */ }
+        }
+        if (!drewLogo && logoSrc && /^data:image\//i.test(logoSrc) && !/^data:image\/(png|jpe?g)/i.test(logoSrc)) {
             try { logoSrc = await _rasterizeLogoToPng(logoSrc); } catch (e) { logoSrc = null; }
         }
-        if (logoSrc && /^data:image\/(png|jpe?g)/i.test(logoSrc)) {
+        if (!drewLogo && logoSrc && /^data:image\/(png|jpe?g)/i.test(logoSrc)) {
             try {
                 const bytes = _b64ToU8(logoSrc.split(',')[1]);
                 const img = /png/i.test(logoSrc.slice(0, 20)) ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
