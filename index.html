@@ -695,6 +695,12 @@
            and the stats summary off the bottom of the sidebar. Cap it and let
            it scroll on its own. */
         #project-layers-list { max-height: clamp(140px, 34vh, 420px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+        /* Layer categories: inline collapsible sections */
+        .layer-cat { margin-bottom: 6px; }
+        .layer-cat-head { margin-bottom: 0; }
+        .layer-cat-head .layer-cat-indicator { margin-left: 8px; vertical-align: middle; }
+        .layer-cat-body { padding: 6px 4px 4px 8px; }
+        .layer-cat-body.collapsed { display: none; padding: 0; }
         /* Accordion group: ALL headers pinned in a cluster at the top (via flex
            order), with the single open body filling the space below them and
            scrolling internally. Headers never get pushed down by content. */
@@ -10739,9 +10745,9 @@ const I18N_STRINGS = {
     const LAYER_CATEGORIES = {
         seating: { emoji: '\u{1FA91}', key: 'layers.cat.seating', fallback: 'Seating',
             hidden: () => uiState.showSeats === false || (uiState.hiddenSeatTypes && uiState.hiddenSeatTypes.length > 0),
-            rows: () => { let h = _layerToggleRow(t('layers.all_seats'), uiState.showSeats, 'uiState.showSeats=this.checked; needsCacheUpdate=true; render(); openLayerCategory(_lastLayerCat);');
+            rows: () => { let h = _layerToggleRow(t('layers.all_seats'), uiState.showSeats, 'uiState.showSeats=this.checked; needsCacheUpdate=true; render(); buildLayersPanel();');
                 h += `<div class="layer-sub-list">`;
-                project.seatTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSeatTypes.includes(i), `toggleVis('seat', ${i}, this.checked); openLayerCategory(_lastLayerCat);`, st.stroke); });
+                project.seatTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSeatTypes.includes(i), `toggleVis('seat', ${i}, this.checked); buildLayersPanel();`, st.stroke); });
                 h += `</div>`;
                 h += _layerToggleRow(t('layers.area_labels'), uiState.showAreaLabels !== false, 'uiState.showAreaLabels=this.checked; render();');
                 h += _layerToggleRow(t('layers.seat_legend'), getActivePage().seatLegend && getActivePage().seatLegend.show !== false, 'toggleSeatLegend(this.checked)');
@@ -10752,15 +10758,15 @@ const I18N_STRINGS = {
                 return h; } },
         keyitems: { emoji: '\u{1F4CD}', key: 'layers.cat.keyitems', fallback: 'Key Items',
             hidden: () => uiState.showSigns === false || (uiState.hiddenSignTypes && uiState.hiddenSignTypes.length > 0),
-            rows: () => { let h = _layerToggleRow(t('layers.all_keyitems'), uiState.showSigns, 'uiState.showSigns=this.checked; render(); openLayerCategory(_lastLayerCat);');
+            rows: () => { let h = _layerToggleRow(t('layers.all_keyitems'), uiState.showSigns, 'uiState.showSigns=this.checked; render(); buildLayersPanel();');
                 h += `<div class="layer-sub-list">`;
-                project.signTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSignTypes.includes(i), `toggleVis('sign', ${i}, this.checked); openLayerCategory(_lastLayerCat);`, st.color); });
+                project.signTypes.forEach((st, i) => { h += _layerToggleRow(st.name, !uiState.hiddenSignTypes.includes(i), `toggleVis('sign', ${i}, this.checked); buildLayersPanel();`, st.color); });
                 h += `</div>`;
                 h += _layerToggleRow(t('layers.marker_legend'), getActivePage().legend && getActivePage().legend.show !== false, 'toggleLegend(this.checked)');
                 return h; } },
         screens: { emoji: '\u{1F5A5}', key: 'layers.cat.screens', fallback: 'Screens & Sightlines',
             hidden: () => uiState.showScreens === false,
-            rows: () => _layerToggleRow(t('layers.all_screens'), uiState.showScreens, 'uiState.showScreens=this.checked; render(); openLayerCategory(_lastLayerCat);')
+            rows: () => _layerToggleRow(t('layers.all_screens'), uiState.showScreens, 'uiState.showScreens=this.checked; render(); buildLayersPanel();')
                 + _layerToggleRow(t('layers.sightlines'), !uiState.draftMode, 'uiState.draftMode=!this.checked; markSeatCachesDirty(); triggerUpdate();') },
         measures: { emoji: '\u{1F4D0}', key: 'layers.cat.measures', fallback: 'Measures',
             hidden: () => uiState.showMeasures === false || uiState.showDims === false || uiState.showAreaMeas === false,
@@ -10781,29 +10787,21 @@ const I18N_STRINGS = {
                 + _layerToggleRow(t('layers.all_texts'), uiState.showTexts !== false, 'uiState.showTexts=this.checked; render();') },
         attendants: { emoji: '\u{1F9CD}', key: 'layers.cat.attendants', fallback: 'Attendants',
             hidden: () => uiState.showAttendants === false,
-            rows: () => _layerToggleRow(t('layers.all_attendants'), uiState.showAttendants, 'uiState.showAttendants=this.checked; render(); openLayerCategory(_lastLayerCat);')
+            rows: () => _layerToggleRow(t('layers.all_attendants'), uiState.showAttendants, 'uiState.showAttendants=this.checked; render(); buildLayersPanel();')
                 + _layerToggleRow(t('layers.att_legend'), getActivePage().attLegend && getActivePage().attLegend.show !== false, 'toggleAttLegend(this.checked)')
                 + _layerToggleRow(t('layers.shift_in_print'), uiState.showShiftInPrint !== false, 'uiState.showShiftInPrint=this.checked;') },
         display: { emoji: '\u{1F5A8}', key: 'layers.cat.display', fallback: 'Display & Print',
             hidden: () => false,
             rows: () => _layerToggleRow(t('layers.dim_nocount'), !!uiState.dimNotCounted, 'uiState.dimNotCounted=this.checked; needsCacheUpdate=true; render();') }
     };
-    let _lastLayerCat = null;
-    function openLayerCategory(catKey) {
-        const cat = LAYER_CATEGORIES[catKey]; if (!cat) return;
-        _lastLayerCat = catKey;
-        document.getElementById('layer-category-modal-title').textContent = (cat.key ? t(cat.key) : '') || cat.fallback;
-        document.getElementById('layer-category-modal-body').innerHTML = cat.rows();
-        document.getElementById('layer-category-modal').classList.add('show');
-    }
-    function hideLayerCategoryModal() {
-        document.getElementById('layer-category-modal').classList.remove('show');
-        _lastLayerCat = null;
-        if (activeTab === 'layers') buildLayersPanel();
-    }
+    // Category visibility renders INLINE as collapsible sections (no modal).
+    // Open/closed state is kept per category for the session.
+    const _openLayerCats = {};
+    function toggleLayerCat(catKey) { _openLayerCats[catKey] = !_openLayerCats[catKey]; buildLayersPanel(); }
+    // Kept for any callers: expands that category in the panel.
+    function openLayerCategory(catKey) { if (LAYER_CATEGORIES[catKey]) { _openLayerCats[catKey] = true; buildLayersPanel(); } }
+    function hideLayerCategoryModal() { const m = document.getElementById('layer-category-modal'); if (m) m.classList.remove('show'); }
     function buildLayersPanel() {
-        // Category-button list. Each opens a modal of that category's toggles.
-        // An indicator dot shows when a category currently has hidden items.
         const order = ['seating','keyitems','screens','measures','cutouts','annotations','attendants','display'];
         let html = '';
         order.forEach(catKey => {
@@ -10811,17 +10809,19 @@ const I18N_STRINGS = {
             const label = (cat.key ? t(cat.key) : '') || cat.fallback;
             const hasHidden = cat.hidden && cat.hidden();
             const dot = hasHidden ? `<span class="layer-cat-indicator" title="${escapeHTML(t('layers.has_hidden'))}"></span>` : '';
-            html += `<button class="layer-cat-btn" onclick="openLayerCategory('${catKey}')">`
-                + `<span class="layer-cat-emoji">${cat.emoji}</span>`
-                + `<span class="layer-cat-label">${escapeHTML(label)}</span>`
-                + dot
-                + `<span class="layer-cat-arrow">\u203A</span>`
-            + `</button>`;
+            const open = !!_openLayerCats[catKey];
+            html += `<div class="layer-cat">`
+                + `<div class="collapse-header layer-cat-head${open ? '' : ' collapsed'}" onclick="toggleLayerCat('${catKey}')">`
+                +   `<span class="title"><span class="layer-cat-emoji">${cat.emoji}</span> ${escapeHTML(label)}${dot}</span>`
+                +   `<span class="chevron">\u25BC</span>`
+                + `</div>`
+                + `<div class="collapse-body layer-cat-body${open ? '' : ' collapsed'}">${open ? cat.rows() : ''}</div>`
+            + `</div>`;
         });
         document.getElementById('layers-list-container').innerHTML = html;
         renderProjectLayers();
     }
-    
+
     function toggleVis(type, index, isVisible) {
         let arr = type === 'seat' ? uiState.hiddenSeatTypes : uiState.hiddenSignTypes;
         if (isVisible) { let idx = arr.indexOf(index); if (idx > -1) arr.splice(idx, 1); }
