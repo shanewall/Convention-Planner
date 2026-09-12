@@ -322,6 +322,43 @@
         .tutorial-option-btn-disabled:hover { background: #444 !important; }
         .tutorial-option-disabled { opacity: 0.7; }
 
+        /* ── Video tutorials: accordion chapters + video rows ── */
+        .tut-chapter { margin-bottom: 10px; }
+        .tut-chapter-head {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            padding: 14px 16px; text-align: left; cursor: pointer;
+            background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 10px;
+            color: #fff; font: inherit;
+        }
+        .tut-chapter-head:hover { background: #323234; }
+        .tut-chevron { flex-shrink: 0; color: #888; width: 1em; font-size: 0.9em; }
+        .tut-icon { flex-shrink: 0; font-size: 1.8em; line-height: 1; }
+        .tut-chapter-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .tut-chapter-title { font-weight: bold; font-size: 1.02em; line-height: 1.25; }
+        .tut-num { color: #888; font-weight: normal; }
+        .tut-chapter-blurb { font-size: 0.85em; color: #aaa; line-height: 1.3; }
+        .tut-count { flex-shrink: 0; font-size: 0.78em; color: #9ab; background: #23313a; border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
+        .tut-soon { flex-shrink: 0; font-size: 0.75em; color: #e0a030; border: 1px solid #e0a030; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+        .tut-videos { padding: 6px 0 6px 14px; margin-left: 12px; border-left: 2px solid #3a3a3a; }
+        .tut-video-row {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            padding: 11px 14px; margin: 4px 0; text-align: left; cursor: pointer;
+            background: #242426; border: 1px solid #333; border-radius: 8px;
+            color: #eee; font: inherit; font-size: 0.95em;
+        }
+        .tut-video-row:hover { background: #2d2d30; border-color: #007acc; }
+        .tut-play { flex-shrink: 0; color: var(--accent); width: 1em; text-align: center; }
+        .tut-video-title { flex: 1 1 auto; min-width: 0; }
+        .tut-video-soon { opacity: 0.6; }
+        .tut-video-soon .tut-play { color: #888; }
+        .tut-soon-sm { flex-shrink: 0; font-size: 0.7em; color: #e0a030; border: 1px solid #e0a030; border-radius: 4px; padding: 1px 6px; }
+        /* Responsive 16:9 embed */
+        .tut-embed { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 8px; overflow: hidden; background: #000; }
+        .tut-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        .tut-placeholder { width: 100%; padding: 40px 20px; border-radius: 8px; background: #2a2a2d; border: 1px dashed #555; text-align: center; color: #aaa; box-sizing: border-box; }
+        /* On short/small screens the chapter blurb can hide to save room */
+        @media (max-height: 640px) { .tut-chapter-blurb { display: none; } }
+
         /* Attendants sidebar — small uniform action buttons */
         .att-toolbar-btn {
             padding: 6px 4px;
@@ -1348,12 +1385,23 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div>
                     <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="common.weight">Weight</label>
-                    <input type="number" id="item-edit-line-thickness" class="text-input-dark" style="width: 100%;" min="1" max="20" step="1">
+                    <input type="number" id="item-edit-line-thickness" class="text-input-dark" style="width: 100%;" min="0.25" max="20" step="0.25">
                 </div>
                 <div id="item-edit-line-labelSize-group">
                     <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="line.label_size">Label Size</label>
                     <input type="number" id="item-edit-line-labelSize" class="text-input-dark" style="width: 100%;" min="6" max="60" step="1">
                 </div>
+            </div>
+            <!-- Label color: only shown for dimensions & polylines-with-dims. Lets you
+                 pick a distinct colour for the distance text (e.g. for contrast). -->
+            <div id="item-edit-line-labelColor-group" style="margin-bottom: 12px; display:none;">
+                <label style="font-size: 0.85em; color: #ccc; display: block; margin-bottom: 4px;" data-i18n="line.label_color">Label Color</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="color" id="item-edit-line-labelColor" style="width: 60px; height: 32px;">
+                    <input type="text" id="item-edit-line-labelColor-hex" class="text-input-dark" style="width: 100px; font-family: monospace;" maxlength="7">
+                    <button type="button" id="item-edit-line-labelColor-reset" style="font-size:0.8em; padding:4px 8px; background:#3a3a3d; color:#ddd; border:1px solid #555; border-radius:4px; cursor:pointer;" data-i18n="line.label_color.match">Match line</button>
+                </div>
+                <div id="item-edit-line-labelColor-palette" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;"></div>
             </div>
             <div style="margin-bottom: 12px;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; margin-bottom: 6px;">
@@ -1880,7 +1928,7 @@
 
 <div id="tutorials-modal" class="modal-overlay" onclick="if(event.target===this) hideTutorialsModal()">
     <div class="modal-card" role="dialog" aria-labelledby="tutorials-modal-title"
-         style="max-width: 520px; width: 90%; max-height: calc(100vh - 60px); display: flex; flex-direction: column; padding: 28px 32px;">
+         style="max-width: 600px; width: 92%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; padding: 24px clamp(16px, 4vw, 32px);">
         <!-- Bilingual stacked title — same in both languages so users in either
              see the menu's purpose. The intro line below switches with the active
              language. Spans with display:block keep the HTML valid (div-in-h2 isn't). -->
@@ -2711,6 +2759,8 @@ const I18N_STRINGS = {
         "unit.sqft": "sq ft",
         "unit.perimeter": "perim",
         "line.label_size": "Label Size",
+        "line.label_color": "Label Color",
+        "line.label_color.match": "Match line",
         "common.color": "Color",
         "common.weight": "Weight",
         "common.size": "Size",
@@ -3491,6 +3541,8 @@ const I18N_STRINGS = {
         "unit.sqft": "pie²",
         "unit.perimeter": "perím",
         "line.label_size": "Tamaño Etiqueta",
+        "line.label_color": "Color de Etiqueta",
+        "line.label_color.match": "Igualar línea",
         "common.color": "Color",
         "common.weight": "Grosor",
         "common.size": "Tamaño",
@@ -8078,76 +8130,129 @@ const I18N_STRINGS = {
     // embedded player. Set `youtubeId` to the video's ID (the part after
     // "watch?v=") once uploaded; leave it "" to show a "Coming soon" state for
     // that row. Uses youtube-nocookie.com so tutorials stay privacy-friendly.
+    // ── Video tutorials ───────────────────────────────────────
+    // Chapters, each holding any number of videos. FULLY DATA-DRIVEN: to add,
+    // remove, rename, or reorder a video, just edit its { title, youtubeId }
+    // line inside a chapter's `videos` array. Set youtubeId to the ID from a
+    // YouTube URL (the part after "watch?v="); leave "" for a not-yet-recorded
+    // video (it shows "Coming soon"). A chapter with no ready videos shows
+    // "Coming soon" too. The optional `intro` on a chapter is shown above its
+    // video list (the problem the chapter solves). Uses youtube-nocookie.com.
     const TUTORIALS = [
       {
         icon: "\uD83D\uDC4B", num: "Intro",
         title: "Why Convention Planner?",
         blurb: "What it is and who it's for.",
-        intro: "Convention Planner was built to solve a real, stubborn problem: laying out large events\u2014seating, sightlines, staffing, signage\u2014with tools that either cost a fortune, need CAD training, or don't understand events at all. This short intro explains why it exists, who it's for, and what you can do with it before you dive into the how-to videos.",
-        youtubeId: ""
+        intro: "Convention Planner was built to solve a real, stubborn problem: laying out large events\u2014seating, sightlines, staffing, signage\u2014with tools that either cost a fortune, need CAD training, or don't understand events at all.",
+        videos: [
+          { title: "Why Convention Planner exists", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83E\uDDED", num: "1",
         title: "Getting Started \u2014 Setup & Navigation",
         blurb: "Projects, pages, scale, and finding your way around.",
-        intro: "Before you can plan anything, the app has to know what it's looking at\u2014how big the room really is and how you'll move around it. A plan drawn at the wrong scale is worse than no plan. This video covers creating a project, choosing a blueprint or sheet page, setting the scale so every measurement is true, and navigating with zoom, pan, and the panels.",
-        youtubeId: ""
+        intro: "Before you can plan anything, the app has to know what it's looking at\u2014how big the room really is and how you'll move around it. A plan drawn at the wrong scale is worse than no plan.",
+        videos: [
+          { title: "Overview \u2014 what this chapter covers", youtubeId: "" },
+          { title: "Creating a project & pages", youtubeId: "" },
+          { title: "Setting the scale (blueprint & sheet)", youtubeId: "" },
+          { title: "Navigating: zoom, pan & panels", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83E\uDE91", num: "2",
         title: "Seating Areas & Chair Profiles",
         blurb: "Draw sections and let the seats count themselves.",
-        intro: "Counting chairs by hand is slow and error-prone, and every time you reshape a section you'd have to recount. Convention Planner generates the seats for you from the shape you draw and the chair size you pick\u2014so the count is always right and always live. This video shows how to define chair profiles and draw seating areas that count themselves.",
-        youtubeId: ""
+        intro: "Counting chairs by hand is slow and error-prone, and every time you reshape a section you'd have to recount. Convention Planner generates the seats for you from the shape you draw and the chair size you pick.",
+        videos: [
+          { title: "Overview \u2014 how seating works", youtubeId: "" },
+          { title: "Chair profiles", youtubeId: "" },
+          { title: "Drawing seating areas", youtubeId: "" },
+          { title: "Reshaping & editing areas", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDD22", num: "3",
         title: "Chair Styles \u2014 Tagging & Numbering",
         blurb: "Mark held seats, ADA, VIP, and any special blocks.",
-        intro: "Not every chair is the same in practice\u2014some are held, some are ADA companion seats, some belong to a VIP block\u2014but they're not different chairs, just differently designated ones. Chair Styles let you tag any subset of chairs with a number, without changing your seat count. This video covers creating styles, tagging with the lasso, reassigning or clearing tags, and the legend that tallies them.",
-        youtubeId: ""
+        intro: "Not every chair is the same in practice\u2014some are held, some are ADA companion seats, some belong to a VIP block\u2014but they're not different chairs, just differently designated ones.",
+        videos: [
+          { title: "Overview \u2014 what Chair Styles are for", youtubeId: "" },
+          { title: "Creating & editing styles", youtubeId: "" },
+          { title: "Tagging chairs with the lasso", youtubeId: "" },
+          { title: "Selecting, reassigning & removing", youtubeId: "" },
+          { title: "The Chair Style Legend", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDEA7", num: "4",
         title: "Obstacles, Aisles & Screens",
         blurb: "Carve out space and check the view.",
-        intro: "A room is never a clean rectangle\u2014there are pillars, aisles you must keep clear, and screens people need to actually see. Ignore those and your seat count is fiction. This video shows how to place obstacles and aisles that remove seats automatically, and screens with sightline cones so you can see who has a good view and who doesn't.",
-        youtubeId: ""
+        intro: "A room is never a clean rectangle\u2014there are pillars, aisles you must keep clear, and screens people need to actually see. Ignore those and your seat count is fiction.",
+        videos: [
+          { title: "Overview \u2014 shaping a real room", youtubeId: "" },
+          { title: "Obstacles & aisles", youtubeId: "" },
+          { title: "Screens & sightline cones", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDCCF", num: "5",
         title: "Measuring & Annotation",
         blurb: "Dimensions, notes, and markup that print cleanly.",
-        intro: "A floor plan has to communicate\u2014distances, clearances, callouts, and revisions that other people can read and trust. This video covers the measuring and annotation tools: dimensions, lines and arrows, area measurements, callouts, and revision clouds, all in real-world units so what you mark is what it measures.",
-        youtubeId: ""
+        intro: "A floor plan has to communicate\u2014distances, clearances, callouts, and revisions that other people can read and trust.",
+        videos: [
+          { title: "Overview \u2014 making the plan communicate", youtubeId: "" },
+          { title: "Dimensions & measurements", youtubeId: "" },
+          { title: "Lines, arrows & shapes", youtubeId: "" },
+          { title: "Callouts, clouds & text", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDCCD", num: "6",
         title: "Key Items & Signage",
         blurb: "Numbered markers for signs, AV, and more.",
-        intro: "Every event has fixed points that aren't seats\u2014sign locations, AV stations, check-in tables\u2014that crews need to find and place. This video shows how to drop numbered key items, measure runs with polymeasures, and generate a Key Item report so nothing on the plan gets missed on the ground.",
-        youtubeId: ""
+        intro: "Every event has fixed points that aren't seats\u2014sign locations, AV stations, check-in tables\u2014that crews need to find and place.",
+        videos: [
+          { title: "Overview \u2014 the fixed points of an event", youtubeId: "" },
+          { title: "Placing key items", youtubeId: "" },
+          { title: "Polymeasures & the Key Item report", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDC41\uFE0F", num: "7",
         title: "Layers & Organization",
         blurb: "Keep complex plans readable and reusable.",
-        intro: "As a plan fills up, it gets noisy\u2014and you often need two versions of the same sheet: a clean one and a marked-up one. This video covers Project Layers, category visibility toggles, reference sheets, and \u201Cnot counted\u201D items, so you can control exactly what shows on screen and in print without deleting anything.",
-        youtubeId: ""
+        intro: "As a plan fills up, it gets noisy\u2014and you often need two versions of the same sheet: a clean one and a marked-up one.",
+        videos: [
+          { title: "Overview \u2014 taming a busy plan", youtubeId: "" },
+          { title: "Project Layers", youtubeId: "" },
+          { title: "Category toggles & reference sheets", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83E\uDDCD", num: "8",
         title: "Attendants & Staffing",
         blurb: "Roster, posts, shifts, and chain of command.",
-        intro: "A great floor plan still needs people to run it, and coordinating who stands where, on which shift, reporting to whom, is its own headache. This video covers the attendant system: building a roster, placing posts on the plan, scheduling shifts, and setting up the chain of command\u2014then printing exactly the part each person needs.",
-        youtubeId: ""
+        intro: "A great floor plan still needs people to run it, and coordinating who stands where, on which shift, reporting to whom, is its own headache.",
+        videos: [
+          { title: "Overview \u2014 running the event", youtubeId: "" },
+          { title: "Building the roster", youtubeId: "" },
+          { title: "Posts & shifts", youtubeId: "" },
+          { title: "Schedule Viewer & chain of command", youtubeId: "" }
+        ]
       },
       {
         icon: "\uD83D\uDDA8\uFE0F", num: "9",
         title: "Printing, PDF Export & Reports",
         blurb: "Get your work out\u2014sharp and to scale.",
-        intro: "All the planning is worthless if you can't hand it off in a form people trust. This video covers getting your work out: true vector PDFs that stay sharp at any size, the Markup PDF round-trip for sheets you were sent, printing to exact scale, and the Chair Summary, Key Item, and Schedule reports.",
-        youtubeId: ""
+        intro: "All the planning is worthless if you can't hand it off in a form people trust.",
+        videos: [
+          { title: "Overview \u2014 delivering the plan", youtubeId: "" },
+          { title: "Vector PDF & Markup PDF", youtubeId: "" },
+          { title: "Printing to scale", youtubeId: "" },
+          { title: "The reports (Chair, Key Item, Schedule)", youtubeId: "" }
+        ]
       }
     ];
 
@@ -9538,7 +9643,13 @@ const I18N_STRINGS = {
     }
 
     // ── Video tutorials: list + player views (swap inline like the announcement) ──
-    let _currentTutorial = -1;
+    // Player state: which chapter + video is open, and which chapters are expanded.
+    let _curChapter = -1, _curVideo = -1;
+    let _openChapters = {};
+
+    // A chapter's ready videos are those with a youtubeId. A chapter is 'ready'
+    // if it has at least one.
+    function _readyCount(ch) { return (ch.videos || []).filter(v => v.youtubeId).length; }
 
     function showTutorialsList() {
         const menuView = document.getElementById('tutorials-menu-view');
@@ -9557,61 +9668,89 @@ const I18N_STRINGS = {
         menuView.style.display = 'block';
     }
 
+    function toggleChapter(ci) {
+        _openChapters[ci] = !_openChapters[ci];
+        renderTutorialsList();
+    }
+
+    // Accordion: each chapter is a header row (click to expand); expanding reveals
+    // its videos as compact rows. Chapters with no ready videos show 'Coming soon'.
     function renderTutorialsList() {
         const host = document.getElementById('tutorials-videos-list');
         if (!host) return;
         let html = '';
-        TUTORIALS.forEach((tut, i) => {
-            const ready = !!tut.youtubeId;
-            const badge = ready
-                ? ''
-                : ' <span style="font-size:0.72em; color:#e0a030; border:1px solid #e0a030; border-radius:4px; padding:1px 5px; margin-left:6px;">Coming soon</span>';
-            const btn = ready
-                ? `<button class="tutorial-option-btn" onclick="openTutorial(${i})">Watch</button>`
-                : `<button class="tutorial-option-btn tutorial-option-btn-disabled" onclick="openTutorial(${i})">Preview</button>`;
-            html += `<div class="tutorial-option">
-                <div class="tutorial-option-icon">${tut.icon}</div>
-                <div class="tutorial-option-text">
-                    <div class="tutorial-option-title"><span style="color:#888; font-weight:normal;">${escapeHTML(tut.num)}.</span> ${escapeHTML(tut.title)}${badge}</div>
-                    <div class="tutorial-option-desc">${escapeHTML(tut.blurb)}</div>
-                </div>
-                ${btn}
-            </div>`;
+        TUTORIALS.forEach((ch, ci) => {
+            const total = (ch.videos || []).length;
+            const ready = _readyCount(ch);
+            const open  = !!_openChapters[ci];
+            const countLabel = ready > 0
+                ? `<span class="tut-count">${total} video${total === 1 ? '' : 's'}</span>`
+                : `<span class="tut-soon">Coming soon</span>`;
+            html += `<div class="tut-chapter">`;
+            html += `<button class="tut-chapter-head" onclick="toggleChapter(${ci})" aria-expanded="${open}">
+                <span class="tut-chevron">${open ? '\u25BE' : '\u25B8'}</span>
+                <span class="tut-icon">${ch.icon}</span>
+                <span class="tut-chapter-text">
+                    <span class="tut-chapter-title"><span class="tut-num">${escapeHTML(ch.num)}.</span> ${escapeHTML(ch.title)}</span>
+                    <span class="tut-chapter-blurb">${escapeHTML(ch.blurb || '')}</span>
+                </span>
+                ${countLabel}
+            </button>`;
+            if (open) {
+                html += `<div class="tut-videos">`;
+                (ch.videos || []).forEach((v, vi) => {
+                    const vready = !!v.youtubeId;
+                    const badge = vready ? '' : `<span class="tut-soon-sm">soon</span>`;
+                    html += `<button class="tut-video-row${vready ? '' : ' tut-video-soon'}" onclick="openTutorial(${ci}, ${vi})">
+                        <span class="tut-play">${vready ? '\u25B6' : '\u2015'}</span>
+                        <span class="tut-video-title">${escapeHTML(v.title)}</span>
+                        ${badge}
+                    </button>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
         });
         host.innerHTML = html;
     }
 
-    // Open one tutorial: show the framing intro (the problem it solves) then the
-    // player. Uses youtube-nocookie.com so tutorials stay privacy-friendly. If a
-    // video isn't uploaded yet, show the intro with a 'coming soon' placeholder.
-    function openTutorial(i) {
-        const tut = TUTORIALS[i];
-        if (!tut) return;
-        _currentTutorial = i;
+    // Open one video: chapter intro (once, above the first video) + the player.
+    function openTutorial(ci, vi) {
+        const ch = TUTORIALS[ci];
+        if (!ch) return;
+        const v = (ch.videos || [])[vi];
+        if (!v) return;
+        _curChapter = ci; _curVideo = vi;
         const vidView    = document.getElementById('tutorials-videos-view');
         const playerView = document.getElementById('tutorials-player-view');
         const content    = document.getElementById('tutorials-player-content');
         if (!vidView || !playerView || !content) return;
 
         let media;
-        if (tut.youtubeId) {
-            // Responsive 16:9 iframe embed (privacy-enhanced domain).
-            const src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(tut.youtubeId) + '?rel=0';
-            media = `<div style="position:relative; width:100%; padding-bottom:56.25%; height:0; border-radius:8px; overflow:hidden; background:#000;">
-                <iframe src="${src}" title="${escapeHTML(tut.title)}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        if (v.youtubeId) {
+            const src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtubeId) + '?rel=0';
+            media = `<div class="tut-embed">
+                <iframe src="${src}" title="${escapeHTML(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
             </div>
-            <div style="text-align:right; margin-top:8px;"><a href="https://www.youtube.com/watch?v=${encodeURIComponent(tut.youtubeId)}" target="_blank" rel="noopener" style="color:var(--accent); font-size:0.85em; text-decoration:none;">Watch on YouTube \u2197</a></div>`;
+            <div style="text-align:right; margin-top:8px;"><a href="https://www.youtube.com/watch?v=${encodeURIComponent(v.youtubeId)}" target="_blank" rel="noopener" style="color:var(--accent); font-size:0.85em; text-decoration:none;">Watch on YouTube \u2197</a></div>`;
         } else {
-            media = `<div style="width:100%; padding:40px 20px; border-radius:8px; background:#2a2a2d; border:1px dashed #555; text-align:center; color:#aaa;">
+            media = `<div class="tut-placeholder">
                 <div style="font-size:2em; margin-bottom:8px;">\uD83C\uDFAC</div>
                 <div style="font-weight:bold; color:#ddd;">This video is coming soon.</div>
-                <div style="font-size:0.88em; margin-top:6px;">The overview below explains what it will cover.</div>
+                <div style="font-size:0.88em; margin-top:6px;">The overview above explains what it will cover.</div>
             </div>`;
         }
 
+        // Show the chapter intro only when opening the first video, so it frames
+        // the chapter without repeating on every clip.
+        const introHTML = (vi === 0 && ch.intro)
+            ? `<p style="margin:0 0 14px 0; line-height:1.5; color:#ccc;">${escapeHTML(ch.intro)}</p>`
+            : '';
+
         content.innerHTML = `
-            <h3 style="margin:0 0 4px 0; color:#fff;">${tut.icon} <span style="color:#888; font-weight:normal;">${escapeHTML(tut.num)}.</span> ${escapeHTML(tut.title)}</h3>
-            <p style="margin:0 0 14px 0; line-height:1.5; color:#ccc;">${escapeHTML(tut.intro)}</p>
+            <div style="font-size:0.82em; color:#888; margin-bottom:2px;">${ch.icon} ${escapeHTML(ch.num)}. ${escapeHTML(ch.title)}</div>
+            <h3 style="margin:0 0 10px 0; color:#fff;">${escapeHTML(v.title)}</h3>
+            ${introHTML}
             ${media}
         `;
         content.scrollTop = 0;
@@ -9619,7 +9758,6 @@ const I18N_STRINGS = {
         playerView.style.display = 'flex';
     }
 
-    // Leaving the player: clear the iframe so the video stops playing.
     function backToTutorialsList() {
         const playerView = document.getElementById('tutorials-player-view');
         const content    = document.getElementById('tutorials-player-content');
@@ -9627,7 +9765,7 @@ const I18N_STRINGS = {
         if (content) content.innerHTML = '';
         if (playerView) playerView.style.display = 'none';
         if (vidView) vidView.style.display = 'flex';
-        _currentTutorial = -1;
+        _curChapter = -1; _curVideo = -1;
     }
 
 
@@ -11865,6 +12003,8 @@ const I18N_STRINGS = {
             // Label size applies to dimension lines AND to polylines whose
             // showDims is on. Polymeasure-style: cascade from segment size.
             const lsGroup = document.getElementById('item-edit-line-labelSize-group');
+            const lcGroup = document.getElementById('item-edit-line-labelColor-group');
+            const _showLabelControls = (item.type === 'dimension' || item.type === 'polyline');
             if (item.type === 'dimension') {
                 lsGroup.style.display = '';
                 document.getElementById('item-edit-line-labelSize').value = item.labelSize || 16;
@@ -11873,6 +12013,23 @@ const I18N_STRINGS = {
                 document.getElementById('item-edit-line-labelSize').value = item.labelSize || 13;
             } else {
                 lsGroup.style.display = 'none';
+            }
+            // Label colour: defaults to the line colour when unset ('match line').
+            if (lcGroup) {
+                lcGroup.style.display = _showLabelControls ? '' : 'none';
+                if (_showLabelControls) {
+                    const lc = (item.labelColor && item.labelColor.length === 7) ? item.labelColor : safeHex;
+                    document.getElementById('item-edit-line-labelColor').value = lc;
+                    document.getElementById('item-edit-line-labelColor-hex').value = lc;
+                    _populatePaletteFor('item-edit-line-labelColor-palette', 'item-edit-line-labelColor', 'item-edit-line-labelColor-hex');
+                    _wireColorSync('item-edit-line-labelColor', 'item-edit-line-labelColor-hex');
+                    const resetBtn = document.getElementById('item-edit-line-labelColor-reset');
+                    if (resetBtn) resetBtn.onclick = () => {
+                        const c = document.getElementById('item-edit-line-color').value || safeHex;
+                        document.getElementById('item-edit-line-labelColor').value = c;
+                        document.getElementById('item-edit-line-labelColor-hex').value = c;
+                    };
+                }
             }
             document.getElementById('item-edit-line-arrowStart').checked = !!item.arrowStart;
             document.getElementById('item-edit-line-arrowEnd').checked = !!item.arrowEnd;
@@ -12116,11 +12273,18 @@ const I18N_STRINGS = {
             const item = page.lines[index];
             if (!item) return;
             item.color = document.getElementById('item-edit-line-color').value;
-            const th = parseInt(document.getElementById('item-edit-line-thickness').value, 10);
-            if (!isNaN(th) && th > 0) item.thickness = th;
+            const th = parseFloat(document.getElementById('item-edit-line-thickness').value);
+            if (!isNaN(th) && th > 0) item.thickness = Math.max(0.1, Math.min(20, th));
             if (item.type === 'dimension' || item.type === 'area-measure' || item.type === 'callout' || item.type === 'polyline') {
                 const ls = parseInt(document.getElementById('item-edit-line-labelSize').value, 10);
                 if (!isNaN(ls) && ls > 0) item.labelSize = ls;
+            }
+            // Label colour (dimension & polyline). If it matches the line colour,
+            // store nothing so it keeps following the line by default.
+            if (item.type === 'dimension' || item.type === 'polyline') {
+                const lc = document.getElementById('item-edit-line-labelColor').value;
+                if (lc && lc.toLowerCase() !== (item.color || '').toLowerCase()) item.labelColor = lc;
+                else delete item.labelColor;
             }
             item.arrowStart = document.getElementById('item-edit-line-arrowStart').checked;
             item.arrowEnd   = document.getElementById('item-edit-line-arrowEnd').checked;
@@ -16268,9 +16432,7 @@ const I18N_STRINGS = {
                         let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
                         targetCtx.rotate(textAng);
                         targetCtx.font = `bold ${segLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.strokeStyle = "rgba(255,255,255,0.85)"; targetCtx.lineWidth = 4;
-                        targetCtx.strokeText(segLen, 0, -6);
-                        targetCtx.fillStyle = activeColor;
+                        targetCtx.fillStyle = (l.labelColor || activeColor);
                         targetCtx.fillText(segLen, 0, -6);
                         targetCtx.restore();
                     }
@@ -16282,8 +16444,8 @@ const I18N_STRINGS = {
                         targetCtx.save();
                         targetCtx.translate(lastPt.x, lastPt.y);
                         targetCtx.font = `bold ${cumLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 3;
-                        targetCtx.strokeText(lenFt, 0, -10); targetCtx.fillText(lenFt, 0, -10);
+                        targetCtx.fillStyle = (l.labelColor || activeColor);
+                        targetCtx.fillText(lenFt, 0, -10);
                         targetCtx.restore();
                     }
                 }
@@ -16511,7 +16673,7 @@ const I18N_STRINGS = {
                     targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI; targetCtx.rotate(textAng);
                     const dimLabelSize = l.labelSize || 16;
                     targetCtx.font = `bold ${dimLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                    targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4; targetCtx.strokeText(distFt, 0, -5); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
+                    targetCtx.fillStyle = (l.labelColor || activeColor); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
                 }
                 // Polyline dimensions — opt-in per-instance. When l.showDims is
                 // true, render the same segment-by-segment + cumulative-total
@@ -16532,9 +16694,7 @@ const I18N_STRINGS = {
                         let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
                         targetCtx.rotate(textAng);
                         targetCtx.font = `bold ${segLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.strokeStyle = "rgba(255,255,255,0.85)"; targetCtx.lineWidth = 4;
-                        targetCtx.strokeText(segLen, 0, -6);
-                        targetCtx.fillStyle = activeColor;
+                        targetCtx.fillStyle = (l.labelColor || activeColor);
                         targetCtx.fillText(segLen, 0, -6);
                         targetCtx.restore();
                     }
@@ -16547,8 +16707,7 @@ const I18N_STRINGS = {
                         targetCtx.save();
                         targetCtx.translate(lastPt.x, lastPt.y);
                         targetCtx.font = `bold ${cumLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.fillStyle = activeColor; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 3;
-                        targetCtx.strokeText(lenStr, 0, -10);
+                        targetCtx.fillStyle = (l.labelColor || activeColor);
                         targetCtx.fillText(lenStr, 0, -10);
                         targetCtx.restore();
                     }
@@ -16947,8 +17106,6 @@ const I18N_STRINGS = {
                         targetCtx.rotate(textAng);
                         targetCtx.scale(1/v.zoom, 1/v.zoom);
                         targetCtx.font = "bold 13px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.strokeStyle = "rgba(255,255,255,0.85)"; targetCtx.lineWidth = 4;
-                        targetCtx.strokeText(fmtLen(segPx), 0, -6);
                         targetCtx.fillStyle = "#9b59b6";
                         targetCtx.fillText(fmtLen(segPx), 0, -6);
                         targetCtx.restore();
@@ -16966,8 +17123,6 @@ const I18N_STRINGS = {
                         targetCtx.rotate(textAng);
                         targetCtx.scale(1/v.zoom, 1/v.zoom);
                         targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.strokeStyle = "rgba(0,0,0,0.85)"; targetCtx.lineWidth = 5;
-                        targetCtx.strokeText(fmtLen(curSegPx), 0, -8);
                         targetCtx.fillStyle = "#ffeb3b";
                         targetCtx.fillText(fmtLen(curSegPx), 0, -8);
                         targetCtx.restore();
@@ -17007,7 +17162,7 @@ const I18N_STRINGS = {
                     const distFt = page.pixelsPerFoot ? formatLength(Math.hypot(p2.x-p1.x, p2.y-p1.y) / page.pixelsPerFoot) : Math.round(Math.hypot(p2.x-p1.x, p2.y-p1.y)) + " px";
                     const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2; targetCtx.save(); targetCtx.translate(mx, my); let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI; targetCtx.rotate(textAng);
                     targetCtx.font = "bold 16px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom"; targetCtx.scale(1/v.zoom, 1/v.zoom);
-                    targetCtx.fillStyle = "#f39c12"; targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4; targetCtx.strokeText(distFt, 0, -5); targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
+                    targetCtx.fillStyle = "#f39c12"; targetCtx.fillText(distFt, 0, -5); targetCtx.restore();
                 }
 
                 // Live length for draw-line and draw-poly too (helpful while drawing)
@@ -17020,8 +17175,6 @@ const I18N_STRINGS = {
                     let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
                     targetCtx.rotate(textAng); targetCtx.scale(1/v.zoom, 1/v.zoom);
                     targetCtx.font = "bold 13px Arial"; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                    targetCtx.strokeStyle = "rgba(0,0,0,0.8)"; targetCtx.lineWidth = 4;
-                    targetCtx.strokeText(distFt, 0, -6);
                     targetCtx.fillStyle = "#3498db";
                     targetCtx.fillText(distFt, 0, -6); targetCtx.restore();
                 }
@@ -18633,13 +18786,13 @@ const I18N_STRINGS = {
                     const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
                     let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
                     const ap = rotPt(mx2, my2, 0, -6, textAng * Math.PI / 180);
-                    vText(segLen, ap.x, ap.y, baseLabelSize, { fill: mt.color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                    vText(segLen, ap.x, ap.y, baseLabelSize, { fill: mt.color, rotDeg: textAng });
                 }
                 if (m.points.length > 2) {
                     let pxLen = 0; for (let k2 = 1; k2 < m.points.length; k2++) pxLen += Math.hypot(m.points[k2].x - m.points[k2 - 1].x, m.points[k2].y - m.points[k2 - 1].y);
                     const lenFt = page.pixelsPerFoot ? '\u03a3 ' + formatLength(pxLen / page.pixelsPerFoot) : '\u03a3 ' + Math.round(pxLen) + ' px';
                     const lastPt = m.points[m.points.length - 1];
-                    vText(lenFt, lastPt.x, lastPt.y - 10, baseLabelSize + 1, { fill: mt.color, outline: '#ffffff', outlineW: 3 });
+                    vText(lenFt, lastPt.x, lastPt.y - 10, baseLabelSize + 1, { fill: mt.color });
                 }
             });
         }
@@ -18745,7 +18898,7 @@ const I18N_STRINGS = {
                     let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
                     const fs = l.labelSize || 16;
                     const ap = rotPt(mx2, my2, 0, -5, textAng * Math.PI / 180);
-                    vText(distFt, ap.x, ap.y, fs, { fill: color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                    vText(distFt, ap.x, ap.y, fs, { fill: (l.labelColor || color), rotDeg: textAng });
                 }
                 if (l.type === 'polyline' && l.showDims && l.points.length >= 2) {
                     const segLabelSize = l.labelSize || 13;
@@ -18757,7 +18910,7 @@ const I18N_STRINGS = {
                         const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
                         let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
                         const ap = rotPt(mx2, my2, 0, -6, textAng * Math.PI / 180);
-                        vText(segLen, ap.x, ap.y, segLabelSize, { fill: color, outline: '#ffffff', outlineW: 4, rotDeg: textAng });
+                        vText(segLen, ap.x, ap.y, segLabelSize, { fill: (l.labelColor || color), rotDeg: textAng });
                     }
                     if (l.points.length > 2) {
                         let pxLen = 0; for (let k2 = 1; k2 < l.points.length; k2++) pxLen += Math.hypot(l.points[k2].x - l.points[k2 - 1].x, l.points[k2].y - l.points[k2 - 1].y);
@@ -19952,7 +20105,6 @@ const I18N_STRINGS = {
                                     const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2;
                                     let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
                                     svg += `<g transform="rotate(${textAng}, ${mx}, ${my})">`;
-                                    svg += `<text x="${mx}" y="${my - (6)}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="4" stroke-linejoin="round">${segLen}</text>`;
                                     svg += `<text x="${mx}" y="${my - (6)}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${segLen}</text>`;
                                     svg += `</g>`;
                                 }
@@ -19961,7 +20113,6 @@ const I18N_STRINGS = {
                                     let pxLen = 0; for(let k=1; k<m.points.length; k++) pxLen += Math.hypot(m.points[k].x - m.points[k-1].x, m.points[k].y - m.points[k-1].y);
                                     const lenFt = page.pixelsPerFoot ? "Σ " + formatLength(pxLen / page.pixelsPerFoot) : "Σ " + Math.round(pxLen) + " px";
                                     const lastPt = m.points[m.points.length - 1];
-                                    svg += `<text x="${lastPt.x}" y="${lastPt.y - (10)}" font-family="Arial" font-size="${cumLabelSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="3" stroke-linejoin="round">${lenFt}</text>`;
                                     svg += `<text x="${lastPt.x}" y="${lastPt.y - (10)}" font-family="Arial" font-size="${cumLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(mt.color)}">${lenFt}</text>`;
                                 }
                             }
@@ -20099,7 +20250,7 @@ const I18N_STRINGS = {
                                 const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2; let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
                                 // Labels use raw world units (proportional to bg image)
                                 const fontSize = (l.labelSize || 16); const strokeW = 4;
-                                svg += `<g transform="rotate(${textAng}, ${mx}, ${my})"><text x="${mx}" y="${my - (5)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="${strokeW}" stroke-linejoin="round">${distFt}</text><text x="${mx}" y="${my - (5)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(color)}">${distFt}</text></g>`;
+                                svg += `<g transform="rotate(${textAng}, ${mx}, ${my})"><text x="${mx}" y="${my - (5)}" font-family="Arial" font-size="${fontSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(l.labelColor || color)}">${distFt}</text></g>`;
                             }
                             // Polyline dimensions (opt-in via l.showDims) — mirror
                             // the polymeasure label rendering: per-segment length
@@ -20114,7 +20265,7 @@ const I18N_STRINGS = {
                                     const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
                                     const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
                                     let textAng = ang * 180 / Math.PI; if (textAng > 90 || textAng < -90) textAng += 180;
-                                    svg += `<g transform="rotate(${textAng}, ${mx}, ${my})"><text x="${mx}" y="${my - 6}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="none" stroke="white" stroke-width="4" stroke-linejoin="round">${escapeHTML(segLen)}</text><text x="${mx}" y="${my - 6}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(color)}">${escapeHTML(segLen)}</text></g>`;
+                                    svg += `<g transform="rotate(${textAng}, ${mx}, ${my})"><text x="${mx}" y="${my - 6}" font-family="Arial" font-size="${segLabelSize}px" font-weight="bold" text-anchor="middle" fill="${escapeHTML(l.labelColor || color)}">${escapeHTML(segLen)}</text></g>`;
                                 }
                                 if (l.points.length > 2) {
                                     let pxLen = 0;
