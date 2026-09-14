@@ -1932,6 +1932,37 @@
     </div>
 </div>
 
+<!-- In-app feedback form. Shown only when online; otherwise openFeedback() falls back to the Google Form. -->
+<div id="feedback-modal" class="modal-overlay" onclick="if(event.target===this) hideFeedbackModal()">
+    <div class="modal-card" style="max-width: 520px; width: 92%; padding: 24px 28px;">
+        <h2 style="margin:0 0 4px 0;" data-i18n="feedback.title">💬 Send feedback</h2>
+        <p style="color:#aaa; margin:0 0 14px 0; font-size:0.9em;" data-i18n="feedback.sub">Found a bug or have an idea? It goes straight to the developer.</p>
+        <div style="margin-bottom:12px;">
+            <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.type">Type</label>
+            <select id="feedback-type" style="width:100%;">
+                <option value="bug" data-i18n="feedback.type.bug">Bug report</option>
+                <option value="feature" data-i18n="feedback.type.feature">Feature request</option>
+                <option value="general" data-i18n="feedback.type.general">General feedback</option>
+            </select>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.message">Message</label>
+            <textarea id="feedback-message" class="text-input-dark" rows="6" maxlength="4000" style="width:100%; resize:vertical; box-sizing:border-box;" placeholder="What happened, or what would help?"></textarea>
+        </div>
+        <div style="margin-bottom:6px;">
+            <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.email">Your email (optional — only if you want a reply)</label>
+            <input type="email" id="feedback-email" class="text-input-dark" maxlength="200" style="width:100%; box-sizing:border-box;">
+        </div>
+        <!-- honeypot: hidden from people, bots fill it -->
+        <input type="text" id="feedback-hp" name="website" tabindex="-1" autocomplete="off" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;">
+        <div id="feedback-status" style="min-height:1.3em; font-size:0.88em; color:#aaa; margin:6px 0 10px 0;"></div>
+        <div class="modal-actions">
+            <button class="secondary" onclick="hideFeedbackModal()" data-i18n="modal.tutorials.close">Close</button>
+            <button id="feedback-send" onclick="sendFeedback()" data-i18n="feedback.send">Send</button>
+        </div>
+    </div>
+</div>
+
 <div id="tutorials-modal" class="modal-overlay" onclick="if(event.target===this) hideTutorialsModal()">
     <div class="modal-card" role="dialog" aria-labelledby="tutorials-modal-title"
          style="max-width: 600px; width: 92%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; padding: 24px clamp(16px, 4vw, 32px);">
@@ -1974,6 +2005,15 @@
                 <div class="tutorial-option-desc" data-i18n="modal.tutorials.manual_es.desc">Guía completa — documento Word</div>
             </div>
             <button class="tutorial-option-btn" onclick="downloadManual('es')" data-i18n="modal.tutorials.descargar">Descargar</button>
+        </div>
+
+        <div class="tutorial-option" id="offline-copy-row">
+            <div class="tutorial-option-icon">💾</div>
+            <div class="tutorial-option-text">
+                <div class="tutorial-option-title" data-i18n="modal.tutorials.offline.title">Offline copy</div>
+                <div class="tutorial-option-desc" data-i18n="modal.tutorials.offline.desc">Download the whole app as one file to use with no internet</div>
+            </div>
+            <button class="tutorial-option-btn" id="offline-copy-btn" onclick="downloadOfflineCopy()" data-i18n="modal.tutorials.download">Download</button>
         </div>
 
         <div class="tutorial-option">
@@ -2669,6 +2709,24 @@ const I18N_STRINGS = {
         "btn.feedback": "💬 Feedback",
         "btn.feedback.tooltip": "Send feedback — report a bug or request a feature",
         "feedback.notset": "The feedback form link has not been configured yet.",
+        "feedback.title": "\uD83D\uDCAC Send feedback",
+        "feedback.sub": "Found a bug or have an idea? It goes straight to the developer.",
+        "feedback.type": "Type",
+        "feedback.type.bug": "Bug report",
+        "feedback.type.feature": "Feature request",
+        "feedback.type.general": "General feedback",
+        "feedback.message": "Message",
+        "feedback.email": "Your email (optional \u2014 only if you want a reply)",
+        "feedback.send": "Send",
+        "feedback.sending": "Sending\u2026",
+        "feedback.ok": "Thanks \u2014 your feedback was sent.",
+        "feedback.err.empty": "Please write a message first.",
+        "feedback.err.rate": "Too many messages in a short time \u2014 please try again later.",
+        "feedback.err.send": "Could not send. You can use the web form instead:",
+        "modal.tutorials.offline.title": "Offline copy",
+        "modal.tutorials.offline.desc": "Download the whole app as one file to use with no internet",
+        "modal.tutorials.offline.preparing": "Preparing\u2026",
+        "modal.tutorials.offline.err": "Could not download the offline copy. Please check your connection and try again.",
         "ribbon.help": "Help",
         "brand.title": "Convention Planner",
         "panel.title.project": "Project Settings",
@@ -3453,6 +3511,24 @@ const I18N_STRINGS = {
         "btn.feedback": "💬 Comentarios",
         "btn.feedback.tooltip": "Enviar comentarios — reportar un error o sugerir una función",
         "feedback.notset": "El enlace del formulario de comentarios aún no está configurado.",
+        "feedback.title": "\uD83D\uDCAC Enviar comentarios",
+        "feedback.sub": "\u00bfEncontr\u00f3 un error o tiene una idea? Llega directamente al desarrollador.",
+        "feedback.type": "Tipo",
+        "feedback.type.bug": "Reporte de error",
+        "feedback.type.feature": "Solicitud de funci\u00f3n",
+        "feedback.type.general": "Comentario general",
+        "feedback.message": "Mensaje",
+        "feedback.email": "Su correo (opcional \u2014 solo si quiere respuesta)",
+        "feedback.send": "Enviar",
+        "feedback.sending": "Enviando\u2026",
+        "feedback.ok": "Gracias \u2014 sus comentarios fueron enviados.",
+        "feedback.err.empty": "Escriba un mensaje primero.",
+        "feedback.err.rate": "Demasiados mensajes en poco tiempo \u2014 intente m\u00e1s tarde.",
+        "feedback.err.send": "No se pudo enviar. Puede usar el formulario web:",
+        "modal.tutorials.offline.title": "Copia sin conexi\u00f3n",
+        "modal.tutorials.offline.desc": "Descargue toda la aplicaci\u00f3n en un solo archivo para usarla sin internet",
+        "modal.tutorials.offline.preparing": "Preparando\u2026",
+        "modal.tutorials.offline.err": "No se pudo descargar la copia sin conexi\u00f3n. Revise su conexi\u00f3n e intente de nuevo.",
         "ribbon.help": "Ayuda",
         "brand.title": "Organiza Asambleas",
         "panel.title.project": "Configuración",
@@ -8172,16 +8248,85 @@ const I18N_STRINGS = {
     });
 
     // ─── Tutorials modal ─────────────────────────────────────────────────────────
-    // Opens the feedback form (Google Form) in a new tab.
-    // NOTE: replace FEEDBACK_FORM_URL below with your real Google Form share link.
+    // ── Feedback ───────────────────────────────────────────────────────────
+    // Online (served over http/https): an in-app form posts to /feedback on the
+    // Worker, which stores it and emails the developer. Offline / file:// : fall
+    // back to the Google Form link so there's never a dead end.
     const FEEDBACK_FORM_URL = 'https://forms.gle/jVRQbEtyuaHjqS8b7';
+    function _feedbackOnline() { return /^https?:$/.test(location.protocol) && navigator.onLine !== false; }
     function openFeedback() {
-        if (!FEEDBACK_FORM_URL || FEEDBACK_FORM_URL === 'FEEDBACK_FORM_URL_PLACEHOLDER') {
-            alert(t('feedback.notset') || 'The feedback form link has not been configured yet.');
-            return;
-        }
+        if (_feedbackOnline()) { showFeedbackModal(); return; }
         window.open(FEEDBACK_FORM_URL, '_blank', 'noopener');
     }
+    function showFeedbackModal() {
+        const m = document.getElementById('feedback-modal'); if (!m) return;
+        document.getElementById('feedback-status').textContent = '';
+        document.getElementById('feedback-send').disabled = false;
+        m.classList.add('show');
+        setTimeout(() => { const ta = document.getElementById('feedback-message'); if (ta) ta.focus(); }, 50);
+    }
+    function hideFeedbackModal() { const m = document.getElementById('feedback-modal'); if (m) m.classList.remove('show'); }
+    async function sendFeedback() {
+        const status = document.getElementById('feedback-status');
+        const btn = document.getElementById('feedback-send');
+        const message = document.getElementById('feedback-message').value.trim();
+        if (message.length < 3) { status.textContent = t('feedback.err.empty') || 'Please write a message first.'; return; }
+        btn.disabled = true; status.textContent = t('feedback.sending') || 'Sending\u2026';
+        const payload = {
+            type: document.getElementById('feedback-type').value,
+            message,
+            email: document.getElementById('feedback-email').value.trim(),
+            hp: document.getElementById('feedback-hp').value,
+            page: (typeof activeTab === 'string' ? activeTab : ''),
+            version: APP_VERSION
+        };
+        try {
+            const r = await fetch('/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.ok) {
+                status.style.color = '#7fd6c8'; status.textContent = t('feedback.ok') || 'Thanks \u2014 your feedback was sent.';
+                document.getElementById('feedback-message').value = '';
+                setTimeout(hideFeedbackModal, 1400);
+                return;
+            }
+            status.style.color = '#e0a030';
+            status.textContent = (r.status === 429) ? (t('feedback.err.rate') || 'Too many messages in a short time \u2014 please try again later.')
+                                : (t('feedback.err.send') || 'Could not send. You can use the web form instead:') + ' ';
+            if (r.status !== 429) { const a = document.createElement('a'); a.href = FEEDBACK_FORM_URL; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'open form \u2197'; a.style.color = 'var(--accent)'; status.appendChild(a); }
+        } catch (e) {
+            status.style.color = '#e0a030'; status.textContent = (t('feedback.err.send') || 'Could not send. You can use the web form instead:') + ' ';
+            const a = document.createElement('a'); a.href = FEEDBACK_FORM_URL; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'open form \u2197'; a.style.color = 'var(--accent)'; status.appendChild(a);
+        }
+        btn.disabled = false;
+    }
+
+    // ── Offline copy ─────────────────────────────────────────────────────
+    // Saves the whole app as one HTML file, named with version + date. Prefers a
+    // dedicated self-contained build (index_offline.html) if the server has one;
+    // otherwise saves the running page itself. Hidden when already opened from a file.
+    async function downloadOfflineCopy() {
+        const btn = document.getElementById('offline-copy-btn');
+        const orig = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = t('modal.tutorials.offline.preparing') || 'Preparing\u2026'; }
+        try {
+            let res = await fetch('./index_offline.html', { cache: 'no-store' }).catch(() => null);
+            if (!res || !res.ok || !/text\/html/i.test(res.headers.get('content-type') || '')) {
+                res = await fetch(location.href.split('#')[0].split('?')[0], { cache: 'no-store' });
+            }
+            if (!res.ok) throw new Error('fetch failed');
+            const blob = await res.blob();
+            const d = new Date(); const date = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = 'ConventionPlanner_v' + APP_VERSION + '_offline_' + date + '.html';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        } catch (e) {
+            alert(t('modal.tutorials.offline.err') || 'Could not download the offline copy. Please check your connection and try again.');
+        }
+        if (btn) { btn.disabled = false; btn.textContent = orig; }
+    }
+    // Hide the offline-copy row when already running from a file.
+    document.addEventListener('DOMContentLoaded', () => { if (location.protocol === 'file:') { const r = document.getElementById('offline-copy-row'); if (r) r.style.display = 'none'; } });
     function showTutorialsModal() {
         // Always start at the menu view, even if the user closed mid-announcement.
         const menuView = document.getElementById('tutorials-menu-view');
@@ -8230,6 +8375,7 @@ const I18N_STRINGS = {
         if (e.key === 'Escape' && document.getElementById('tutorials-modal').classList.contains('show')) {
             hideTutorialsModal();
         }
+        if (e.key === 'Escape' && document.getElementById('feedback-modal') && document.getElementById('feedback-modal').classList.contains('show')) { hideFeedbackModal(); }
         if (e.key === 'Escape' && document.getElementById('roster-modal').classList.contains('show')) {
             hideRosterModal();
         }
