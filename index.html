@@ -1933,13 +1933,14 @@
 </div>
 
 <!-- In-app feedback form. Shown only when online; otherwise openFeedback() falls back to the Google Form. -->
+<style>#feedback-message:focus, #feedback-email:focus { outline: none; border-color: var(--accent) !important; box-shadow: 0 0 0 2px rgba(0,122,204,0.35); }</style>
 <div id="feedback-modal" class="modal-overlay" onclick="if(event.target===this) hideFeedbackModal()">
     <div class="modal-card" style="max-width: 520px; width: 92%; padding: 24px 28px;">
         <h2 style="margin:0 0 4px 0;" data-i18n="feedback.title">💬 Send feedback</h2>
         <p style="color:#aaa; margin:0 0 14px 0; font-size:0.9em;" data-i18n="feedback.sub">Found a bug or have an idea? It goes straight to the developer.</p>
         <div style="margin-bottom:12px;">
             <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.type">Type</label>
-            <select id="feedback-type" style="width:100%;">
+            <select id="feedback-type" style="width:100%; background:#1c1c1e; color:#eee; border:1px solid #666; border-radius:6px; padding:8px 10px; font-size:0.95em;">
                 <option value="bug" data-i18n="feedback.type.bug">Bug report</option>
                 <option value="feature" data-i18n="feedback.type.feature">Feature request</option>
                 <option value="general" data-i18n="feedback.type.general">General feedback</option>
@@ -1947,11 +1948,11 @@
         </div>
         <div style="margin-bottom:12px;">
             <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.message">Message</label>
-            <textarea id="feedback-message" class="text-input-dark" rows="6" maxlength="4000" style="width:100%; resize:vertical; box-sizing:border-box;" placeholder="What happened, or what would help?"></textarea>
+            <textarea id="feedback-message" class="text-input-dark" rows="6" maxlength="4000" style="width:100%; resize:vertical; box-sizing:border-box; background:#1c1c1e; color:#eee; border:1px solid #666; border-radius:6px; padding:8px 10px; font-size:0.95em;" placeholder="What happened, or what would help?"></textarea>
         </div>
         <div style="margin-bottom:6px;">
             <label style="font-size:0.85em; color:#ccc; display:block; margin-bottom:4px;" data-i18n="feedback.email">Your email (optional — only if you want a reply)</label>
-            <input type="email" id="feedback-email" class="text-input-dark" maxlength="200" style="width:100%; box-sizing:border-box;">
+            <input type="email" id="feedback-email" class="text-input-dark" maxlength="200" style="width:100%; box-sizing:border-box; background:#1c1c1e; color:#eee; border:1px solid #666; border-radius:6px; padding:8px 10px; font-size:0.95em;" placeholder="name@example.com">
         </div>
         <!-- honeypot: hidden from people, bots fill it -->
         <input type="text" id="feedback-hp" name="website" tabindex="-1" autocomplete="off" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;">
