@@ -1,3 +1,5 @@
+import { EmailMessage } from "cloudflare:email";
+
 /**
  * Convention Planner — usage beacon Worker.
  *
@@ -34,6 +36,9 @@ export default {
 
     if (url.pathname === "/beacon") {
       return handleBeacon(request, env, ctx, url);
+    }
+    if (url.pathname === "/feedback") {
+      return handleFeedback(request, env, ctx);
     }
 
     // Everything else is a static file — hand off to the assets binding.
@@ -98,6 +103,93 @@ async function handleBeacon(request, env, ctx, url) {
     status: 204,
     headers: { "cache-control": "no-store" },
   });
+}
+
+
+/**
+ * POST /feedback  — in-app feedback form.
+ * Body (JSON): { type: "bug"|"feature"|"general", message, email?, page?, version?, hp? }
+ * Every submission is saved to KV (fb|<timestamp>|<id>) so nothing is lost, then
+ * emailed via the FEEDBACK_MAIL send_email binding. Spam guards: honeypot field,
+ * length caps, and a per-IP limit of 5 submissions per hour (KV, auto-expiring).
+ */
+const FEEDBACK_TO = "dev@abarca-services.com";
+const FEEDBACK_FROM = "noreply@conventionplanner.org";
+const FEEDBACK_MAX_PER_HOUR = 5;
+
+async function handleFeedback(request, env, ctx) {
+  if (request.method !== "POST") return json({ ok: false, error: "method" }, 405);
+  let body;
+  try { body = await request.json(); } catch (e) { return json({ ok: false, error: "bad_json" }, 400); }
+  if (!body || typeof body !== "object") return json({ ok: false, error: "bad_body" }, 400);
+
+  // Honeypot: real users never fill this hidden field. Pretend success to bots.
+  if (body.hp) return json({ ok: true });
+
+  const type = ["bug", "feature", "general"].includes(body.type) ? body.type : "general";
+  const message = String(body.message || "").trim().slice(0, 4000);
+  const email = String(body.email || "").trim().slice(0, 200);
+  const page = String(body.page || "").trim().slice(0, 120);
+  const version = String(body.version || "").trim().slice(0, 40);
+  if (message.length < 3) return json({ ok: false, error: "empty" }, 400);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ ok: false, error: "bad_email" }, 400);
+
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const cf = request.cf || {};
+  const where = [sanitize(cf.city), sanitize(cf.region), sanitize(cf.country)].filter(Boolean).join(", ");
+  const when = new Date().toISOString();
+
+  // Per-IP rate limit (needs KV; if KV is missing we still accept but can't limit).
+  if (env.USAGE) {
+    const rlKey = "fb|rl|" + ip;
+    const n = parseInt((await env.USAGE.get(rlKey)) || "0", 10) || 0;
+    if (n >= FEEDBACK_MAX_PER_HOUR) return json({ ok: false, error: "rate" }, 429);
+    ctx.waitUntil(env.USAGE.put(rlKey, String(n + 1), { expirationTtl: 3600 }));
+  }
+
+  const record = { when, type, message, email, page, version, where };
+  const id = "fb|" + when + "|" + Math.random().toString(36).slice(2, 8);
+
+  // 1) Persist first — the email is a courtesy copy; KV is the source of truth.
+  if (env.USAGE) {
+    try { await env.USAGE.put(id, JSON.stringify(record)); } catch (e) { /* keep going */ }
+  }
+
+  // 2) Email via Cloudflare Email Routing (send_email binding). Failure here
+  //    never fails the request: the record is already saved.
+  let mailed = false;
+  if (env.FEEDBACK_MAIL) {
+    try {
+      const subject = `[Convention Planner] ${type} feedback` + (version ? ` (v${version})` : "");
+      const text =
+        `Type:     ${type}\n` +
+        `When:     ${when}\n` +
+        `Version:  ${version || "-"}\n` +
+        `Page:     ${page || "-"}\n` +
+        `From:     ${email || "(not given)"}\n` +
+        `Location: ${where || "-"}\n` +
+        `KV id:    ${id}\n\n` +
+        message + "\n";
+      const raw =
+        `From: Convention Planner <${FEEDBACK_FROM}>\r\n` +
+        `To: ${FEEDBACK_TO}\r\n` +
+        (email ? `Reply-To: ${email}\r\n` : "") +
+        `Subject: ${subject.replace(/[\r\n]/g, " ")}\r\n` +
+        `Date: ${new Date().toUTCString()}\r\n` +
+        `Message-ID: <${Date.now()}.${Math.random().toString(36).slice(2)}@conventionplanner.org>\r\n` +
+        `MIME-Version: 1.0\r\n` +
+        `Content-Type: text/plain; charset=utf-8\r\n` +
+        `Content-Transfer-Encoding: 8bit\r\n\r\n` +
+        text;
+      await env.FEEDBACK_MAIL.send(new EmailMessage(FEEDBACK_FROM, FEEDBACK_TO, raw));
+      mailed = true;
+    } catch (e) { mailed = false; }
+  }
+  return json({ ok: true, mailed });
+}
+
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 }
 
 /** Increment an integer KV key by 1 (read-modify-write; approximate under load). */

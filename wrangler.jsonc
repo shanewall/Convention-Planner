@@ -13,6 +13,12 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "send_email": [
+    {
+      "name": "FEEDBACK_MAIL",
+      "destination_address": "dev@abarca-services.com"
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "USAGE",
