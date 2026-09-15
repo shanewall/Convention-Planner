@@ -37,6 +37,9 @@ export default {
     if (url.pathname === "/beacon") {
       return handleBeacon(request, env, ctx, url);
     }
+    if (url.pathname === "/offline") {
+      return handleOffline(request, env);
+    }
     if (url.pathname === "/feedback") {
       // The landing site (conventionplanner.org) posts here too; allow it.
       const origin = request.headers.get("Origin") || "";
@@ -203,6 +206,32 @@ async function handleFeedback(request, env, ctx) {
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+}
+
+
+/**
+ * GET /offline — the live app as a downloadable file. The app is fully
+ * self-contained (libraries embedded), so the file works with no internet.
+ * Filename carries the app version (read from the file itself) and today's date,
+ * e.g. ConventionPlanner_v2.11.0_offline_2026-09-15.html — never stale.
+ */
+async function handleOffline(request, env) {
+  const res = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url), { method: "GET" }));
+  if (!res.ok) return new Response("Not available", { status: 502 });
+  const html = await res.text();
+  const m = html.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+  const ver = m ? m[1] : "current";
+  const d = new Date();
+  const date = d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  const name = `ConventionPlanner_v${ver}_offline_${date}.html`;
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "content-disposition": `attachment; filename="${name}"`,
+      "cache-control": "no-store",
+    },
+  });
 }
 
 /** Increment an integer KV key by 1 (read-modify-write; approximate under load). */
