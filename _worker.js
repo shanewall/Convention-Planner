@@ -38,7 +38,19 @@ export default {
       return handleBeacon(request, env, ctx, url);
     }
     if (url.pathname === "/feedback") {
-      return handleFeedback(request, env, ctx);
+      // The landing site (conventionplanner.org) posts here too; allow it.
+      const origin = request.headers.get("Origin") || "";
+      const cors = FEEDBACK_ORIGINS.has(origin) ? {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+      } : {};
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+      const res = await handleFeedback(request, env, ctx);
+      Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
     }
 
     // Everything else is a static file — hand off to the assets binding.
@@ -114,6 +126,7 @@ async function handleBeacon(request, env, ctx, url) {
  * length caps, and a per-IP limit of 5 submissions per hour (KV, auto-expiring).
  */
 const FEEDBACK_TO = "dev@abarca-services.com";
+const FEEDBACK_ORIGINS = new Set(["https://conventionplanner.org", "https://www.conventionplanner.org"]);
 const FEEDBACK_FROM = "noreply@conventionplanner.org";
 const FEEDBACK_MAX_PER_HOUR = 5;
 
