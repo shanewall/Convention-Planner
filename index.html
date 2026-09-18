@@ -16481,7 +16481,18 @@ const I18N_STRINGS = {
     let renderPending = false;
     function render(targetCtx = ctx, v = view, isLive = true) {
         if (!isLive) return; 
-        if (!renderPending) { renderPending = true; requestAnimationFrame(() => { drawScene(targetCtx, v, isLive); renderPending = false; }); }
+        if (!renderPending) {
+            renderPending = true;
+            requestAnimationFrame(() => {
+                try { drawScene(targetCtx, v, isLive); }
+                catch (e) {
+                    // A rendering bug must never permanently disable redraws —
+                    // that turns one bad frame into a total, unrecoverable freeze.
+                    console.error('Render error (frame skipped, app stays usable):', e);
+                }
+                finally { renderPending = false; }
+            });
+        }
     }
 
     function drawScene(targetCtx, v, isLive) {
@@ -16795,7 +16806,7 @@ const I18N_STRINGS = {
                         let textAng = ang; if (textAng > Math.PI/2 || textAng < -Math.PI/2) textAng += Math.PI;
                         targetCtx.rotate(textAng);
                         targetCtx.font = `bold ${segLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.fillStyle = (l.labelColor || activeColor);
+                        targetCtx.fillStyle = (m.labelColor || activeColor);
                         targetCtx.fillText(segLen, 0, -6);
                         targetCtx.restore();
                     }
@@ -16807,7 +16818,7 @@ const I18N_STRINGS = {
                         targetCtx.save();
                         targetCtx.translate(lastPt.x, lastPt.y);
                         targetCtx.font = `bold ${cumLabelSize}px Arial`; targetCtx.textAlign = "center"; targetCtx.textBaseline = "bottom";
-                        targetCtx.fillStyle = (l.labelColor || activeColor);
+                        targetCtx.fillStyle = (m.labelColor || activeColor);
                         targetCtx.fillText(lenFt, 0, -10);
                         targetCtx.restore();
                     }
