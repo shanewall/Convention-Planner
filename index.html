@@ -776,8 +776,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         #panel-screen .panel-list-container,
         #panel-line .panel-list-container,
         #panel-layers .panel-list-container,
-        #panel-attendants .panel-list-container,
-        #panel-project .panel-list-container { display: flex; flex-direction: column; min-height: 0; }
+        #panel-attendants .panel-list-container { display: flex; flex-direction: column; min-height: 0; }
+        /* Project panel: unlike the placed-items panels above, every section
+           here (Pages & Backgrounds, Background & Scale, Project Logo, Merge,
+           Import/Export) is a plain collapsible list entry — all expand
+           straight downward, none get its own internal scroll. If the open
+           sections together are taller than the sidebar, the whole panel
+           scrolls as one unit instead of any single section scrolling on its own. */
+        #panel-project.panel-content { overflow-y: auto; }
 
         /* A "grow-section" claims a fair share of vertical space in its
            flex parent when its body is expanded. With flex-basis: 0 the
@@ -2246,16 +2252,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                     <span class="title" data-i18n="project.pages.header">Pages & Backgrounds <span id="pages-badge" class="badge">0</span></span>
                     <span class="chevron">▼</span>
                 </div>
-            </div>
-            <div class="panel-list-container" style="padding-top: 0;">
-                <div id="pages-section" class="grow-section">
-                    <div id="pages-body" class="collapse-body">
-                        <ul class="item-list" id="page-list"></ul>
-                        <button class="btn-full btn-primary" onclick="addNewPage()" data-i18n="project.pages.add">+ New Page</button>
-                    </div>
+                <div id="pages-body" class="collapse-body">
+                                            <ul class="item-list" id="page-list"></ul>
+                            <button class="btn-full btn-primary" onclick="addNewPage()" data-i18n="project.pages.add">+ New Page</button>
                 </div>
-            </div>
-            <div class="panel-tools" style="padding-top: 0; padding-bottom: 15px;">
                 <div class="collapse-header collapsed" data-collapse-target="upload-body" onclick="toggleCollapse(this)">
                     <span class="title" data-i18n="project.upload.header">Background &amp; Scale</span>
                     <span class="chevron">▼</span>
@@ -2340,8 +2340,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                     <div style="font-size: 0.68em; text-transform: uppercase; letter-spacing: 0.5px; color: #888; padding: 12px 0 4px 0; font-weight: 600;" data-i18n="menu.project.group.schedule">Attendant Schedule</div>
                     <button class="btn-full" style="background: #444; margin-top: 4px;" onclick="exportAttendantsSchedule()" data-i18n="project.import_export.export_schedule">📤 Export Schedule (Excel)</button>
                     <button class="btn-full" style="background: #444; margin-top: 4px;" onclick="document.getElementById('att-csv-import').click()" data-i18n="project.import_export.import_schedule">📥 Import Schedule</button>
-                </div>
-            </div>
+            </div>            </div>
         </div>
 
         <div id="panel-area" class="panel-content">
