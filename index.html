@@ -826,6 +826,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                 overflow: visible;
             }
             #top-ribbon, #properties-sidebar, #viewport, #tool-rail, #page-tabs-strip { display: none !important; }
+            /* The right-side "Placed Items" panel was added after this print stylesheet
+               was written and got missed — it stayed on screen during print/preview,
+               overlapping the report content. Hide it and its resize/toggle controls too. */
+            #right-sidebar, #resizer-right, #toggle-right { display: none !important; }
 
             .print-header {
                 border-bottom: 2px solid #000;
