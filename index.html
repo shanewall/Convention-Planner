@@ -13657,6 +13657,16 @@ const I18N_STRINGS = {
         if (!mt) return;
         saveState();
         mt.showLabels = mt.showLabels === false ? true : false;
+        // A group-level toggle should act as a real bulk "set all", not just
+        // change the default — otherwise any measure that already has its own
+        // per-instance override (set via that measure's own eye icon) silently
+        // ignores this button, which looks exactly like the button doing
+        // nothing. Clearing overrides here makes every instance in the group
+        // follow the new group setting, as the button implies.
+        project.pages.forEach(pg => {
+            if (!pg.measures) return;
+            pg.measures.forEach(m => { if ((m.typeIndex ?? 0) === typeIdx) delete m.showLabels; });
+        });
         updateUI(); triggerUpdate();
     }
     // Per-instance property updater for placed polymeasures (arrows, etc.).
