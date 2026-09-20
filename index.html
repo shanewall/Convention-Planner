@@ -16396,6 +16396,14 @@ const I18N_STRINGS = {
                 }
             }
         }
+        // Chair Style tags are keyed by seat index. A reshape can shrink the
+        // seat count, leaving tags that point past the end of the new list —
+        // those seats no longer exist, so their tags must go too, or a style's
+        // totals keep counting chairs that were removed by the resize.
+        if (area.chairTags) {
+            const validCount = area.cachedSeats.length;
+            Object.keys(area.chairTags).forEach(k => { if (Number(k) >= validCount) delete area.chairTags[k]; });
+        }
         area.cacheDirty = false;
     }
 
